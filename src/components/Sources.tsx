@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SourcesResponse } from '../types';
+import { SourceResponse } from '../types';
 import { SERVICE_URL } from '../configs/constants';
 import { Table } from './Table';
 import { Link } from 'react-router';
@@ -7,7 +7,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import './styles/table.css';
 
 export function Sources() {
-  const [sources, setSources] = useState<SourcesResponse[] | undefined>(
+  const [sources, setSources] = useState<SourceResponse[] | undefined>(
     undefined
   );
 
@@ -18,8 +18,8 @@ export function Sources() {
         if (!response.ok) {
           throw new Error(`Error fetching sources: ${response.statusText}`);
         }
-        const sources: SourcesResponse[] =
-          (await response.json()) as SourcesResponse[];
+        const sources: SourceResponse[] =
+          (await response.json()) as SourceResponse[];
         setSources(sources);
       } catch (e) {
         console.error(e);
@@ -54,7 +54,7 @@ export function Sources() {
               accessorFn: (row) => row.dec.toFixed(5),
               size: 125,
             },
-          ] as ColumnDef<SourcesResponse>[]
+          ] as ColumnDef<SourceResponse>[]
         }
       />
     )
