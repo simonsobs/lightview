@@ -8,6 +8,7 @@ import {
   getMaxFlux,
   getMedianFlux,
 } from '../utils/lightcurveDataHelpers';
+import { Lightcurve } from './Lightcurve';
 
 export function Source() {
   const { id } = useParams();
@@ -78,6 +79,7 @@ export function Source() {
             freqForMaxAndMedian={badgeData.freqForMaxAndMedian}
           />
         )}
+        {lightcurveData && <Lightcurve lightcurveData={lightcurveData} />}
       </>
     )
   );

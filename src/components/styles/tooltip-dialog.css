@@ -1,0 +1,5 @@
+.flux-cutout {
+  width: 128px;
+  height: 128px;
+  image-rendering: crisp-edges;
+}
