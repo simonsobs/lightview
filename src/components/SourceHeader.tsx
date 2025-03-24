@@ -6,7 +6,7 @@ type SourceHeaderProps = Omit<SourceResponse, 'variable'> & {
   sourceClass: string;
   maxFlux: number;
   medianFlux: number;
-  freqForMaxAndMedian: number;
+  freqForMaxAndMedian: string;
 };
 
 export function SourceHeader({
@@ -25,11 +25,19 @@ export function SourceHeader({
       <Badge label="Dec" content={dec.toFixed(5)} />
       <Badge label="Class" content={sourceClass} />
       <Badge
-        label={`Max at ${freqForMaxAndMedian}Hz`}
+        label={
+          <>
+            Max <span className="freq-aside">(at {freqForMaxAndMedian})</span>
+          </>
+        }
         content={maxFlux.toFixed(5) + ' MJy'}
       />
       <Badge
-        label={`Base at ${freqForMaxAndMedian}Hz`}
+        label={
+          <>
+            Base <span className="freq-aside">(at {freqForMaxAndMedian})</span>
+          </>
+        }
         content={medianFlux.toFixed(5) + ' MJy'}
       />
     </div>

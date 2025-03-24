@@ -1,14 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router';
-import { SourceSummary } from '../types';
+import { LightcurveData, SourceSummary } from '../types';
 import { SERVICE_URL } from '../configs/constants';
 import { SourceHeader } from './SourceHeader';
+import {
+  findMidBand,
+  getMaxFlux,
+  getMedianFlux,
+} from '../utils/lightcurveDataHelpers';
 
 export function Source() {
   const { id } = useParams();
   const [sourceSummary, setSourceSummary] = useState<SourceSummary | undefined>(
     undefined
   );
+  const [lightcurveData, setLightcurveData] = useState<
+    LightcurveData | undefined
+  >(undefined);
 
   useEffect(() => {
     async function getSourceSummary() {
@@ -26,18 +34,50 @@ export function Source() {
     void getSourceSummary();
   }, [id]);
 
+  useEffect(() => {
+    async function getLightcurveData() {
+      const response: Response = await fetch(
+        `${SERVICE_URL}/lightcurves/${id}/all`
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Error fetching lightcurve data: ${response.statusText}`
+        );
+      }
+      const data: LightcurveData = (await response.json()) as LightcurveData;
+      // Sort data by the frequency band so the plotly legend is sorted in ascending order
+      data.bands.sort((a, b) => a.band.frequency - b.band.frequency);
+      setLightcurveData(data);
+    }
+    void getLightcurveData();
+  }, [id]);
+
+  const badgeData = useMemo(() => {
+    if (!lightcurveData) return;
+    const bandForMaxAndMedian = findMidBand(lightcurveData.bands);
+    const medianFlux = getMedianFlux(bandForMaxAndMedian);
+    const maxFlux = getMaxFlux(bandForMaxAndMedian);
+    return {
+      freqForMaxAndMedian: bandForMaxAndMedian.band.name,
+      medianFlux,
+      maxFlux,
+    };
+  }, [lightcurveData]);
+
   return (
     sourceSummary && (
       <>
-        <SourceHeader
-          id={sourceSummary.source.id}
-          ra={sourceSummary.source.ra}
-          dec={sourceSummary.source.dec}
-          sourceClass="Aliens"
-          maxFlux={0}
-          medianFlux={0}
-          freqForMaxAndMedian={140}
-        />
+        {badgeData && (
+          <SourceHeader
+            id={sourceSummary.source.id}
+            ra={sourceSummary.source.ra}
+            dec={sourceSummary.source.dec}
+            sourceClass="Aliens"
+            maxFlux={badgeData.maxFlux}
+            medianFlux={badgeData.medianFlux}
+            freqForMaxAndMedian={badgeData.freqForMaxAndMedian}
+          />
+        )}
       </>
     )
   );

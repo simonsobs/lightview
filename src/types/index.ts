@@ -25,3 +25,20 @@ export type SourceSummary = {
   bands: Band[];
   measurements: Measurement[];
 };
+
+export type LightcurveBand = {
+  band: Band;
+  id: number[];
+  time: string[];
+  i_flux: number[];
+  i_uncertainty: number[];
+  q_flux: number[];
+  q_uncertainty: number[];
+  u_flux: number[];
+  u_uncertainty: number[];
+};
+
+export type LightcurveData = {
+  source: SourceResponse;
+  bands: LightcurveBand[];
+};
