@@ -1,0 +1,13 @@
+.home-link {
+  text-decoration: none;
+}
+
+.home-link:visited {
+  color: black;
+}
+
+.home-link > span {
+  color: black;
+  font-size: 1.5em;
+  font-weight: 'bold';
+}
