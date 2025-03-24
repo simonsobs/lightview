@@ -9,22 +9,25 @@
 .source-header-container > h3 {
   margin: 0;
   margin-right: 1em;
+  padding: 0 10px;
 }
 
 .badge-container {
   padding: 0;
-  border: 1px solid black;
+  border: 2px solid rgb(108, 117, 125);
   border-radius: 5px;
-  background-color: lightgrey;
+  background-color: #fcfcfd;
   display: flex;
   align-items: center;
   column-gap: 1.5em;
 }
 
 .badge-container > h4 {
+  color: white;
+  background-color: rgba(33, 37, 41, 0.75);
   margin: 0;
   padding: 10px;
-  border-right: 1px solid black;
+  border-right: 2px solid rgb(108, 117, 125);
   text-wrap: nowrap;
 }
 

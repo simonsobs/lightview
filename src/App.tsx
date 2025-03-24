@@ -1,4 +1,3 @@
-import './App.css';
 import { Route, Routes } from 'react-router';
 import { Navigation } from './components/Navigation';
 import { Main } from './components/Main';
