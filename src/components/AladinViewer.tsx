@@ -10,14 +10,17 @@ export function AladinViewer({ source }: AladinViewerProps) {
   const aladinInstanceRef = useRef<Aladin | null>(null);
 
   useEffect(() => {
+    // Script is loaded in index.html, so the Aladin API should have loaded; return early if it hasn't
     if (!window.A) {
       console.error('Aladin API is not loaded.');
       return;
     }
 
+    // Initialize the Aladin plugin
     window.A.init
       .then(() => {
         if (aladinContainerRef.current) {
+          // We know window.A exists, so instantiate Aladin viewer with given options
           aladinInstanceRef.current = window.A!.aladin(
             aladinContainerRef.current,
             {
@@ -27,6 +30,7 @@ export function AladinViewer({ source }: AladinViewerProps) {
               projection: 'ZEA',
             }
           );
+          // Center Aladin's cursor on the source's location
           aladinInstanceRef.current.gotoRaDec(source.ra, source.dec);
         }
       })
@@ -34,6 +38,7 @@ export function AladinViewer({ source }: AladinViewerProps) {
         console.error('Aladin API failed to initialize.');
       });
 
+    // Clean up function
     return () => {
       aladinInstanceRef.current = null;
     };

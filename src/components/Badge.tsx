@@ -6,6 +6,12 @@ type BadgeProps = {
   content: ReactNode;
 };
 
+/**
+ * A simple, styled Badge component that renders data with a label
+ *
+ * @param BadgeProps
+ * @returns JSX.Element
+ */
 export function Badge({ label, content }: BadgeProps) {
   return (
     <div className="badge-container">

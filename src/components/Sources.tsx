@@ -6,6 +6,9 @@ import { Link } from 'react-router';
 import { ColumnDef } from '@tanstack/react-table';
 import './styles/table.css';
 
+/**
+ * Renders a Table of sources returned by the /sources endpoint
+ */
 export function Sources() {
   const [sources, setSources] = useState<SourceResponse[] | undefined>(
     undefined
@@ -36,13 +39,13 @@ export function Sources() {
           [
             {
               header: 'ID',
+              // Link to individual sources from the table
               cell: ({ row }) => (
                 <Link to={`/source/${row.original.id}`}>{row.original.id}</Link>
               ),
               size: 50,
               accessorFn: (row) => row.id,
-              sortingFn: (rowA, rowB) =>
-                rowA.original.id < rowB.original.id ? -1 : 1,
+              sortingFn: (rowA, rowB) => rowA.original.id - rowB.original.id,
             },
             {
               header: 'ra',

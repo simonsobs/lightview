@@ -29,6 +29,7 @@ export type SourceSummary = {
 export type LightcurveBand = {
   band: Band;
   id: number[];
+  /** time is sent as a Date string */
   time: string[];
   i_flux: number[];
   i_uncertainty: number[];

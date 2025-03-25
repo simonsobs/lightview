@@ -9,6 +9,9 @@ type SourceHeaderProps = Omit<SourceResponse, 'variable'> & {
   freqForMaxAndMedian: string;
 };
 
+/**
+ * Renders details about a source within the Source component
+ */
 export function SourceHeader({
   id,
   ra,

@@ -55,6 +55,7 @@ type PlotDatumWithErrorY = PlotDatum & {
   'error_y.array': Datum;
 };
 
+/** Uses Plotly to generate a source's lightcurve. Currently plots all bands of a source. */
 export function Lightcurve({ lightcurveData }: LightcurveProps) {
   const [tooltipContent, setTooltipContent] =
     useState<TooltipContent>(undefined);

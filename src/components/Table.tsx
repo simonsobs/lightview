@@ -16,6 +16,10 @@ type TableProps<T> = {
   className?: string;
 };
 
+/**
+ * Wraps the internals of the Tanstack React Table component. For now, all Table
+ * components created will include sorting but pagination is optional.
+ */
 export function Table<T>({
   data,
   columns,

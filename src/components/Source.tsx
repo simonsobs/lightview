@@ -14,7 +14,17 @@ import { NearbySourcesSection } from './NearbySourcesSection';
 import { AladinViewer } from './AladinViewer';
 import { LightcurveDataTable } from './LightcurveDataTable';
 
+/**
+ * Renders all the components related to a Source, like:
+ * - SourceHeader
+ * - Lightcurve
+ * - CrossMatchSection
+ * - NearbySourcesSection
+ * - AladinViewer
+ * - LightcurveDataTable
+ */
 export function Source() {
+  // Use the route's id parameter to get the source's ID; could just as easily pass it in as a prop though
   const { id } = useParams();
   const [sourceSummary, setSourceSummary] = useState<SourceSummary | undefined>(
     undefined
@@ -57,6 +67,7 @@ export function Source() {
     void getLightcurveData();
   }, [id]);
 
+  // Memoize the "expensive" data used for the badges
   const badgeData = useMemo(() => {
     if (!lightcurveData) return;
     const bandForMaxAndMedian = findMidBand(lightcurveData.bands);

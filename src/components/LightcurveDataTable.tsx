@@ -15,6 +15,8 @@ type LightcurveTableData = {
   u_flux: number;
   u_uncertainty: number;
 };
+
+/** Renders the lightcurve data used in the Lightcurve plot as a table instead */
 export function LightcurveDataTable({
   lightcurveData,
 }: {

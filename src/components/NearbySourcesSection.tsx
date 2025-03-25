@@ -13,6 +13,7 @@ const MOCK_NEARBY_DATA = [
   },
 ] as { id: number; latest_flux: number; month_old_flux: number }[];
 
+/** Renders a Table of sources found within a cone search of x radius from a given source */
 export function NearbySourcesSection() {
   return (
     <div>

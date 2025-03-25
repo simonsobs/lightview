@@ -4,6 +4,14 @@ type TablePaginationControlsProps<T> = {
   table: Table<T>;
 };
 
+/**
+ * Renders page details for the Table component when pagination is enabled. Also includes
+ * buttons that do the following:
+ * - Go to the first page
+ * - Go to the previous page
+ * - Go to the next page
+ * - Go to the last page
+ */
 export function TablePaginationControls<T>({
   table,
 }: TablePaginationControlsProps<T>) {
