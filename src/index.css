@@ -20,3 +20,7 @@ body {
   flex-direction: column;
   row-gap: 1em;
 }
+
+main {
+  padding: 0 10px;
+}

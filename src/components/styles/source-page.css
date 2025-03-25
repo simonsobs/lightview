@@ -9,7 +9,6 @@
 .source-header-container > h3 {
   margin: 0;
   margin-right: 1em;
-  padding: 0 10px;
 }
 
 .badge-container {
@@ -38,4 +37,10 @@
 
 .freq-aside {
   font-size: 0.75em;
+}
+
+.source-grid-container {
+  display: grid;
+  grid-template-columns: auto 400px;
+  gap: 2em;
 }

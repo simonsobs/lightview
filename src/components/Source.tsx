@@ -9,6 +9,8 @@ import {
   getMedianFlux,
 } from '../utils/lightcurveDataHelpers';
 import { Lightcurve } from './Lightcurve';
+import { CrossMatchSection } from './CrossMatchSection';
+import { NearbySourcesSection } from './NearbySourcesSection';
 
 export function Source() {
   const { id } = useParams();
@@ -67,7 +69,7 @@ export function Source() {
 
   return (
     sourceSummary && (
-      <>
+      <main>
         {badgeData && (
           <SourceHeader
             id={sourceSummary.source.id}
@@ -80,7 +82,13 @@ export function Source() {
           />
         )}
         {lightcurveData && <Lightcurve lightcurveData={lightcurveData} />}
-      </>
+        <div className="source-grid-container">
+          <div>
+            <CrossMatchSection />
+            <NearbySourcesSection />
+          </div>
+        </div>
+      </main>
     )
   );
 }
