@@ -1,3 +1,16 @@
+.plot-tooltip-container {
+  position: absolute;
+  background-color: white;
+  opacity: 0.8;
+  border: 1px solid black;
+  padding: 5px;
+  z-index: 1;
+}
+
+.plot-tooltip-container > button {
+  margin: 0 auto;
+}
+
 .flux-cutout {
   width: 128px;
   height: 128px;

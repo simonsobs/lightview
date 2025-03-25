@@ -212,7 +212,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
 
   const plotLayout = useMemo(
     () => ({
-      width: 1200,
+      width: 1280,
       height: 500,
       yaxis: {
         title: {
@@ -240,19 +240,14 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       />
       {tooltipContent && (
         <div
+          className="plot-tooltip-container"
           style={{
-            position: 'absolute',
             left: `${tooltipContent.data.clientX}px`,
             top: `${tooltipContent.data.clientY}px`,
-            backgroundColor: 'white',
-            opacity: 0.8,
-            border: '1px solid black',
-            padding: 5,
           }}
         >
           <button
             type="button"
-            style={{ margin: '0 auto' }}
             title="Click to close (or press Esc)"
             onClick={() => {
               setTooltipContent(undefined);

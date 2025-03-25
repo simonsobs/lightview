@@ -21,7 +21,7 @@ export function AladinViewer({ source }: AladinViewerProps) {
           aladinInstanceRef.current = window.A!.aladin(
             aladinContainerRef.current,
             {
-              survey: 'P/SDSS9/color',
+              survey: 'P/2MASS/color',
               fov: 60,
               cooFrame: 'ICRSd',
               projection: 'ZEA',

@@ -22,3 +22,20 @@ td:first-of-type {
 tbody > tr:nth-of-type(even) {
   background-color: rgb(237 238 242);
 }
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: 0.5em;
+  margin-top: 0.5em;
+}
+
+.pagination-controls > span {
+  margin: 0 1em;
+}
+
+.pagination-btn {
+  width: 30px;
+  height: 30px;
+}
