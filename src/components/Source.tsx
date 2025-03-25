@@ -11,6 +11,7 @@ import {
 import { Lightcurve } from './Lightcurve';
 import { CrossMatchSection } from './CrossMatchSection';
 import { NearbySourcesSection } from './NearbySourcesSection';
+import { AladinViewer } from './AladinViewer';
 
 export function Source() {
   const { id } = useParams();
@@ -87,6 +88,7 @@ export function Source() {
             <CrossMatchSection />
             <NearbySourcesSection />
           </div>
+          <AladinViewer source={sourceSummary.source} />
         </div>
       </main>
     )

@@ -44,3 +44,8 @@
   grid-template-columns: auto 400px;
   gap: 2em;
 }
+
+.aladin-viewer-container {
+  width: 400px;
+  height: 400px;
+}
