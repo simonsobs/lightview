@@ -7,7 +7,7 @@ import { LightcurveBand } from '../types';
  * @param arrayLength The length of an array
  * @returns A number representing the middle index of an array
  */
-function getMiddleIndex(arrayLength: number) {
+export function getMiddleIndex(arrayLength: number) {
   // When array length is odd, we want the floored value of the halved length
   if (arrayLength % 2 !== 0) {
     return Math.floor(arrayLength / 2);
