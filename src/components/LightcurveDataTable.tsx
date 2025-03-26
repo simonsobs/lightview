@@ -97,7 +97,7 @@ export function LightcurveDataTable({
           rowA.original.u_uncertainty - rowB.original.u_uncertainty,
       },
     ] as ColumnDef<LightcurveTableData>[];
-  }, [tableData]);
+  }, []);
 
   const initialState: InitialTableState = useMemo(() => {
     return {
