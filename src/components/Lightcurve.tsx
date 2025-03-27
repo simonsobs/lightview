@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect, useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import { SERVICE_URL } from '../configs/constants';
-import './styles/tooltip-dialog.css';
+import './styles/lightcurve.css';
 import { LightcurveData } from '../types';
 import {
   Datum,
@@ -11,20 +11,20 @@ import {
   ErrorBar,
   PlotDatum,
 } from 'plotly.js';
+import { useQuery } from '../hooks/useQuery';
 
 type LightcurveProps = {
   lightcurveData: LightcurveData;
 };
 
-type ClickedMarker =
-  | {
-      pointIndex: number;
-      curveNumber: number;
-    }
-  | undefined;
+type ClickedMarker = {
+  pointIndex: number;
+  curveNumber: number;
+};
 
-type TooltipContent =
+type ClickedMarkerData =
   | {
+      markerId: ClickedMarker;
       data: {
         x: Datum;
         y: Datum;
@@ -32,7 +32,6 @@ type TooltipContent =
         clientX: number;
         clientY: number;
       };
-      imageUrl: string;
     }
   | undefined;
 
@@ -57,11 +56,25 @@ type PlotDatumWithErrorY = PlotDatum & {
 
 /** Uses Plotly to generate a source's lightcurve. Currently plots all bands of a source, and only the i_flux */
 export function Lightcurve({ lightcurveData }: LightcurveProps) {
-  /** The absolutely-positioned tooltip container renders when tooltipContent is set and removed when set to undefined */
-  const [tooltipContent, setTooltipContent] =
-    useState<TooltipContent>(undefined);
-  const [clickedMarkerIndex, setClickedMarkerIndex] =
-    useState<ClickedMarker>(undefined);
+  const [clickedMarkerData, setClickedMarkerData] =
+    useState<ClickedMarkerData>(undefined);
+
+  const { data: imageUrl } = useQuery<string | undefined>({
+    initialData: undefined,
+    queryKey: [clickedMarkerData],
+    queryFn: async () => {
+      if (clickedMarkerData) {
+        const id =
+          lightcurveData.bands[clickedMarkerData.markerId.curveNumber].id[
+            clickedMarkerData.markerId.pointIndex
+          ];
+        const response = await fetch(`${SERVICE_URL}/cutouts/flux/${id}`);
+        const blob = await response.blob();
+        const imageUrl = URL.createObjectURL(blob);
+        return imageUrl;
+      }
+    },
+  });
 
   const [plotData, setPlotData] = useState<ScatterDataWithErrorYAndMarkers[]>(
     () => {
@@ -112,7 +125,11 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   );
 
   const changeMarkerLineWidth = useCallback(
-    (hoverData: ClickedMarker, newLineWidth: number, reset: boolean) => {
+    (
+      hoverData: ClickedMarker | undefined,
+      newLineWidth: number,
+      reset: boolean
+    ) => {
       // Update plotData according to a click or hover event such that we style the affected
       // marker accordingly
       setPlotData((prev) =>
@@ -140,14 +157,15 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             const newWidths = [...d.marker.line.width];
             // If we don't have a clickedMarkerIndex set, it's straightforward
             // and we can just set the newLineWidth and carry on
-            if (!clickedMarkerIndex) {
+            if (!clickedMarkerData) {
               newWidths[hoverData.pointIndex] = newLineWidth;
             } else {
               // Verify that we're not messing with the clicked marker's styling
               if (
                 !(
-                  hoverData.curveNumber === clickedMarkerIndex.curveNumber &&
-                  hoverData.pointIndex === clickedMarkerIndex.pointIndex
+                  hoverData.curveNumber ===
+                    clickedMarkerData.markerId.curveNumber &&
+                  hoverData.pointIndex === clickedMarkerData.markerId.pointIndex
                 )
               ) {
                 newWidths[hoverData.pointIndex] = newLineWidth;
@@ -171,7 +189,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         })
       );
     },
-    [clickedMarkerIndex]
+    [clickedMarkerData]
   );
 
   /**
@@ -180,13 +198,12 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
    */
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (tooltipContent && e.key == 'Escape') {
-        setTooltipContent(undefined);
-        setClickedMarkerIndex(undefined);
+      if (clickedMarkerData && e.key == 'Escape') {
+        setClickedMarkerData(undefined);
         changeMarkerLineWidth(undefined, 0, true);
       }
     },
-    [tooltipContent, changeMarkerLineWidth]
+    [clickedMarkerData, changeMarkerLineWidth]
   );
 
   useEffect(() => {
@@ -197,36 +214,6 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
-
-  /** Fetches the cutout image and sets the tooltip content */
-  const handleDataClick = useCallback(
-    (e: PlotMouseEvent) => {
-      void (async () => {
-        const { x, y, pointIndex, curveNumber } = e.points[0];
-        // Use the pointIndex from the PlotMouseEvent to grab the measurement's ID
-        const id = lightcurveData.bands[curveNumber].id[pointIndex];
-        // Create an object used for the tooltip's content and positioning
-        const point = {
-          x,
-          y,
-          i_uncertainty: (e.points[0] as PlotDatumWithErrorY)['error_y.array'],
-          clientX: e.event.clientX,
-          clientY: e.event.clientY,
-        };
-        try {
-          const response = await fetch(`${SERVICE_URL}/cutouts/flux/${id}`);
-          const blob = await response.blob();
-          const imageUrl = URL.createObjectURL(blob);
-          setTooltipContent({ imageUrl, data: point });
-          changeMarkerLineWidth(undefined, 1, false);
-          setClickedMarkerIndex({ pointIndex, curveNumber });
-        } catch (error) {
-          console.error('Error handling data click:', error);
-        }
-      })();
-    },
-    [lightcurveData, changeMarkerLineWidth]
-  );
 
   /** Used with changeMarkerLineWidth in order to change affected marker's style */
   const handleOnHover = useCallback(
@@ -268,41 +255,59 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     []
   );
 
+  const handleDataClick = useCallback((e: PlotMouseEvent) => {
+    const { x, y, pointIndex, curveNumber } = e.points[0];
+    // Create an object used for the tooltip's content and positioning
+    const data = {
+      x,
+      y,
+      i_uncertainty: (e.points[0] as PlotDatumWithErrorY)['error_y.array'],
+      clientX: e.event.clientX,
+      clientY: e.event.clientY,
+    };
+    setClickedMarkerData({
+      markerId: {
+        pointIndex,
+        curveNumber,
+      },
+      data,
+    });
+  }, []);
+
   return (
     <div>
       <Plot
         layout={plotLayout}
         data={plotData}
         onClick={handleDataClick}
-        onRelayout={() => setTooltipContent(undefined)}
+        onRelayout={() => setClickedMarkerData(undefined)}
         onHover={handleOnHover}
         onUnhover={handleOnUnhover}
       />
-      {tooltipContent && (
+      {clickedMarkerData && imageUrl && (
         <div
           className="plot-tooltip-container"
           style={{
-            left: `${tooltipContent.data.clientX}px`,
-            top: `${tooltipContent.data.clientY}px`,
+            left: `${clickedMarkerData.data.clientX}px`,
+            top: `${clickedMarkerData.data.clientY}px`,
           }}
         >
           <button
             type="button"
             title="Click to close (or press Esc)"
             onClick={() => {
-              setTooltipContent(undefined);
-              setClickedMarkerIndex(undefined);
+              setClickedMarkerData(undefined);
               changeMarkerLineWidth(undefined, 0, true);
             }}
           >
             x
           </button>
-          <p>Time: {String(tooltipContent.data.x)}</p>
+          <p>Time: {String(clickedMarkerData.data.x)}</p>
           <p>
-            Flux: {String(tooltipContent.data.y)} +/-{' '}
-            {String(tooltipContent.data.i_uncertainty)} mJy
+            Flux: {String(clickedMarkerData.data.y)} +/-{' '}
+            {String(clickedMarkerData.data.i_uncertainty)} mJy
           </p>
-          <img className="flux-cutout" src={tooltipContent.imageUrl} />
+          <img className="flux-cutout" src={imageUrl} />
         </div>
       )}
     </div>
