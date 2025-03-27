@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { LightcurveData, SourceSummary } from '../types';
 import { SERVICE_URL } from '../configs/constants';
@@ -13,6 +13,7 @@ import { CrossMatchSection } from './CrossMatchSection';
 import { NearbySourcesSection } from './NearbySourcesSection';
 import { AladinViewer } from './AladinViewer';
 import { LightcurveDataTable } from './LightcurveDataTable';
+import { useQuery } from '../hooks/useQuery';
 
 /**
  * Renders all the components related to a Source, like:
@@ -26,15 +27,11 @@ import { LightcurveDataTable } from './LightcurveDataTable';
 export function Source() {
   // Use the route's id parameter to get the source's ID; could just as easily pass it in as a prop though
   const { id } = useParams();
-  const [sourceSummary, setSourceSummary] = useState<SourceSummary | undefined>(
-    undefined
-  );
-  const [lightcurveData, setLightcurveData] = useState<
-    LightcurveData | undefined
-  >(undefined);
 
-  useEffect(() => {
-    async function getSourceSummary() {
+  const { data: sourceSummary } = useQuery<SourceSummary | undefined>({
+    initialData: undefined,
+    queryKey: [id],
+    queryFn: async () => {
       const response: Response = await fetch(
         `${SERVICE_URL}/sources/${id}/summary`
       );
@@ -44,13 +41,14 @@ export function Source() {
         );
       }
       const data: SourceSummary = (await response.json()) as SourceSummary;
-      setSourceSummary(data);
-    }
-    void getSourceSummary();
-  }, [id]);
+      return data;
+    },
+  });
 
-  useEffect(() => {
-    async function getLightcurveData() {
+  const { data: lightcurveData } = useQuery<LightcurveData | undefined>({
+    initialData: undefined,
+    queryKey: [id],
+    queryFn: async () => {
       const response: Response = await fetch(
         `${SERVICE_URL}/lightcurves/${id}/all`
       );
@@ -62,10 +60,9 @@ export function Source() {
       const data: LightcurveData = (await response.json()) as LightcurveData;
       // Sort data by the frequency band so the plotly legend is sorted in ascending order
       data.bands.sort((a, b) => a.band.frequency - b.band.frequency);
-      setLightcurveData(data);
-    }
-    void getLightcurveData();
-  }, [id]);
+      return data;
+    },
+  });
 
   // Memoize the "expensive" data used for the badges
   const badgeData = useMemo(() => {

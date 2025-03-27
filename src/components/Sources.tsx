@@ -1,35 +1,28 @@
-import { useState, useEffect } from 'react';
 import { SourceResponse } from '../types';
 import { SERVICE_URL } from '../configs/constants';
 import { Table } from './Table';
 import { Link } from 'react-router';
 import { ColumnDef } from '@tanstack/react-table';
 import './styles/table.css';
+import { useQuery } from '../hooks/useQuery';
 
 /**
  * Renders a Table of sources returned by the /sources endpoint
  */
 export function Sources() {
-  const [sources, setSources] = useState<SourceResponse[] | undefined>(
-    undefined
-  );
-
-  useEffect(() => {
-    async function getSources() {
-      try {
-        const response: Response = await fetch(`${SERVICE_URL}/sources/`);
-        if (!response.ok) {
-          throw new Error(`Error fetching sources: ${response.statusText}`);
-        }
-        const sources: SourceResponse[] =
-          (await response.json()) as SourceResponse[];
-        setSources(sources);
-      } catch (e) {
-        console.error(e);
+  const { data: sources } = useQuery<SourceResponse[] | undefined>({
+    initialData: undefined,
+    queryKey: [],
+    queryFn: async () => {
+      const response: Response = await fetch(`${SERVICE_URL}/sources/`);
+      if (!response.ok) {
+        throw new Error(`Error fetching sources: ${response.statusText}`);
       }
-    }
-    void getSources();
-  }, []);
+      const responseJson: SourceResponse[] =
+        (await response.json()) as SourceResponse[];
+      return responseJson;
+    },
+  });
 
   return (
     sources && (
