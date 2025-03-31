@@ -1,16 +1,21 @@
-import { useCallback, useState, useEffect, useMemo } from 'react';
-import Plot from 'react-plotly.js';
+/* eslint-disable */
+
+import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+// import Plot from 'react-plotly.js';
 import { SERVICE_URL } from '../configs/constants';
 import './styles/lightcurve.css';
 import { LightcurveData } from '../types';
-import {
+import Plotly, {
+  Data,
+  Layout,
+  Config,
   Datum,
   PlotHoverEvent,
   PlotMouseEvent,
   ScatterData,
   ErrorBar,
   PlotDatum,
-} from 'plotly.js';
+} from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
 
 type LightcurveProps = {
@@ -124,73 +129,73 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     }
   );
 
-  const changeMarkerLineWidth = useCallback(
-    (
-      hoverData: ClickedMarker | undefined,
-      newLineWidth: number,
-      reset: boolean
-    ) => {
-      // Update plotData according to a click or hover event such that we style the affected
-      // marker accordingly
-      setPlotData((prev) =>
-        prev.map((d, i) => {
-          // A reset will copy all previous data except for the marker.line.width array, which
-          // will be set as a new array filled with 0s
-          if (reset) {
-            const newWidths = new Array(d.marker.line.width.length).fill(0);
-            return {
-              ...d,
-              marker: {
-                ...d.marker,
-                line: {
-                  ...d.marker.line,
-                  width: newWidths,
-                },
-              },
-            };
-          }
+  // const changeMarkerLineWidth = useCallback(
+  //   (
+  //     hoverData: ClickedMarker | undefined,
+  //     newLineWidth: number,
+  //     reset: boolean
+  //   ) => {
+  //     // Update plotData according to a click or hover event such that we style the affected
+  //     // marker accordingly
+  //     setPlotData((prev) =>
+  //       prev.map((d, i) => {
+  //         // A reset will copy all previous data except for the marker.line.width array, which
+  //         // will be set as a new array filled with 0s
+  //         if (reset) {
+  //           const newWidths = new Array(d.marker.line.width.length).fill(0);
+  //           return {
+  //             ...d,
+  //             marker: {
+  //               ...d.marker,
+  //               line: {
+  //                 ...d.marker.line,
+  //                 width: newWidths,
+  //               },
+  //             },
+  //           };
+  //         }
 
-          // If we're passed hoverData and the curveNumber is the same as the current
-          // band's plotData, then we need to set the marker's lineWidth to be the
-          // passed-in newLineWidth argument
-          if (hoverData && hoverData.curveNumber === i) {
-            const newWidths = [...d.marker.line.width];
-            // If we don't have a clickedMarkerIndex set, it's straightforward
-            // and we can just set the newLineWidth and carry on
-            if (!clickedMarkerData) {
-              newWidths[hoverData.pointIndex] = newLineWidth;
-            } else {
-              // Verify that we're not messing with the clicked marker's styling
-              if (
-                !(
-                  hoverData.curveNumber ===
-                    clickedMarkerData.markerId.curveNumber &&
-                  hoverData.pointIndex === clickedMarkerData.markerId.pointIndex
-                )
-              ) {
-                newWidths[hoverData.pointIndex] = newLineWidth;
-              }
-            }
-            return {
-              ...d,
-              marker: {
-                ...d.marker,
-                line: {
-                  ...d.marker.line,
-                  width: newWidths,
-                },
-              },
-            };
-          } else {
-            // We have no hoverData and/or the hoverData doesn't correspond to this band,
-            // so the data will remain unchanged
-            return d;
-          }
-        })
-      );
-    },
-    [clickedMarkerData]
-  );
+  //         // If we're passed hoverData and the curveNumber is the same as the current
+  //         // band's plotData, then we need to set the marker's lineWidth to be the
+  //         // passed-in newLineWidth argument
+  //         if (hoverData && hoverData.curveNumber === i) {
+  //           const newWidths = [...d.marker.line.width];
+  //           // If we don't have a clickedMarkerIndex set, it's straightforward
+  //           // and we can just set the newLineWidth and carry on
+  //           if (!clickedMarkerData) {
+  //             newWidths[hoverData.pointIndex] = newLineWidth;
+  //           } else {
+  //             // Verify that we're not messing with the clicked marker's styling
+  //             if (
+  //               !(
+  //                 hoverData.curveNumber ===
+  //                   clickedMarkerData.markerId.curveNumber &&
+  //                 hoverData.pointIndex === clickedMarkerData.markerId.pointIndex
+  //               )
+  //             ) {
+  //               newWidths[hoverData.pointIndex] = newLineWidth;
+  //             }
+  //           }
+  //           return {
+  //             ...d,
+  //             marker: {
+  //               ...d.marker,
+  //               line: {
+  //                 ...d.marker.line,
+  //                 width: newWidths,
+  //               },
+  //             },
+  //           };
+  //         } else {
+  //           // We have no hoverData and/or the hoverData doesn't correspond to this band,
+  //           // so the data will remain unchanged
+  //           return d;
+  //         }
+  //       })
+  //     );
+  //   },
+  //   [clickedMarkerData]
+  // );
 
   /**
    * Allows user to close an opened marker tooltip by pressing "Escape";
@@ -200,10 +205,11 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     (e: KeyboardEvent) => {
       if (clickedMarkerData && e.key == 'Escape') {
         setClickedMarkerData(undefined);
-        changeMarkerLineWidth(undefined, 0, true);
+        // changeMarkerLineWidth(undefined, 0, true);
       }
     },
-    [clickedMarkerData, changeMarkerLineWidth]
+    [clickedMarkerData]
+    // [clickedMarkerData, changeMarkerLineWidth]
   );
 
   useEffect(() => {
@@ -216,22 +222,22 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   }, [handleKeyDown]);
 
   /** Used with changeMarkerLineWidth in order to change affected marker's style */
-  const handleOnHover = useCallback(
-    (e: PlotHoverEvent) => {
-      const { pointIndex, curveNumber } = e.points[0];
-      changeMarkerLineWidth({ pointIndex, curveNumber }, 1, false);
-    },
-    [changeMarkerLineWidth]
-  );
+  // const handleOnHover = useCallback(
+  //   (e: PlotHoverEvent) => {
+  //     const { pointIndex, curveNumber } = e.points[0];
+  //     changeMarkerLineWidth({ pointIndex, curveNumber }, 1, false);
+  //   },
+  //   [changeMarkerLineWidth]
+  // );
 
   /** Used with changeMarkerLineWidth in order to change affected marker's style */
-  const handleOnUnhover = useCallback(
-    (e: PlotMouseEvent) => {
-      const { pointIndex, curveNumber } = e.points[0];
-      changeMarkerLineWidth({ pointIndex, curveNumber }, 0, false);
-    },
-    [changeMarkerLineWidth]
-  );
+  // const handleOnUnhover = useCallback(
+  //   (e: PlotMouseEvent) => {
+  //     const { pointIndex, curveNumber } = e.points[0];
+  //     changeMarkerLineWidth({ pointIndex, curveNumber }, 0, false);
+  //   },
+  //   [changeMarkerLineWidth]
+  // );
 
   /**
    * Defines layout parameters for plotly and must be memoized in order for it to be stable
@@ -256,14 +262,17 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   );
 
   const handleDataClick = useCallback((e: PlotMouseEvent) => {
+    console.log(e);
     const { x, y, pointIndex, curveNumber } = e.points[0];
     // Create an object used for the tooltip's content and positioning
     const data = {
       x,
       y,
       i_uncertainty: (e.points[0] as PlotDatumWithErrorY)['error_y.array'],
-      clientX: e.event.clientX,
-      clientY: e.event.clientY,
+      clientX: e.event.pageX,
+      clientY: e.event.pageY,
+      // clientX: e.event.clientX,
+      // clientY: e.event.clientY,
     };
     setClickedMarkerData({
       markerId: {
@@ -274,15 +283,31 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     });
   }, []);
 
+  const plotConfig: Partial<Config> = useMemo(() => {
+    return {
+      responsive: true,
+    };
+  }, []);
+
   return (
     <div>
-      <Plot
+      {/* <Plot
         layout={plotLayout}
         data={plotData}
         onClick={handleDataClick}
         onRelayout={() => setClickedMarkerData(undefined)}
         onHover={handleOnHover}
         onUnhover={handleOnUnhover}
+      /> */}
+      <PlotlyPlot
+        data={plotData}
+        layout={plotLayout}
+        config={plotConfig}
+        handlers={[
+          { eventType: 'click', handler: handleDataClick },
+          // {eventType: 'hover', handler: handleOnHover},
+          // {eventType: 'unhover', handler: handleOnUnhover},
+        ]}
       />
       {clickedMarkerData && imageUrl && (
         <div
@@ -297,7 +322,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             title="Click to close (or press Esc)"
             onClick={() => {
               setClickedMarkerData(undefined);
-              changeMarkerLineWidth(undefined, 0, true);
+              // changeMarkerLineWidth(undefined, 0, true);
             }}
           >
             x
@@ -312,4 +337,77 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       )}
     </div>
   );
+}
+
+interface PlotlyChartProps {
+  data: Data[];
+  layout?: Partial<Layout>;
+  config?: Partial<Config>;
+  handlers?: {
+    eventType: string;
+    handler: (e: PlotMouseEvent | PlotHoverEvent) => void;
+  }[];
+}
+
+function PlotlyPlot({ data, layout, config, handlers }: PlotlyChartProps) {
+  const plotRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (plotRef.current) {
+      Plotly.newPlot(plotRef.current, data, layout, config);
+
+      const plotElement = plotRef.current;
+
+      handlers?.forEach((h) => {
+        // plotElement.on(`plotly_${h.eventType}`, h.handler)
+        plotElement.on('plotly_click', (e) => {
+          handlers[0].handler(e);
+          const band = e.points[0].curveNumber;
+          const point = e.points[0].pointNumber;
+          // console.log(point, band)
+          data.forEach((d, i) => {
+            const shouldUpdate = d.marker.line.width.indexOf(2);
+            let update;
+            if (shouldUpdate !== -1) {
+              update = {
+                marker: {
+                  size: 10,
+                  line: {
+                    color: '#000',
+                    width: d.marker.line.width.map((w) => 0),
+                  },
+                },
+              };
+              if (i == band) {
+                update.marker.line.width[point] = 2;
+              }
+              Plotly.restyle('lightcurve-plot', update, [i]);
+            } else {
+              if (i == band) {
+                update = {
+                  marker: {
+                    size: 10,
+                    line: {
+                      color: '#000',
+                      width: d.marker.line.width.map((w) => 0),
+                    },
+                  },
+                };
+                update.marker.line.width[point] = 2;
+                Plotly.restyle('lightcurve-plot', update, [i]);
+              }
+            }
+          });
+        });
+      });
+    }
+
+    return () => {
+      if (plotRef.current) {
+        Plotly.purge(plotRef.current);
+      }
+    };
+  }, [data, layout, config, handlers]);
+
+  return <div id="lightcurve-plot" ref={plotRef} />;
 }
