@@ -25,7 +25,7 @@ export function AladinViewer({ source }: AladinViewerProps) {
             aladinContainerRef.current,
             {
               survey: 'P/2MASS/color',
-              fov: 60,
+              fov: 5 / 60,
               cooFrame: 'ICRSd',
               projection: 'ZEA',
             }
