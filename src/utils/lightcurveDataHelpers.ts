@@ -63,3 +63,28 @@ export function getMedianFlux(band: LightcurveBand) {
 export function getMaxFlux(band: LightcurveBand) {
   return Math.max(...band.i_flux);
 }
+
+/**
+ * Returns a clean marker object used for setting/resetting marker styles in a scatterplot
+ * @param arrayLength Length of the data array
+ * @param baseMarkerSize Size of markers in plot
+ * @param baseMarkerLineColor Color of marker lines in plot
+ * @param baseMarkerLineWidth Width or thickness of marker lines in plot
+ * @returns
+ */
+export function generateBaseMarkerConfig(
+  arrayLength: number,
+  baseMarkerSize: number = 10,
+  baseMarkerLineColor: string = '#000',
+  baseMarkerLineWidth: number = 0
+) {
+  return {
+    marker: {
+      size: baseMarkerSize,
+      line: {
+        color: baseMarkerLineColor,
+        width: new Array(arrayLength).fill(baseMarkerLineWidth),
+      },
+    },
+  };
+}
