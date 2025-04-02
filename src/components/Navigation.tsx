@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import './styles/navigation.css';
+import { Search } from './Search';
 
 /** Renders the app's Navigation bar/menu */
 export function Navigation() {
@@ -10,6 +11,7 @@ export function Navigation() {
           <span>Simons Observatory Lightcurves</span>
         </Link>
       </nav>
+      <Search />
     </div>
   );
 }

@@ -95,7 +95,11 @@ export function Source() {
         <div className="source-grid-container">
           <div>
             <CrossMatchSection />
-            <NearbySourcesSection />
+            <NearbySourcesSection
+              id={sourceSummary.source.id}
+              ra={sourceSummary.source.ra}
+              dec={sourceSummary.source.dec}
+            />
           </div>
           <AladinViewer source={sourceSummary.source} />
         </div>
