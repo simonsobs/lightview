@@ -13,21 +13,21 @@ export function useQuery<T>({
 }: UseQueryParams<T>) {
   const [data, setData] = useState<T>(initialData);
   const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState<null | Error>(null);
 
   useEffect(() => {
     let doSetValue = true;
 
     const fetchData = async () => {
       setIsLoading(true);
-      setIsError(false);
+      setError(null);
 
       try {
         const result = await queryFn();
         if (doSetValue) setData(result);
       } catch (e) {
         if (doSetValue) {
-          setIsError(true);
+          setError(e as Error);
           console.error(String(e));
         }
       }
@@ -39,5 +39,5 @@ export function useQuery<T>({
     };
   }, queryKey);
 
-  return { data, isLoading, isError };
+  return { data, isLoading, error };
 }
