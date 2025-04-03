@@ -11,7 +11,11 @@ type NearbySourcesProps = Omit<SourceResponse, 'variable'>;
 
 /** Renders a Table of sources found within a cone search of x radius from a given source */
 export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
-  const { data: nearbySources, isLoading } = useQuery({
+  const {
+    data: nearbySources,
+    isLoading,
+    error,
+  } = useQuery({
     initialData: undefined,
     queryKey: [],
     queryFn: async () => {
@@ -30,9 +34,15 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
     },
   });
 
+  if (error) throw error;
+
   return (
     <div>
-      <h3>Nearby</h3>
+      <h3
+        title={`Displays cone search results within ${DEFAULT_NEARBY_SOURCE_RADIUS}° radius of this source.`}
+      >
+        Nearby Sources
+      </h3>
       {isLoading ? (
         <h4>Loading...</h4>
       ) : nearbySources && nearbySources.length ? (
