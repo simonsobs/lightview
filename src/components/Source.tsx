@@ -28,27 +28,40 @@ export function Source() {
   // Use the route's id parameter to get the source's ID; could just as easily pass it in as a prop though
   const { id } = useParams();
 
-  const { data: sourceSummary } = useQuery<SourceSummary | undefined>({
+  const { data: sourceSummary, error: sourceSummaryError } = useQuery<
+    SourceSummary | undefined
+  >({
     initialData: undefined,
     queryKey: [id],
     queryFn: async () => {
       const response: Response = await fetch(
         `${SERVICE_URL}/sources/${id}/summary`
       );
+
       if (!response.ok) {
-        throw new Error(
-          `Error fetching source summary: ${response.statusText}`
-        );
+        if (response.status === 404) {
+          throw new Error(`Source with ID ${id} not found.`);
+        } else {
+          throw new Error(
+            `Error fetching source summary: ${response.statusText}`
+          );
+        }
       }
+
       const data: SourceSummary = (await response.json()) as SourceSummary;
+
       return data;
     },
   });
 
-  const { data: lightcurveData } = useQuery<LightcurveData | undefined>({
+  const { data: lightcurveData, error: lightcurveDataError } = useQuery<
+    LightcurveData | undefined
+  >({
     initialData: undefined,
-    queryKey: [id],
+    queryKey: [id, sourceSummary],
     queryFn: async () => {
+      if (!sourceSummary) return;
+
       const response: Response = await fetch(
         `${SERVICE_URL}/lightcurves/${id}/all`
       );
@@ -57,9 +70,11 @@ export function Source() {
           `Error fetching lightcurve data: ${response.statusText}`
         );
       }
+
       const data: LightcurveData = (await response.json()) as LightcurveData;
       // Sort data by the frequency band so the plotly legend is sorted in ascending order
       data.bands.sort((a, b) => a.band.frequency - b.band.frequency);
+
       return data;
     },
   });
@@ -76,6 +91,14 @@ export function Source() {
       maxFlux,
     };
   }, [lightcurveData]);
+
+  if (sourceSummaryError) {
+    throw sourceSummaryError;
+  }
+
+  if (lightcurveDataError) {
+    throw lightcurveDataError;
+  }
 
   return (
     sourceSummary && (
