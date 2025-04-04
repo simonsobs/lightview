@@ -18,5 +18,16 @@
 .home-link > span {
   color: black;
   font-size: 1.5em;
-  font-weight: 'bold';
+  white-space: nowrap;
+}
+
+@media (width <= 900px) {
+  .nav-container {
+    flex-wrap: wrap;
+    height: fit-content;
+  }
+
+  .search-container {
+    margin: 8px 0;
+  }
 }
