@@ -32,6 +32,8 @@ type ClickedMarkerData =
         i_uncertainty: Datum;
         pageX: number;
         pageY: number;
+        bandName: string;
+        bandColor: string;
       };
     }
   | undefined;
@@ -51,8 +53,13 @@ type ScatterDataWithErrorYAndMarkers = ScatterData & {
   };
 };
 
-type PlotDatumWithErrorY = PlotDatum & {
+type EnhancedPlotDatum = PlotDatum & {
   'error_y.array': Datum;
+  fullData: {
+    marker: {
+      color: string;
+    };
+  };
 };
 
 /** Uses Plotly to generate a source's lightcurve. Currently plots all bands of a source, and only the i_flux */
@@ -75,6 +82,9 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             clickedMarkerData.markerId.pointIndex
           ];
         const response = await fetch(`${SERVICE_URL}/cutouts/flux/${id}`);
+        if (!response.ok) {
+          return response.statusText;
+        }
         const blob = await response.blob();
         const imageUrl = URL.createObjectURL(blob);
         return imageUrl;
@@ -192,22 +202,26 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       e.event.preventDefault();
       e.event.stopPropagation();
 
-      const { x, y, pointIndex, curveNumber } = e.points[0];
+      const { x, y, pointIndex, curveNumber, data } = e.points[0];
+
+      const { name } = data;
 
       // Create an object used for the tooltip's content and positioning
-      const data = {
+      const pointData = {
         x,
         y,
-        i_uncertainty: (e.points[0] as PlotDatumWithErrorY)['error_y.array'],
+        i_uncertainty: (e.points[0] as EnhancedPlotDatum)['error_y.array'],
         pageX: e.event.pageX,
         pageY: e.event.pageY,
+        bandName: name,
+        bandColor: (e.points[0] as EnhancedPlotDatum).fullData.marker.color,
       };
       setClickedMarkerData({
         markerId: {
           pointIndex,
           curveNumber,
         },
-        data,
+        data: pointData,
       });
 
       // style clicked marker
@@ -296,19 +310,44 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             top: `${clickedMarkerData.data.pageY}px`,
           }}
         >
-          <button
-            type="button"
-            title="Click to close (or press Esc)"
-            onClick={handleRelayoutOrTooltipClose}
+          <div
+            className="plot-tooltip-header-container"
+            style={{
+              backgroundColor: clickedMarkerData.data.bandColor,
+            }}
           >
-            x
-          </button>
-          <p>Time: {String(clickedMarkerData.data.x)}</p>
-          <p>
-            Flux: {String(clickedMarkerData.data.y)} +/-{' '}
-            {String(clickedMarkerData.data.i_uncertainty)} mJy
-          </p>
-          <img className="flux-cutout" src={imageUrl} />
+            <h4>{clickedMarkerData.data.bandName}</h4>
+            <button
+              type="button"
+              title="Click to close (or press Esc)"
+              onClick={handleRelayoutOrTooltipClose}
+            >
+              x
+            </button>
+          </div>
+          <div className="plot-tooltip-content-container">
+            <div className="plot-marker-data">
+              <p>
+                <span>Time:</span>
+                {String(clickedMarkerData.data.x)}
+              </p>
+              <p>
+                <span>Flux:</span>
+                {String(Number(clickedMarkerData.data.y).toFixed(5))} +/-{' '}
+                {String(
+                  Number(clickedMarkerData.data.i_uncertainty).toFixed(5)
+                )}{' '}
+                mJy
+              </p>
+            </div>
+            {imageUrl === 'Not Found' ? (
+              <div className="not-found flux-cutout">
+                <em>Cutout {imageUrl}</em>
+              </div>
+            ) : (
+              <img className="flux-cutout" src={imageUrl} />
+            )}
+          </div>
         </div>
       )}
     </div>
