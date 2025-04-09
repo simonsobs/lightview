@@ -1,3 +1,8 @@
+.plot-container {
+  position: relative;
+  width: fit-content;
+}
+
 .plot-tooltip-container {
   position: absolute;
   background-color: white;
@@ -57,4 +62,14 @@
   text-align: center;
   align-items: center;
   font-weight: 600;
+}
+
+.cancel-individual-view-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 200px;
+}
+
+.hide {
+  display: none;
 }

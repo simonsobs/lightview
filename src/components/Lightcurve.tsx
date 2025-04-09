@@ -65,11 +65,20 @@ type EnhancedPlotDatum = PlotDatum & {
 /** Uses Plotly to generate a source's lightcurve. Currently plots all bands of a source, and only the i_flux */
 export function Lightcurve({ lightcurveData }: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
-  const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
+  const lightcurvePlotRef = useRef<PlotlyHTMLElement | null>(null);
+
+  const individualObsPlotRef = useRef<PlotlyHTMLElement | null>(null);
+
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+
+  const cancelIndividualObsModeBtnRef = useRef<HTMLButtonElement | null>(null);
 
   // the data used in the marker's tooltip
   const [clickedMarkerData, setClickedMarkerData] =
     useState<ClickedMarkerData>(undefined);
+
+  const [individualObservationMode, setIndividualObservationMode] =
+    useState(false);
 
   // set up a query to fetch the imageUrl for the tooltips that re-fetches when clickedMarkerData updates
   const { data: imageUrl } = useQuery<string | undefined>({
@@ -89,6 +98,43 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         const imageUrl = URL.createObjectURL(blob);
         return imageUrl;
       }
+    },
+  });
+
+  const { data: individualObsData } = useQuery<
+    ScatterDataWithErrorYAndMarkers | undefined
+  >({
+    initialData: undefined,
+    queryKey: [individualObservationMode, clickedMarkerData],
+    // eslint-disable-next-line @typescript-eslint/require-await
+    queryFn: async () => {
+      if (!individualObservationMode || !clickedMarkerData) return;
+      const timeOffsets = getRandomTimeOffset(clickedMarkerData.data.x).concat(
+        new Date(clickedMarkerData.data.x as string)
+      );
+      const fluxOffsets = getFluxOffset(clickedMarkerData.data.y).concat(
+        clickedMarkerData.data.y as number
+      );
+      const data = {
+        name: clickedMarkerData.data.bandName,
+        x: timeOffsets,
+        y: fluxOffsets,
+        type: 'scatter',
+        mode: 'markers',
+        marker: {
+          color: clickedMarkerData.data.bandColor,
+          size: 10,
+          line: {
+            width: Array(17).fill(0),
+            // Set the marker's outline color for purposes of mouse events, i.e. the
+            // outline only shows when a marker is clicked or hovered
+            color: '#000',
+          },
+        },
+      } as ScatterDataWithErrorYAndMarkers;
+      data.marker.line.width[16] = 2;
+
+      return data;
     },
   });
 
@@ -113,9 +159,9 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           size: 10,
           line: {
             width: [] as number[],
-            // Set the marker's outline color to be white for purposes of mouse events, i.e. the white
+            // Set the marker's outline color for purposes of mouse events, i.e. the
             // outline only shows when a marker is clicked or hovered
-            color: '#FFF',
+            color: '#000',
           },
         },
       } as ScatterDataWithErrorYAndMarkers;
@@ -147,6 +193,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     () => ({
       width: 1280,
       height: 500,
+      showlegend: true,
       yaxis: {
         title: {
           text: 'Flux (mJy)',
@@ -168,6 +215,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       pointIndex: number | undefined,
       reset: boolean
     ) => {
+      // if (individualObservationMode) return;
       plotData.forEach((d, i) => {
         const markerArrayLength = d.marker.line.width.length;
         // see if band has a marker with styles applied (note: currently just a marker width of 2)
@@ -211,8 +259,8 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         x,
         y,
         i_uncertainty: (e.points[0] as EnhancedPlotDatum)['error_y.array'],
-        pageX: e.event.pageX,
-        pageY: e.event.pageY,
+        pageX: e.event.layerX,
+        pageY: e.event.layerY,
         bandName: name,
         bandColor: (e.points[0] as EnhancedPlotDatum).fullData.marker.color,
       };
@@ -233,6 +281,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   const plotConfig: Partial<Config> = useMemo(() => {
     return {
       responsive: true,
+      // showLegend: true,
     };
   }, []);
 
@@ -249,35 +298,39 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
    */
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (individualObservationMode && e.key == 'Escape') {
+        setIndividualObservationMode(false);
+        return;
+      }
       if (clickedMarkerData && e.key == 'Escape') {
         handleRelayoutOrTooltipClose();
       }
     },
-    [clickedMarkerData, handleRelayoutOrTooltipClose]
+    [clickedMarkerData, handleRelayoutOrTooltipClose, individualObservationMode]
   );
 
-  /** Creates the Plotly plot and attaches our handlers to the plot */
+  /** Creates the Plotly lightcurve plot and attaches handlers to the plot */
   useEffect(() => {
-    const stablePlotlyReference = plotlyRef.current;
-    if (stablePlotlyReference) {
+    const stableLightcurveReference = lightcurvePlotRef.current;
+    if (stableLightcurveReference) {
       void Plotly.newPlot(
-        stablePlotlyReference,
+        stableLightcurveReference,
         plotData,
         plotLayout,
         plotConfig
       );
 
-      void stablePlotlyReference.on(
+      void stableLightcurveReference.on(
         'plotly_relayout',
         handleRelayoutOrTooltipClose
       );
 
-      void stablePlotlyReference.on('plotly_click', handleMarkerClick);
+      void stableLightcurveReference.on('plotly_click', handleMarkerClick);
     }
 
     return () => {
-      if (stablePlotlyReference) {
-        Plotly.purge(stablePlotlyReference);
+      if (stableLightcurveReference) {
+        Plotly.purge(stableLightcurveReference);
       }
     };
   }, [
@@ -286,6 +339,68 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     plotConfig,
     handleRelayoutOrTooltipClose,
     handleMarkerClick,
+  ]);
+
+  /** Creates the Plotly individual observations plot */
+  useEffect(() => {
+    const stableIndividualObsReference = individualObsPlotRef.current;
+    const stableCancelIndividualObsModeBtnRef =
+      cancelIndividualObsModeBtnRef.current;
+    if (stableIndividualObsReference && stableCancelIndividualObsModeBtnRef) {
+      void Plotly.newPlot(
+        stableIndividualObsReference,
+        [],
+        plotLayout,
+        plotConfig
+      );
+
+      stableIndividualObsReference.classList.add('hide');
+      stableCancelIndividualObsModeBtnRef.classList.add('hide');
+    }
+
+    return () => {
+      if (stableIndividualObsReference) {
+        Plotly.purge(stableIndividualObsReference);
+      }
+    };
+  }, [plotLayout, plotConfig]);
+
+  useEffect(() => {
+    const stableLightcurveReference = lightcurvePlotRef.current;
+    const stableIndividualObsReference = individualObsPlotRef.current;
+    const stableTooltipReference = tooltipRef.current;
+    const stableCancelIndividualObsModeBtnRef =
+      cancelIndividualObsModeBtnRef.current;
+    if (
+      stableLightcurveReference &&
+      stableIndividualObsReference &&
+      stableTooltipReference &&
+      stableCancelIndividualObsModeBtnRef
+    ) {
+      if (individualObsData) {
+        stableLightcurveReference.classList.add('hide');
+        stableTooltipReference.classList.add('hide');
+        stableIndividualObsReference.classList.remove('hide');
+        stableCancelIndividualObsModeBtnRef.classList.remove('hide');
+        void Plotly.react(
+          stableIndividualObsReference,
+          [individualObsData],
+          plotLayout,
+          plotConfig
+        );
+      } else {
+        stableLightcurveReference.classList.remove('hide');
+        stableTooltipReference.classList.remove('hide');
+        stableIndividualObsReference.classList.add('hide');
+        stableCancelIndividualObsModeBtnRef.classList.add('hide');
+      }
+    }
+  }, [
+    individualObsData,
+    plotLayout,
+    plotConfig,
+    lightcurvePlotRef,
+    individualObsPlotRef,
   ]);
 
   /** Attaches keyboard listeners to the window so we can close marker tooltips with "Esc" key */
@@ -299,11 +414,24 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   }, [handleKeyDown]);
 
   return (
-    <div>
+    <div className="plot-container">
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
-      <div id="lightcurve-plot" ref={plotlyRef} />
+      <div id="lightcurve-plot" ref={lightcurvePlotRef} />
+      {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
+      <div id="individual-obs-plot" ref={individualObsPlotRef} />
+      <button
+        ref={cancelIndividualObsModeBtnRef}
+        className="cancel-individual-view-btn"
+        type="button"
+        title="Click (or press Esc) to return to the lightcurve summary view"
+        onClick={() => setIndividualObservationMode(false)}
+        disabled={!individualObservationMode}
+      >
+        Return to summary view
+      </button>
       {clickedMarkerData && imageUrl && (
         <div
+          ref={tooltipRef}
           className="plot-tooltip-container"
           style={{
             left: `${clickedMarkerData.data.pageX}px`,
@@ -348,8 +476,56 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               <img className="flux-cutout" src={imageUrl} />
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setIndividualObservationMode(true)}
+          >
+            Show individual observations
+          </button>
         </div>
       )}
     </div>
   );
+}
+
+function getRandomTimeOffset(date: Datum) {
+  const randomizedTimeOffsets = [];
+  const originalDate = new Date(date as string);
+  const fullDayInMillseconds = 24 * 3600 * 1000;
+  const timeInMilliseconds =
+    (originalDate.getHours() * 3600 +
+      originalDate.getMinutes() * 60 +
+      originalDate.getSeconds()) *
+    1000;
+
+  for (let i = 0; i < 16; i++) {
+    const randomFloat = Math.random();
+    let offset;
+    if (randomFloat > 0.5) {
+      offset = Math.floor(
+        (fullDayInMillseconds - timeInMilliseconds) * randomFloat
+      );
+    } else {
+      offset = Math.floor(timeInMilliseconds * randomFloat) * -1;
+    }
+    const newTime = new Date(originalDate.valueOf() + offset);
+    randomizedTimeOffsets.push(newTime);
+  }
+
+  return randomizedTimeOffsets;
+}
+
+function getFluxOffset(flux: Datum) {
+  const fluxOffsets = [];
+
+  for (let i = 0; i < 16; i++) {
+    const randomFloat = Math.random();
+    if (randomFloat > 0.5) {
+      fluxOffsets.push((flux as number) * Math.random() + (flux as number));
+    } else {
+      fluxOffsets.push((flux as number) - (flux as number) * Math.random());
+    }
+  }
+
+  return fluxOffsets;
 }
