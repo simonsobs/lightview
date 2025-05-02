@@ -5,6 +5,10 @@ export type SourceResponse = {
   variable: boolean;
 };
 
+export type SourceResponseWithNanoplot = SourceResponse & {
+  nanoplot: string;
+};
+
 type Band = {
   name: string;
   telescope: string;

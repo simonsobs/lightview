@@ -38,7 +38,7 @@ export function Table<T>({
   });
 
   return (
-    <>
+    <div className="table-wrapper">
       <table className={className}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -88,6 +88,6 @@ export function Table<T>({
         </tbody>
       </table>
       {isPaginated && <TablePaginationControls table={table} />}
-    </>
+    </div>
   );
 }

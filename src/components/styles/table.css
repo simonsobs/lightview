@@ -1,3 +1,7 @@
+.table-wrapper {
+  width: fit-content;
+}
+
 table {
   border-collapse: collapse;
   border: 2px solid rgb(140 140 140);

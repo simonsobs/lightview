@@ -1,16 +1,18 @@
-import { SourceResponse } from '../types';
+import { useMemo } from 'react';
+import { SourceResponse, SourceResponseWithNanoplot } from '../types';
 import { SERVICE_URL } from '../configs/constants';
 import { Table } from './Table';
 import { Link } from 'react-router';
-import { ColumnDef } from '@tanstack/react-table';
-import './styles/table.css';
+import { ColumnDef, InitialTableState } from '@tanstack/react-table';
 import { useQuery } from '../hooks/useQuery';
+import { getNanoPlotSVG } from '../utils/nanoPlotHelpers';
+import './styles/table.css';
 
 /**
  * Renders a Table of sources returned by the /sources endpoint
  */
 export function Sources() {
-  const { data: sources } = useQuery<SourceResponse[] | undefined>({
+  const { data: sources } = useQuery<SourceResponseWithNanoplot[] | undefined>({
     initialData: undefined,
     queryKey: [],
     queryFn: async () => {
@@ -20,13 +22,33 @@ export function Sources() {
       }
       const responseJson: SourceResponse[] =
         (await response.json()) as SourceResponse[];
-      return responseJson;
+
+      const sourcesWithNanoplot = await Promise.all(
+        responseJson.map(async (r) => {
+          const plot = await getNanoPlotSVG(r.id);
+          return {
+            ...r,
+            nanoplot: plot ?? '',
+          } as SourceResponseWithNanoplot;
+        })
+      );
+
+      return sourcesWithNanoplot;
     },
   });
+
+  const initialState: InitialTableState = useMemo(() => {
+    return {
+      pagination: {
+        pageSize: 15,
+      },
+    };
+  }, []);
 
   return (
     sources && (
       <Table
+        initialState={initialState}
         data={sources}
         columns={
           [
@@ -43,14 +65,22 @@ export function Sources() {
             {
               header: 'ra',
               accessorFn: (row) => row.ra.toFixed(5),
-              size: 125,
+              size: 50,
             },
             {
               header: 'dec',
               accessorFn: (row) => row.dec.toFixed(5),
-              size: 125,
+              size: 50,
             },
-          ] as ColumnDef<SourceResponse>[]
+            {
+              header: 'flux',
+              cell: ({ row }) => (
+                <div
+                  dangerouslySetInnerHTML={{ __html: row.original.nanoplot }}
+                />
+              ),
+            },
+          ] as ColumnDef<SourceResponseWithNanoplot>[]
         }
       />
     )
