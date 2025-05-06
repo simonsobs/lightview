@@ -13,18 +13,19 @@ html,
 body {
   margin: 0;
   padding: 0;
+  background-color: rgb(248, 249, 250);
 }
 
 #root {
   display: flex;
   flex-direction: column;
-  row-gap: 1em;
 }
 
 main {
   padding: 0 10px;
   margin-bottom: 10px;
   max-width: 1440px;
+  margin-top: 1.25em;
 }
 
 @media (width > 1440px) {

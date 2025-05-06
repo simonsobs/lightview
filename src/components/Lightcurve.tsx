@@ -157,6 +157,9 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           text: 'Time (d)',
         },
       },
+      title: {
+        text: `Lightcurve for SO-${lightcurveData.source.id}`,
+      },
     }),
     []
   );
@@ -299,7 +302,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   }, [handleKeyDown]);
 
   return (
-    <div>
+    <div className="lightcurve-container">
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
       <div id="lightcurve-plot" ref={plotlyRef} />
       {clickedMarkerData && imageUrl && (

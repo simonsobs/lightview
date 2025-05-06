@@ -109,9 +109,9 @@ export function LightcurveDataTable({
   }, []);
 
   return (
-    <>
-      <h3>Data Access</h3>
+    <div className="data-access-container">
+      <h3 className="source-section-h3">Data Access</h3>
       <Table data={tableData} columns={columns} initialState={initialState} />
-    </>
+    </div>
   );
 }

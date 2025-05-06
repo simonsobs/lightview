@@ -39,6 +39,7 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
   return (
     <div>
       <h3
+        className="source-section-h3"
         title={`Displays cone search results within ${DEFAULT_NEARBY_SOURCE_RADIUS}° radius of this source.`}
       >
         Nearby Sources

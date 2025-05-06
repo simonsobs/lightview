@@ -4,6 +4,7 @@
   column-gap: 2em;
   row-gap: 0.5em;
   flex-wrap: wrap;
+  margin-bottom: 1.25em;
 }
 
 .source-header-container > h3 {
@@ -40,13 +41,37 @@
 }
 
 .source-grid-container {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: auto 400px;
   gap: 2em;
   max-width: 1280px;
+  border-radius: 10px;
+  border: 1px solid #c4c8cb;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  padding: 1em;
+  background-color: #fff;
+}
+
+.source-section-h3 {
+  margin: 0;
 }
 
 .aladin-viewer-container {
   width: 400px;
   height: 400px;
+}
+
+.data-access-container {
+  box-sizing: border-box;
+  border: 1px solid #c4c8cb;
+  border-radius: 10px;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  padding: 1em;
+  background-color: #fff;
+  margin-top: 1.25em;
+}
+
+.data-access-container > h3 {
+  margin-bottom: 0.5em;
 }
