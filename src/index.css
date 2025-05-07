@@ -33,3 +33,7 @@ main {
     align-self: center;
   }
 }
+
+.page-not-found-container {
+  align-self: flex-start;
+}
