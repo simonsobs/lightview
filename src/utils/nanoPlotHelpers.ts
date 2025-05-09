@@ -1,5 +1,4 @@
 import {
-  SERVICE_URL,
   DEFAULT_NANOPLOT_BAND,
   DEFAULT_NANOPLOT_LAYOUT,
   DEFAULT_NANOPLOT_X_TRANSFORM,
@@ -15,7 +14,7 @@ import { LightcurveBand } from '../types';
  */
 async function getNanoPlotData(id: number) {
   const response = await fetch(
-    `${SERVICE_URL}/lightcurves/${id}/${DEFAULT_NANOPLOT_BAND}`
+    `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/${DEFAULT_NANOPLOT_BAND}`
   );
   const responseJson = (await response.json()) as LightcurveBand;
 

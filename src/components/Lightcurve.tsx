@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
-import { SERVICE_URL } from '../configs/constants';
 import './styles/lightcurve.css';
 import { LightcurveData } from '../types';
 import Plotly, {
@@ -81,7 +80,9 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           lightcurveData.bands[clickedMarkerData.markerId.curveNumber].id[
             clickedMarkerData.markerId.pointIndex
           ];
-        const response = await fetch(`${SERVICE_URL}/cutouts/flux/${id}`);
+        const response = await fetch(
+          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${id}`
+        );
         if (!response.ok) {
           return response.statusText;
         }

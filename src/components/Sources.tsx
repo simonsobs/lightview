@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { SourceResponse, SourceResponseWithNanoplot } from '../types';
-import { SERVICE_URL } from '../configs/constants';
 import { Table } from './Table';
 import { Link } from 'react-router';
 import { ColumnDef, InitialTableState } from '@tanstack/react-table';
@@ -16,7 +15,9 @@ export function Sources() {
     initialData: undefined,
     queryKey: [],
     queryFn: async () => {
-      const response: Response = await fetch(`${SERVICE_URL}/sources/`);
+      const response: Response = await fetch(
+        `${import.meta.env.VITE_SERVICE_URL}/sources/`
+      );
       if (!response.ok) {
         throw new Error(`Error fetching sources: ${response.statusText}`);
       }

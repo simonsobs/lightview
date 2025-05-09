@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { LightcurveData, SourceSummary } from '../types';
-import { SERVICE_URL } from '../configs/constants';
 import { SourceHeader } from './SourceHeader';
 import {
   findMidBand,
@@ -35,7 +34,7 @@ export function Source() {
     queryKey: [id],
     queryFn: async () => {
       const response: Response = await fetch(
-        `${SERVICE_URL}/sources/${id}/summary`
+        `${import.meta.env.VITE_SERVICE_URL}/sources/${id}/summary`
       );
 
       if (!response.ok) {
@@ -63,7 +62,7 @@ export function Source() {
       if (!sourceSummary) return;
 
       const response: Response = await fetch(
-        `${SERVICE_URL}/lightcurves/${id}/all`
+        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/all`
       );
       if (!response.ok) {
         throw new Error(

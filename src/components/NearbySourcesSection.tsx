@@ -1,7 +1,4 @@
-import {
-  DEFAULT_NEARBY_SOURCE_RADIUS,
-  SERVICE_URL,
-} from '../configs/constants';
+import { DEFAULT_NEARBY_SOURCE_RADIUS } from '../configs/constants';
 import { useQuery } from '../hooks/useQuery';
 import { SourceResponse } from '../types';
 import { Table } from './Table';
@@ -20,7 +17,7 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
     queryKey: [],
     queryFn: async () => {
       const response: Response = await fetch(
-        `${SERVICE_URL}/sources/cone/?ra=${ra}&dec=${dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
+        `${import.meta.env.VITE_SERVICE_URL}/sources/cone/?ra=${ra}&dec=${dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
       );
       if (!response.ok) {
         throw new Error(

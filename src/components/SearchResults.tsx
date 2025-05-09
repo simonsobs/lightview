@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router';
-import { SERVICE_URL } from '../configs/constants';
 import { SourceResponse } from '../types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Table } from './Table';
@@ -16,7 +15,7 @@ export function SearchResults() {
     async function getSearchResults() {
       if (params['*'] === 'cone' && location.search) {
         const response: Response = await fetch(
-          `${SERVICE_URL}/sources/cone/${location.search}`
+          `${import.meta.env.VITE_SERVICE_URL}/sources/cone/${location.search}`
         );
         const data: SourceResponse[] =
           (await response.json()) as SourceResponse[];
