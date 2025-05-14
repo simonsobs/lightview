@@ -3,6 +3,9 @@ export type SourceResponse = {
   ra: number;
   dec: number;
   variable: boolean;
+  extra: {
+    cross_matches: { name: string }[];
+  };
 };
 
 export type SourcesFeedItem = {

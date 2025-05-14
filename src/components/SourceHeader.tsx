@@ -2,7 +2,7 @@ import { SourceResponse } from '../types';
 import { Badge } from './Badge';
 import './styles/source-page.css';
 
-type SourceHeaderProps = Omit<SourceResponse, 'variable'> & {
+type SourceHeaderProps = Omit<SourceResponse, 'variable' | 'extra'> & {
   sourceClass: string;
   maxFlux: number;
   medianFlux: number;

@@ -4,7 +4,7 @@ import { SourceResponse } from '../types';
 import { Table } from './Table';
 import { Link } from 'react-router';
 
-type NearbySourcesProps = Omit<SourceResponse, 'variable'>;
+type NearbySourcesProps = Omit<SourceResponse, 'variable' | 'extra'>;
 
 /** Renders a Table of sources found within a cone search of x radius from a given source */
 export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {

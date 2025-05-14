@@ -1,13 +1,22 @@
-export function CrossMatchSection() {
+type CrossMatchSectionProps = {
+  crossMatches: { name: string }[];
+};
+
+export function CrossMatchSection({ crossMatches }: CrossMatchSectionProps) {
   return (
     <div>
       <h3 className="source-section-h3">Cross-Matches</h3>
-      <p>
-        Lorem ipsum, dolor sit amet consectetur adipisicing elit. Numquam
-        laudantium quisquam iure repellat voluptates atque officiis, ex
-        temporibus in minus, libero molestias quaerat soluta provident, nobis
-        iste sunt modi labore?
-      </p>
+      {crossMatches.length ? (
+        <ul>
+          {crossMatches.map((m) => (
+            <li key={m.name}>{m.name}</li>
+          ))}
+        </ul>
+      ) : (
+        <h4>
+          <em>No results</em>
+        </h4>
+      )}
     </div>
   );
 }
