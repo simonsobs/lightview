@@ -5,8 +5,22 @@ export type SourceResponse = {
   variable: boolean;
 };
 
-export type SourceResponseWithNanoplot = SourceResponse & {
-  nanoplot: string;
+export type SourcesFeedItem = {
+  source_id: number;
+  ra: number;
+  dec: number;
+  /** time is sent as a Date string */
+  time: string[];
+  flux: number[];
+  nanoplot?: string;
+};
+
+export type SourcesFeedResponse = {
+  start: number;
+  stop: number;
+  band_name: string;
+  total_number_of_sources: number;
+  items: SourcesFeedItem[];
 };
 
 type Band = {
@@ -30,6 +44,10 @@ export type SourceSummary = {
   measurements: Measurement[];
 };
 
+type ExtraDictionary = {
+  flags: string[];
+};
+
 export type LightcurveBand = {
   band: Band;
   id: number[];
@@ -41,6 +59,7 @@ export type LightcurveBand = {
   q_uncertainty: number[];
   u_flux: number[];
   u_uncertainty: number[];
+  extra: ExtraDictionary[];
 };
 
 export type LightcurveData = {

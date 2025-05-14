@@ -9,11 +9,17 @@ import {
 } from '@tanstack/react-table';
 import { TablePaginationControls } from './TablePaginationControls';
 
-type TableProps<T> = {
+export type TableProps<T> = {
   data: T[];
   columns: ColumnDef<T>[];
   initialState?: InitialTableState;
   className?: string;
+  customPaginationState?: {
+    totalItems: number;
+    itemsPerPage: number;
+    currentPageNumber: number;
+    setCurrentPageNumber: (pageNumber: number) => void;
+  };
 };
 
 /**
@@ -25,6 +31,7 @@ export function Table<T>({
   columns,
   initialState = undefined,
   className = undefined,
+  customPaginationState,
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -87,7 +94,12 @@ export function Table<T>({
           ))}
         </tbody>
       </table>
-      {isPaginated && <TablePaginationControls table={table} />}
+      {isPaginated && (
+        <TablePaginationControls
+          table={table}
+          customPaginationState={customPaginationState}
+        />
+      )}
     </div>
   );
 }
