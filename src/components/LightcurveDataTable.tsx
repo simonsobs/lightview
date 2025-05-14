@@ -10,6 +10,7 @@ type LightcurveTableData = {
   timeParsed: number;
   i_flux: number;
   i_uncertainty: number;
+  flags: string[];
   // q_flux: number | undefined;
   // q_uncertainty: number | undefined;
   // u_flux: number | undefined;
@@ -33,6 +34,7 @@ export function LightcurveDataTable({
           timeParsed: Date.parse(band.time[idx]),
           i_flux: band.i_flux[idx],
           i_uncertainty: band.i_uncertainty[idx],
+          flags: band.extra[idx] ? band.extra[idx].flags : [],
           // q_flux: 'q_flux' in band ? band.q_flux[idx] : undefined,
           // q_uncertainty: 'q_uncertainty' in band ? band.q_uncertainty[idx] : undefined,
           // u_flux: 'u_flux' in band ?band.u_flux[idx] : undefined,
@@ -73,6 +75,10 @@ export function LightcurveDataTable({
         accessorFn: (row) => row.i_uncertainty,
         sortingFn: (rowA, rowB) =>
           rowA.original.i_uncertainty - rowB.original.i_uncertainty,
+      },
+      {
+        header: 'Flags',
+        accessorFn: (row) => (row.flags.length ? row.flags.join(', ') : 'n/a'),
       },
       // {
       //   header: 'Flux (Q)',

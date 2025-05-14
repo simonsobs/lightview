@@ -49,7 +49,7 @@ export type SourceSummary = {
 
 type ExtraDictionary = {
   flags: string[];
-};
+} | null;
 
 export type LightcurveBand = {
   band: Band;
