@@ -10,10 +10,10 @@ type LightcurveTableData = {
   timeParsed: number;
   i_flux: number;
   i_uncertainty: number;
-  q_flux: number;
-  q_uncertainty: number;
-  u_flux: number;
-  u_uncertainty: number;
+  // q_flux: number | undefined;
+  // q_uncertainty: number | undefined;
+  // u_flux: number | undefined;
+  // u_uncertainty: number | undefined;
 };
 
 /** Renders the lightcurve data used in the Lightcurve plot as a table instead */
@@ -33,10 +33,10 @@ export function LightcurveDataTable({
           timeParsed: Date.parse(band.time[idx]),
           i_flux: band.i_flux[idx],
           i_uncertainty: band.i_uncertainty[idx],
-          q_flux: band.q_flux[idx],
-          q_uncertainty: band.q_uncertainty[idx],
-          u_flux: band.u_flux[idx],
-          u_uncertainty: band.u_uncertainty[idx],
+          // q_flux: 'q_flux' in band ? band.q_flux[idx] : undefined,
+          // q_uncertainty: 'q_uncertainty' in band ? band.q_uncertainty[idx] : undefined,
+          // u_flux: 'u_flux' in band ?band.u_flux[idx] : undefined,
+          // u_uncertainty: 'u_uncertainty' in band ? band.u_uncertainty[idx] : undefined,
         });
       });
     });
@@ -74,28 +74,28 @@ export function LightcurveDataTable({
         sortingFn: (rowA, rowB) =>
           rowA.original.i_uncertainty - rowB.original.i_uncertainty,
       },
-      {
-        header: 'Flux (Q)',
-        accessorFn: (row) => row.q_flux,
-        sortingFn: (rowA, rowB) => rowA.original.q_flux - rowB.original.q_flux,
-      },
-      {
-        header: 'Flux Uncertainty (Q)',
-        accessorFn: (row) => row.q_uncertainty,
-        sortingFn: (rowA, rowB) =>
-          rowA.original.q_uncertainty - rowB.original.q_uncertainty,
-      },
-      {
-        header: 'Flux (U)',
-        accessorFn: (row) => row.u_flux,
-        sortingFn: (rowA, rowB) => rowA.original.u_flux - rowB.original.u_flux,
-      },
-      {
-        header: 'Flux Uncertainty (U)',
-        accessorFn: (row) => row.u_uncertainty,
-        sortingFn: (rowA, rowB) =>
-          rowA.original.u_uncertainty - rowB.original.u_uncertainty,
-      },
+      // {
+      //   header: 'Flux (Q)',
+      //   accessorFn: (row) => 'q_flux' in row ? row.q_flux : 'n/a',
+      //   // sortingFn: (rowA, rowB) => rowA.original.q_flux - rowB.original.q_flux,
+      // },
+      // {
+      //   header: 'Flux Uncertainty (Q)',
+      //   accessorFn: (row) => 'q_uncertainty' in row ? row.q_uncertainty : 'n/a',
+      //   // sortingFn: (rowA, rowB) =>
+      //     // rowA.original.q_uncertainty - rowB.original.q_uncertainty,
+      // },
+      // {
+      //   header: 'Flux (U)',
+      //   accessorFn: (row) => 'u_flux' in row ? row.u_flux : 'n/a',
+      //   // sortingFn: (rowA, rowB) => rowA.original.u_flux - rowB.original.u_flux,
+      // },
+      // {
+      //   header: 'Flux Uncertainty (U)',
+      //   accessorFn: (row) => 'u_uncertainty' in row ? row.u_uncertainty : 'n/a',
+      //   // sortingFn: (rowA, rowB) =>
+      //     // rowA.original.u_uncertainty - rowB.original.u_uncertainty,
+      // },
     ] as ColumnDef<LightcurveTableData>[];
   }, []);
 

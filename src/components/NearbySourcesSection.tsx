@@ -17,7 +17,7 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
     queryKey: [],
     queryFn: async () => {
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/cone/?ra=${ra}&dec=${dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
+        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${ra}&dec=${dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
       );
       if (!response.ok) {
         throw new Error(
@@ -31,8 +31,6 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
     },
   });
 
-  if (error) throw error;
-
   return (
     <div>
       <h3
@@ -43,6 +41,8 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
       </h3>
       {isLoading ? (
         <h4>Loading...</h4>
+      ) : error ? (
+        <h4>There was an error loading nearby sources.</h4>
       ) : nearbySources && nearbySources.length ? (
         <Table
           data={nearbySources}
