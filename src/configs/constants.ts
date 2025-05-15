@@ -20,4 +20,6 @@ export const DEFAULT_NANOPLOT_LAYOUT = {
 export const DEFAULT_NANOPLOT_X_TRANSFORM = 0.8;
 export const DEFAULT_NANOPLOT_Y_TRANSFORM = 0.75;
 
-export const DEFAULT_SOURCES_PER_PAGE = 3;
+export const DEFAULT_SOURCES_PER_PAGE = Number(
+  import.meta.env.VITE_DEFAULT_SOURCES_PER_PAGE
+);
