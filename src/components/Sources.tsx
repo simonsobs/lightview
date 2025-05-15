@@ -71,6 +71,7 @@ export function Sources() {
     <Table
       initialState={initialState}
       customPaginationState={customPaginationState}
+      sortable={false}
       data={sources ?? []}
       columns={
         [
@@ -84,8 +85,6 @@ export function Sources() {
             ),
             size: 50,
             accessorFn: (row) => row.source_id,
-            sortingFn: (rowA, rowB) =>
-              rowA.original.source_id - rowB.original.source_id,
           },
           {
             header: 'ra',

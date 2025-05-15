@@ -20,6 +20,7 @@ export type TableProps<T> = {
     currentPageNumber: number;
     setCurrentPageNumber: (pageNumber: number) => void;
   };
+  sortable?: boolean;
 };
 
 /**
@@ -32,6 +33,7 @@ export function Table<T>({
   initialState = undefined,
   className = undefined,
   customPaginationState,
+  sortable = true,
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -39,7 +41,7 @@ export function Table<T>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: sortable ? getSortedRowModel() : undefined,
     getPaginationRowModel: isPaginated ? getPaginationRowModel() : undefined,
     initialState,
   });
@@ -54,13 +56,21 @@ export function Table<T>({
                 <th key={header.id}>
                   {header.isPlaceholder ? null : (
                     <div
-                      style={{
-                        position: 'relative',
-                        cursor: header.column.getCanSort()
-                          ? 'pointer'
-                          : 'cursor',
-                      }}
-                      onClick={header.column.getToggleSortingHandler()}
+                      style={
+                        sortable
+                          ? {
+                              position: 'relative',
+                              cursor: header.column.getCanSort()
+                                ? 'pointer'
+                                : 'cursor',
+                            }
+                          : undefined
+                      }
+                      onClick={
+                        sortable
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                     >
                       {flexRender(
                         header.column.columnDef.header,
