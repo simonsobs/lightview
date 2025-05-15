@@ -92,12 +92,12 @@ export function Sources() {
           },
           {
             header: 'ra',
-            accessorFn: (row) => row.ra.toFixed(5),
+            accessorFn: (row) => row.ra.toFixed(1),
             size: 50,
           },
           {
             header: 'dec',
-            accessorFn: (row) => row.dec.toFixed(5),
+            accessorFn: (row) => row.dec.toFixed(1),
             size: 50,
           },
           {

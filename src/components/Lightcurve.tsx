@@ -342,9 +342,9 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               </p>
               <p>
                 <span>Flux:</span>
-                {String(Number(clickedMarkerData.data.y).toFixed(5))} +/-{' '}
+                {String(Number(clickedMarkerData.data.y).toFixed(1))} +/-{' '}
                 {String(
-                  Number(clickedMarkerData.data.i_uncertainty).toFixed(5)
+                  Number(clickedMarkerData.data.i_uncertainty).toFixed(1)
                 )}{' '}
                 mJy
               </p>

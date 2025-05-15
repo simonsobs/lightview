@@ -67,12 +67,12 @@ export function LightcurveDataTable({
       },
       {
         header: 'Flux (I)',
-        accessorFn: (row) => row.i_flux,
+        accessorFn: (row) => row.i_flux.toFixed(1),
         sortingFn: (rowA, rowB) => rowA.original.i_flux - rowB.original.i_flux,
       },
       {
         header: 'Flux Uncertainty (I)',
-        accessorFn: (row) => row.i_uncertainty,
+        accessorFn: (row) => row.i_uncertainty.toFixed(1),
         sortingFn: (rowA, rowB) =>
           rowA.original.i_uncertainty - rowB.original.i_uncertainty,
       },
