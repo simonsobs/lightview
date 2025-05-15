@@ -25,6 +25,12 @@ form {
   font-weight: bold;
 }
 
+.search-form > label > span > span {
+  font-weight: normal;
+  font-style: italic;
+  font-size: 0.85em;
+}
+
 .cone-search-input {
   width: 10ch;
 }

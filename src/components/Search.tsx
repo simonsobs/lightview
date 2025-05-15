@@ -21,7 +21,9 @@ export function Search() {
         });
 
         const redirectUrl = new URL(
-          window.location.origin + '/search/cone?' + queryParams.toString()
+          import.meta.env.VITE_SERVICE_URL +
+            '/search/cone?' +
+            queryParams.toString()
         );
 
         void navigation(redirectUrl.pathname + redirectUrl.search);
@@ -29,7 +31,7 @@ export function Search() {
         const sourceID = formData.get('source-id') as string;
 
         const redirectUrl = new URL(
-          window.location.origin + '/source/' + sourceID
+          import.meta.env.VITE_SERVICE_URL + '/source/' + sourceID
         );
 
         void navigation(redirectUrl.pathname);
@@ -60,7 +62,9 @@ export function Search() {
         {value === 'cone-search' && (
           <>
             <label htmlFor="ra">
-              ra
+              <span>
+                ra <span>(degrees)</span>
+              </span>
               <input
                 className="cone-search-input"
                 id="ra"
@@ -70,7 +74,9 @@ export function Search() {
               />
             </label>
             <label htmlFor="dec">
-              dec
+              <span>
+                dec <span>(degrees)</span>
+              </span>
               <input
                 className="cone-search-input"
                 id="dec"
@@ -80,7 +86,9 @@ export function Search() {
               />
             </label>
             <label htmlFor="radius">
-              radius
+              <span>
+                radius <span>(degrees)</span>
+              </span>
               <input
                 className="cone-search-input"
                 id="radius"

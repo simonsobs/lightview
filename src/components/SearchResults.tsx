@@ -10,6 +10,7 @@ export function SearchResults() {
   const [results, setResults] = useState<SourceResponse[] | undefined>(
     undefined
   );
+  const [error, setError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     async function getSearchResults() {
@@ -17,9 +18,17 @@ export function SearchResults() {
         const response: Response = await fetch(
           `${import.meta.env.VITE_SERVICE_URL}/sources/cone/${location.search}`
         );
+
+        if (!response.ok) {
+          setResults(undefined);
+          setError('An error occurred. Please try again.');
+          return;
+        }
+
         const data: SourceResponse[] =
           (await response.json()) as SourceResponse[];
         setResults(data);
+        setError(undefined);
       }
     }
 
@@ -80,18 +89,20 @@ export function SearchResults() {
                 },
                 {
                   header: 'ra',
-                  accessorFn: (row) => row.ra.toFixed(5),
+                  accessorFn: (row) => row.ra.toFixed(1),
                   size: 125,
                 },
                 {
                   header: 'dec',
-                  accessorFn: (row) => row.dec.toFixed(5),
+                  accessorFn: (row) => row.dec.toFixed(1),
                   size: 125,
                 },
               ] as ColumnDef<SourceResponse>[]
             }
           />
         </>
+      ) : error ? (
+        <h3>{error}</h3>
       ) : (
         <h3>Searching...</h3>
       )}
