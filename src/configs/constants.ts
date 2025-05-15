@@ -1,8 +1,5 @@
 export const DEFAULT_NEARBY_SOURCE_RADIUS = 1.5;
 
-export const DEFAULT_NANOPLOT_BAND =
-  (import.meta.env.VITE_DEFAULT_NANOPLOT_BAND as string) ?? 'f150';
-
 export const DEFAULT_NANOPLOT_LAYOUT = {
   width: 400,
   height: 250,

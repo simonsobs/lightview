@@ -38,7 +38,11 @@ export function Sources() {
 
       const sourcesWithNanoplot = (await Promise.all(
         responseJson.items.map(async (r) => {
-          const plot = await getNanoPlotSVG(r.source_id);
+          const plotData = {
+            time: r.time,
+            flux: r.flux,
+          };
+          const plot = await getNanoPlotSVG(plotData);
           return {
             ...r,
             nanoplot: plot ?? '',
