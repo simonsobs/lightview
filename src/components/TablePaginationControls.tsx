@@ -1,7 +1,10 @@
 import { Table } from '@tanstack/react-table';
+import { TableProps } from './Table';
+import { useCallback } from 'react';
 
 type TablePaginationControlsProps<T> = {
   table: Table<T>;
+  customPaginationState: TableProps<T>['customPaginationState'];
 };
 
 /**
@@ -14,8 +17,44 @@ type TablePaginationControlsProps<T> = {
  */
 export function TablePaginationControls<T>({
   table,
+  customPaginationState,
 }: TablePaginationControlsProps<T>) {
-  const { pagination } = table.getState();
+  const handleGoToFirstPage = useCallback(() => {
+    if (customPaginationState) {
+      customPaginationState.setCurrentPageNumber(1);
+    } else {
+      table.setPageIndex(0);
+    }
+  }, [table, customPaginationState]);
+
+  const handleGoToLastPage = useCallback(() => {
+    if (customPaginationState) {
+      const { totalItems, itemsPerPage, setCurrentPageNumber } =
+        customPaginationState;
+      const lastPage = Math.ceil(totalItems / itemsPerPage);
+      setCurrentPageNumber(lastPage);
+    } else {
+      table.setPageIndex(table.getPageCount() - 1);
+    }
+  }, [table, customPaginationState]);
+
+  const handleGoToPreviousPage = useCallback(() => {
+    if (customPaginationState) {
+      const { currentPageNumber, setCurrentPageNumber } = customPaginationState;
+      setCurrentPageNumber(currentPageNumber - 1);
+    } else {
+      table.previousPage();
+    }
+  }, [table, customPaginationState]);
+
+  const handleGoToNextPage = useCallback(() => {
+    if (customPaginationState) {
+      const { currentPageNumber, setCurrentPageNumber } = customPaginationState;
+      setCurrentPageNumber(currentPageNumber + 1);
+    } else {
+      table.nextPage();
+    }
+  }, [table, customPaginationState]);
 
   return (
     <div className="pagination-controls">
@@ -23,8 +62,12 @@ export function TablePaginationControls<T>({
         className="pagination-btn"
         title="Go to first page"
         type="button"
-        onClick={() => table.setPageIndex(0)}
-        disabled={!table.getCanPreviousPage()}
+        onClick={handleGoToFirstPage}
+        disabled={
+          customPaginationState
+            ? customPaginationState.currentPageNumber === 1
+            : !table.getCanPreviousPage()
+        }
       >
         &lt;&lt;
       </button>
@@ -32,20 +75,42 @@ export function TablePaginationControls<T>({
         className="pagination-btn"
         title="Go to previous page"
         type="button"
-        onClick={() => table.previousPage()}
-        disabled={!table.getCanPreviousPage()}
+        onClick={handleGoToPreviousPage}
+        disabled={
+          customPaginationState
+            ? customPaginationState.currentPageNumber === 1
+            : !table.getCanPreviousPage()
+        }
       >
         &lt;
       </button>
       <span>
-        Page {pagination.pageIndex + 1} of {table.getPageCount()}
+        Page{' '}
+        {customPaginationState
+          ? customPaginationState.currentPageNumber
+          : table.getState().pagination.pageIndex + 1}{' '}
+        of{' '}
+        {customPaginationState
+          ? Math.ceil(
+              customPaginationState.totalItems /
+                customPaginationState.itemsPerPage
+            )
+          : table.getPageCount()}
       </span>
       <button
         className="pagination-btn"
         title="Go to next page"
         type="button"
-        onClick={() => table.nextPage()}
-        disabled={!table.getCanNextPage()}
+        onClick={handleGoToNextPage}
+        disabled={
+          customPaginationState
+            ? customPaginationState.currentPageNumber ===
+              Math.ceil(
+                customPaginationState.totalItems /
+                  customPaginationState.itemsPerPage
+              )
+            : !table.getCanNextPage()
+        }
       >
         &gt;
       </button>
@@ -53,8 +118,17 @@ export function TablePaginationControls<T>({
         className="pagination-btn"
         title="Go to last page"
         type="button"
-        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-        disabled={!table.getCanNextPage()}
+        onClick={handleGoToLastPage}
+        disabled={
+          customPaginationState
+            ? customPaginationState.currentPageNumber ===
+              Math.floor(
+                customPaginationState.totalItems /
+                  customPaginationState.itemsPerPage
+              ) +
+                1
+            : !table.getCanNextPage()
+        }
       >
         &gt;&gt;
       </button>

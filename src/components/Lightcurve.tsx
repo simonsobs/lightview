@@ -29,6 +29,7 @@ type ClickedMarkerData =
         x: Datum;
         y: Datum;
         i_uncertainty: Datum;
+        flags: string[] | null;
         pageX: number;
         pageY: number;
         bandName: string;
@@ -209,17 +210,21 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       const { x, y, pointIndex, curveNumber, data } = e.points[0];
 
       const { name } = data;
+      const extra = lightcurveData.bands[curveNumber].extra[pointIndex];
+      const flags = extra != null ? extra.flags : null;
 
       // Create an object used for the tooltip's content and positioning
       const pointData = {
         x,
         y,
         i_uncertainty: (e.points[0] as EnhancedPlotDatum)['error_y.array'],
+        flags,
         pageX: e.event.pageX,
         pageY: e.event.pageY,
         bandName: name,
         bandColor: (e.points[0] as EnhancedPlotDatum).fullData.marker.color,
       };
+
       setClickedMarkerData({
         markerId: {
           pointIndex,
@@ -337,11 +342,17 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               </p>
               <p>
                 <span>Flux:</span>
-                {String(Number(clickedMarkerData.data.y).toFixed(5))} +/-{' '}
+                {String(Number(clickedMarkerData.data.y).toFixed(1))} +/-{' '}
                 {String(
-                  Number(clickedMarkerData.data.i_uncertainty).toFixed(5)
+                  Number(clickedMarkerData.data.i_uncertainty).toFixed(1)
                 )}{' '}
                 mJy
+              </p>
+              <p>
+                <span>Flags:</span>
+                {clickedMarkerData.data.flags?.length
+                  ? clickedMarkerData.data.flags.join(', ')
+                  : 'n/a'}
               </p>
             </div>
             {imageUrl === 'Not Found' ? (

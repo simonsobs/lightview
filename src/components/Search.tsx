@@ -60,7 +60,9 @@ export function Search() {
         {value === 'cone-search' && (
           <>
             <label htmlFor="ra">
-              ra
+              <span>
+                ra <span>(degrees)</span>
+              </span>
               <input
                 className="cone-search-input"
                 id="ra"
@@ -70,7 +72,9 @@ export function Search() {
               />
             </label>
             <label htmlFor="dec">
-              dec
+              <span>
+                dec <span>(degrees)</span>
+              </span>
               <input
                 className="cone-search-input"
                 id="dec"
@@ -80,7 +84,9 @@ export function Search() {
               />
             </label>
             <label htmlFor="radius">
-              radius
+              <span>
+                radius <span>(degrees)</span>
+              </span>
               <input
                 className="cone-search-input"
                 id="radius"

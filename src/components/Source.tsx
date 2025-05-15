@@ -116,7 +116,9 @@ export function Source() {
         {lightcurveData && <Lightcurve lightcurveData={lightcurveData} />}
         <div className="source-grid-container">
           <div>
-            <CrossMatchSection />
+            <CrossMatchSection
+              crossMatches={sourceSummary.source.extra.cross_matches}
+            />
             <NearbySourcesSection
               id={sourceSummary.source.id}
               ra={sourceSummary.source.ra}

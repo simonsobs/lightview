@@ -9,11 +9,18 @@ import {
 } from '@tanstack/react-table';
 import { TablePaginationControls } from './TablePaginationControls';
 
-type TableProps<T> = {
+export type TableProps<T> = {
   data: T[];
   columns: ColumnDef<T>[];
   initialState?: InitialTableState;
   className?: string;
+  customPaginationState?: {
+    totalItems: number;
+    itemsPerPage: number;
+    currentPageNumber: number;
+    setCurrentPageNumber: (pageNumber: number) => void;
+  };
+  sortable?: boolean;
 };
 
 /**
@@ -25,6 +32,8 @@ export function Table<T>({
   columns,
   initialState = undefined,
   className = undefined,
+  customPaginationState,
+  sortable = true,
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -32,7 +41,7 @@ export function Table<T>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: sortable ? getSortedRowModel() : undefined,
     getPaginationRowModel: isPaginated ? getPaginationRowModel() : undefined,
     initialState,
   });
@@ -47,13 +56,21 @@ export function Table<T>({
                 <th key={header.id}>
                   {header.isPlaceholder ? null : (
                     <div
-                      style={{
-                        position: 'relative',
-                        cursor: header.column.getCanSort()
-                          ? 'pointer'
-                          : 'cursor',
-                      }}
-                      onClick={header.column.getToggleSortingHandler()}
+                      style={
+                        sortable
+                          ? {
+                              position: 'relative',
+                              cursor: header.column.getCanSort()
+                                ? 'pointer'
+                                : 'cursor',
+                            }
+                          : undefined
+                      }
+                      onClick={
+                        sortable
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -87,7 +104,12 @@ export function Table<T>({
           ))}
         </tbody>
       </table>
-      {isPaginated && <TablePaginationControls table={table} />}
+      {isPaginated && (
+        <TablePaginationControls
+          table={table}
+          customPaginationState={customPaginationState}
+        />
+      )}
     </div>
   );
 }
