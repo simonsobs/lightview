@@ -75,6 +75,7 @@ export function Sources() {
     <Table
       initialState={initialState}
       customPaginationState={customPaginationState}
+      paginationControlsPosition="top"
       sortable={false}
       data={sources ?? []}
       columns={

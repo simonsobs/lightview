@@ -27,19 +27,33 @@ tbody > tr:nth-of-type(even) {
   background-color: rgb(237 238 242);
 }
 
+.pagination-container {
+  display: flex;
+  margin: 0.5em 0;
+  font-size: 0.8em;
+  align-items: center;
+  column-gap: 2.5em;
+}
+
 .pagination-controls {
   display: flex;
   justify-content: center;
   align-items: center;
   column-gap: 0.5em;
-  margin-top: 0.5em;
-}
-
-.pagination-controls > span {
-  margin: 0 1em;
 }
 
 .pagination-btn {
-  width: 30px;
-  height: 30px;
+  font-size: 0.7em;
+}
+
+.pagination-btn:disabled {
+  cursor: not-allowed;
+}
+
+.pagination-details {
+  font-size: 0.9em;
+}
+
+.pagination-details > span {
+  font-weight: bold;
 }

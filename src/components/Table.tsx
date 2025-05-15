@@ -13,6 +13,7 @@ export type TableProps<T> = {
   data: T[];
   columns: ColumnDef<T>[];
   initialState?: InitialTableState;
+  paginationControlsPosition?: 'top' | 'bottom' | 'both';
   className?: string;
   customPaginationState?: {
     totalItems: number;
@@ -34,6 +35,7 @@ export function Table<T>({
   className = undefined,
   customPaginationState,
   sortable = true,
+  paginationControlsPosition = 'bottom',
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -48,6 +50,12 @@ export function Table<T>({
 
   return (
     <div className="table-wrapper">
+      {isPaginated && ['top', 'both'].includes(paginationControlsPosition) && (
+        <TablePaginationControls
+          table={table}
+          customPaginationState={customPaginationState}
+        />
+      )}
       <table className={className}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -104,12 +112,13 @@ export function Table<T>({
           ))}
         </tbody>
       </table>
-      {isPaginated && (
-        <TablePaginationControls
-          table={table}
-          customPaginationState={customPaginationState}
-        />
-      )}
+      {isPaginated &&
+        ['bottom', 'both'].includes(paginationControlsPosition) && (
+          <TablePaginationControls
+            table={table}
+            customPaginationState={customPaginationState}
+          />
+        )}
     </div>
   );
 }
