@@ -16,7 +16,7 @@ export function SearchResults() {
     async function getSearchResults() {
       if (params['*'] === 'cone' && location.search) {
         const response: Response = await fetch(
-          `${import.meta.env.VITE_SERVICE_URL}/sources/cone/${location.search}`
+          `${import.meta.env.VITE_SERVICE_URL}/sources/cone${location.search}`
         );
 
         if (!response.ok) {

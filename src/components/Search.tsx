@@ -21,9 +21,7 @@ export function Search() {
         });
 
         const redirectUrl = new URL(
-          import.meta.env.VITE_SERVICE_URL +
-            '/search/cone?' +
-            queryParams.toString()
+          window.location.origin + '/search/cone?' + queryParams.toString()
         );
 
         void navigation(redirectUrl.pathname + redirectUrl.search);
@@ -31,7 +29,7 @@ export function Search() {
         const sourceID = formData.get('source-id') as string;
 
         const redirectUrl = new URL(
-          import.meta.env.VITE_SERVICE_URL + '/source/' + sourceID
+          window.location.origin + '/source/' + sourceID
         );
 
         void navigation(redirectUrl.pathname);
