@@ -32,6 +32,7 @@ function generateMockBand(bandNumber: number, fluxArrayLength?: number) {
     q_uncertainty: [],
     u_flux: [],
     u_uncertainty: [],
+    extra: [],
   };
   return band;
 }
