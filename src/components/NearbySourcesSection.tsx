@@ -54,15 +54,16 @@ export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
                 <Link to={`/source/${row.original.id}`}>{row.original.id}</Link>
               ),
               accessorFn: (row) => row.id,
+              size: 75,
             },
             {
               header: 'Flux (latest)',
-              accessorFn: () => Math.random() * 10,
+              accessorFn: () => (Math.random() * 10).toFixed(1),
               // accessorFn: (row) => row.latest_flux,
             },
             {
               header: 'Flux (1 mo)',
-              accessorFn: () => Math.random() * 10,
+              accessorFn: () => (Math.random() * 10).toFixed(1),
               // accessorFn: (row) => row.month_old_flux,
             },
           ]}

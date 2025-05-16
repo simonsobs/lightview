@@ -51,6 +51,7 @@ export function LightcurveDataTable({
         header: 'ID',
         accessorFn: (row) => row.id,
         sortingFn: (rowA, rowB) => rowA.original.id - rowB.original.id,
+        size: 75,
       },
       {
         header: 'Time',
@@ -117,7 +118,12 @@ export function LightcurveDataTable({
   return (
     <div className="data-access-container">
       <h3 className="source-section-h3">Data Access</h3>
-      <Table data={tableData} columns={columns} initialState={initialState} />
+      <Table
+        data={tableData}
+        columns={columns}
+        initialState={initialState}
+        paginationControlsPosition="top"
+      />
     </div>
   );
 }

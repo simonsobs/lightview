@@ -16,7 +16,9 @@ export function Sources() {
   const [totalSources, setTotalSources] = useState<number | undefined>(
     undefined
   );
-  const { data: sources } = useQuery<SourcesFeedResponse['items'] | undefined>({
+  const { data: sources, isLoading } = useQuery<
+    SourcesFeedResponse['items'] | undefined
+  >({
     initialData: undefined,
     queryKey: [currentPageNumber],
     queryFn: async () => {
@@ -77,7 +79,9 @@ export function Sources() {
       customPaginationState={customPaginationState}
       paginationControlsPosition="top"
       sortable={false}
+      loading={isLoading}
       data={sources ?? []}
+      rowHeight={70}
       columns={
         [
           {
@@ -103,6 +107,7 @@ export function Sources() {
           },
           {
             header: 'flux',
+            size: 200,
             cell: ({ row }) => (
               <div
                 dangerouslySetInnerHTML={{

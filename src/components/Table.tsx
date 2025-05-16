@@ -22,6 +22,8 @@ export type TableProps<T> = {
     setCurrentPageNumber: (pageNumber: number) => void;
   };
   sortable?: boolean;
+  loading?: boolean;
+  rowHeight?: number;
 };
 
 /**
@@ -36,6 +38,8 @@ export function Table<T>({
   customPaginationState,
   sortable = true,
   paginationControlsPosition = 'bottom',
+  loading = false,
+  rowHeight = undefined,
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -61,7 +65,12 @@ export function Table<T>({
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id}>
+                <th
+                  key={header.id}
+                  style={{
+                    width: `${header.getSize()}px`,
+                  }}
+                >
                   {header.isPlaceholder ? null : (
                     <div
                       style={
@@ -98,18 +107,41 @@ export function Table<T>({
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  style={{ width: `${cell.column.getSize()}px` }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+          {loading ? (
+            <tr
+              style={
+                rowHeight
+                  ? {
+                      height:
+                        rowHeight * table.getState().pagination.pageSize + 'px',
+                    }
+                  : undefined
+              }
+            >
+              <td
+                colSpan={table.getAllLeafColumns().length}
+                style={{ textAlign: 'left', verticalAlign: 'top' }}
+              >
+                <span>Loading...</span>
+              </td>
             </tr>
-          ))}
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <tr
+                key={row.id}
+                style={rowHeight ? { height: rowHeight + 'px' } : undefined}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    style={{ width: `${cell.column.getSize()}px` }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
       {isPaginated &&

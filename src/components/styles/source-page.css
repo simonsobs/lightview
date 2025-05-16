@@ -70,6 +70,7 @@
   padding: 1em;
   background-color: #fff;
   margin-top: 1.25em;
+  max-width: 1280px;
 }
 
 .data-access-container > h3 {
