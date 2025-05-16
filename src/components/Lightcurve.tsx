@@ -120,6 +120,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             color: '#FFF',
           },
         },
+        hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
       } as ScatterDataWithErrorYAndMarkers;
       // We expect each array of data in the LightcurveBand's data to be equal length, so
       // we would have picked any of them to iterate over, but I chose lightcurveBand.time
