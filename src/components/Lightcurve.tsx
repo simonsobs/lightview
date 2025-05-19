@@ -67,6 +67,8 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
   const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
 
+  const [hideFlaggedData, setHideFlaggedData] = useState(false);
+
   // the data used in the marker's tooltip
   const [clickedMarkerData, setClickedMarkerData] =
     useState<ClickedMarkerData>(undefined);
@@ -123,9 +125,18 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
       } as ScatterDataWithErrorYAndMarkers;
       // We expect each array of data in the LightcurveBand's data to be equal length, so
-      // we would have picked any of them to iterate over, but I chose lightcurveBand.time
+      // we could have picked any of them to iterate over, but I chose lightcurveBand.time
       // for no particular reason
       lightcurveBand.time.forEach((time, index) => {
+        const extra = lightcurveBand.extra[index];
+        if (
+          hideFlaggedData &&
+          extra &&
+          'flags' in extra &&
+          extra.flags.length
+        ) {
+          return;
+        }
         const day = new Date(time);
         // Use the index of current iteration to set the data in the various arrays defined in this
         // band's `data` object
@@ -140,7 +151,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       });
       return data;
     });
-  }, [lightcurveData]);
+  }, [lightcurveData, hideFlaggedData]);
 
   /**
    * Defines layout parameters for plotly and must be memoized in order for it to be stable
@@ -310,6 +321,12 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
 
   return (
     <div className="lightcurve-container">
+      <button
+        className="hide-data-btn"
+        onClick={() => setHideFlaggedData(!hideFlaggedData)}
+      >
+        {hideFlaggedData ? 'Show All' : 'Hide Flagged'} Observations
+      </button>
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
       <div id="lightcurve-plot" ref={plotlyRef} />
       {clickedMarkerData && imageUrl && (
