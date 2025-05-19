@@ -24,8 +24,8 @@ export function SourceHeader({
   return (
     <div className="source-header-container">
       <h3>SO-{id}</h3>
-      <Badge label="RA" content={ra.toFixed(1)} />
-      <Badge label="Dec" content={dec.toFixed(1)} />
+      <Badge label="RA" content={ra.toFixed(3)} />
+      <Badge label="Dec" content={dec.toFixed(3)} />
       <Badge label="Class" content={sourceClass} />
       <Badge
         label={
@@ -33,7 +33,7 @@ export function SourceHeader({
             Max <span className="freq-aside">(at {freqForMaxAndMedian})</span>
           </>
         }
-        content={maxFlux.toFixed(1) + ' Jy'}
+        content={maxFlux.toFixed(3) + ' Jy'}
       />
       <Badge
         label={
@@ -41,7 +41,7 @@ export function SourceHeader({
             Base <span className="freq-aside">(at {freqForMaxAndMedian})</span>
           </>
         }
-        content={medianFlux.toFixed(1) + ' Jy'}
+        content={medianFlux.toFixed(3) + ' Jy'}
       />
     </div>
   );

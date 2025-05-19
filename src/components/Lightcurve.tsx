@@ -152,7 +152,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       height: 500,
       yaxis: {
         title: {
-          text: 'Flux (mJy)',
+          text: 'Flux (Jy)',
         },
       },
       xaxis: {
@@ -343,11 +343,11 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               </p>
               <p>
                 <span>Flux:</span>
-                {String(Number(clickedMarkerData.data.y).toFixed(1))} +/-{' '}
+                {String(Number(clickedMarkerData.data.y).toFixed(3))} +/-{' '}
                 {String(
-                  Number(clickedMarkerData.data.i_uncertainty).toFixed(1)
+                  Number(clickedMarkerData.data.i_uncertainty).toFixed(3)
                 )}{' '}
-                mJy
+                Jy
               </p>
               <p>
                 <span>Flags:</span>

@@ -89,12 +89,22 @@ export function SearchResults() {
                 },
                 {
                   header: 'ra',
-                  accessorFn: (row) => row.ra.toFixed(1),
+                  // accessorFn: (row) => row.ra.toFixed(1),
+                  cell: ({ row }) => (
+                    <span title={String(row.original.ra)}>
+                      {row.original.ra.toFixed(3)}
+                    </span>
+                  ),
                   size: 125,
                 },
                 {
                   header: 'dec',
-                  accessorFn: (row) => row.dec.toFixed(1),
+                  // accessorFn: (row) => row.dec.toFixed(1),
+                  cell: ({ row }) => (
+                    <span title={String(row.original.dec)}>
+                      {row.original.dec.toFixed(3)}
+                    </span>
+                  ),
                   size: 125,
                 },
               ] as ColumnDef<SourceResponse>[]

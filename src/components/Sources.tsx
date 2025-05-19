@@ -97,12 +97,22 @@ export function Sources() {
           },
           {
             header: 'ra',
-            accessorFn: (row) => row.ra.toFixed(1),
+            // accessorFn: (row) => row.ra.toFixed(3),
+            cell: ({ row }) => (
+              <span title={String(row.original.ra)}>
+                {row.original.ra.toFixed(3)}
+              </span>
+            ),
             size: 50,
           },
           {
             header: 'dec',
-            accessorFn: (row) => row.dec.toFixed(1),
+            // accessorFn: (row) => row.dec.toFixed(3),
+            cell: ({ row }) => (
+              <span title={String(row.original.dec)}>
+                {row.original.dec.toFixed(3)}
+              </span>
+            ),
             size: 50,
           },
           {
