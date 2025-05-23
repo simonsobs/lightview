@@ -74,7 +74,7 @@ export function getMaxFlux(band: LightcurveBand) {
  */
 export function generateBaseMarkerConfig(
   arrayLength: number,
-  baseMarkerSize: number = 10,
+  baseMarkerSize: number = 5,
   baseMarkerLineColor: string = '#000',
   baseMarkerLineWidth: number = 0
 ) {
