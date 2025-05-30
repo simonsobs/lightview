@@ -11,9 +11,7 @@ export function Navigation() {
           <span>Simons Observatory Lightcurves</span>
         </Link>
       </nav>
-      <a href="https://ingress.simonsobs-identity.production.svc.spin.nersc.org/login/06812848-dc48-70d5-8000-61f2245b92ba">
-        Log in
-      </a>
+      <a href="https://identity.simonsobservatory.org/">Log in</a>
       <Search />
     </div>
   );

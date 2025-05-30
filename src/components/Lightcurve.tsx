@@ -9,6 +9,7 @@ import Plotly, {
   ErrorBar,
   PlotDatum,
   PlotlyHTMLElement,
+  Layout,
 } from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
@@ -160,41 +161,42 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
    * and render properly
    */
   const plotLayout = useMemo(
-    () => ({
-      width: 1280,
-      height: 500,
-      yaxis: {
-        title: {
-          text: 'Flux (Jy)',
+    () =>
+      ({
+        width: 1280,
+        height: 500,
+        yaxis: {
+          title: {
+            text: 'Flux (Jy)',
+          },
         },
-      },
-      xaxis: {
-        title: {
-          text: 'Date',
+        xaxis: {
+          title: {
+            text: 'Date',
+          },
         },
-      },
-      title: {
-        text: `Lightcurve for SO-${lightcurveData.source.id}`,
-      },
-      showlegend: true,
-      legend: {
-        x: 0,
-        xanchor: 'left',
-        y: 1,
-      },
-      colorway: [
-        '#f3cec9',
-        '#e7a4b6',
-        '#cd7eaf',
-        '#a262a9',
-        '#6f4d96',
-        '#3d3b72',
-        '#182844',
-      ],
-      font: {
-        family: 'sans-serif',
-      },
-    }),
+        title: {
+          text: `Lightcurve for SO-${lightcurveData.source.id}`,
+        },
+        showlegend: true,
+        legend: {
+          x: 0,
+          xanchor: 'left',
+          y: 1,
+        },
+        colorway: [
+          '#f3cec9',
+          '#e7a4b6',
+          '#cd7eaf',
+          '#a262a9',
+          '#6f4d96',
+          '#3d3b72',
+          '#182844',
+        ],
+        font: {
+          family: 'sans-serif',
+        },
+      }) as Layout,
     []
   );
 
