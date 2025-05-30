@@ -1,8 +1,16 @@
+:root {
+  --search-border-radius: 10px;
+  --search-border-radius-right: 0px var(--search-border-radius)
+    var(--search-border-radius) 0px;
+  --search-border-radius-left: var(--search-border-radius) 0px 0px
+    var(--search-border-radius);
+}
+
 .search-container {
   display: flex;
   height: 45px;
   border: 2px solid #c0c1c1;
-  border-radius: 2px;
+  border-radius: var(--search-border-radius);
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
@@ -50,6 +58,7 @@ select {
   border: none;
   border-right: 2px solid #c0c1c1;
   padding-left: 10px;
+  border-radius: var(--search-border-radius-left);
 }
 
 select:hover {
@@ -62,6 +71,7 @@ select:hover {
   padding: 8px;
   border: none;
   border-left: 2px solid #c0c1c1;
+  border-radius: var(--search-border-radius-right);
 }
 
 .submit-search-btn:hover {

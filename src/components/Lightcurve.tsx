@@ -110,11 +110,13 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           type: 'data',
           array: [] as Datum[],
           color: undefined,
+          thickness: 1.0,
+          width: 1.0,
         } as ErrorBar,
         type: 'scatter',
         mode: 'markers',
         marker: {
-          size: 10,
+          size: 5,
           line: {
             width: [] as number[],
             // Set the marker's outline color to be white for purposes of mouse events, i.e. the white
@@ -168,11 +170,29 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       },
       xaxis: {
         title: {
-          text: 'Time (d)',
+          text: 'Date',
         },
       },
       title: {
         text: `Lightcurve for SO-${lightcurveData.source.id}`,
+      },
+      showlegend: true,
+      legend: {
+        x: 0,
+        xanchor: 'left',
+        y: 1,
+      },
+      colorway: [
+        '#f3cec9',
+        '#e7a4b6',
+        '#cd7eaf',
+        '#a262a9',
+        '#6f4d96',
+        '#3d3b72',
+        '#182844',
+      ],
+      font: {
+        family: 'sans-serif',
       },
     }),
     []

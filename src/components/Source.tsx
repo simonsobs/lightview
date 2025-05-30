@@ -107,7 +107,7 @@ export function Source() {
             id={sourceSummary.source.id}
             ra={sourceSummary.source.ra}
             dec={sourceSummary.source.dec}
-            sourceClass="Aliens"
+            sourceClass="ACT"
             maxFlux={badgeData.maxFlux}
             medianFlux={badgeData.medianFlux}
             freqForMaxAndMedian={badgeData.freqForMaxAndMedian}

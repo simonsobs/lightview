@@ -57,6 +57,11 @@
   margin: 0;
 }
 
+.aladin-container {
+  border: 1px solid #c4c8cb;
+  border-radius: 5px;
+}
+
 .aladin-viewer-container {
   width: 400px;
   height: 400px;
