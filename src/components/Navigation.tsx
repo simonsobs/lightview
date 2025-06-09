@@ -11,7 +11,7 @@ export function Navigation() {
           <span>Simons Observatory Lightcurves</span>
         </Link>
       </nav>
-      <a href="https://identity.simonsobservatory.org/">Log in</a>
+      <a href={import.meta.env.VITE_LOGIN_SERVICE as string}>Log in</a>
       <Search />
     </div>
   );
