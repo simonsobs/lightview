@@ -1,0 +1,30 @@
+.login-link-btn {
+  display: flex;
+  align-items: center;
+  column-gap: 0.5em;
+  padding: 0 10px;
+  height: 45px;
+  border: 2px solid #c0c1c1;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: var(--search-border-radius);
+  background-color: #212529bf;
+  text-decoration: none;
+  font-size: 0.9em;
+}
+
+.login-link-btn:visited {
+  color: white;
+}
+
+.login-link-btn > img {
+  height: 1.25em;
+  width: 1.25em;
+}
+
+.login-link-btn:hover {
+  background-color: #212529de;
+}
+
+.login-link-btn:active {
+  background-color: #212529fb;
+}

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import './styles/navigation.css';
 import { Search } from './Search';
+import { Login } from './Login';
 
 /** Renders the app's Navigation bar/menu */
 export function Navigation() {
@@ -11,8 +12,10 @@ export function Navigation() {
           <span>Simons Observatory Lightcurves</span>
         </Link>
       </nav>
-      <a href={import.meta.env.VITE_LOGIN_SERVICE as string}>Log in</a>
-      <Search />
+      <div className="search-login-container">
+        <Search />
+        <Login />
+      </div>
     </div>
   );
 }
