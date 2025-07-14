@@ -9,6 +9,12 @@
   border-bottom: 1px solid #c4c8cb;
 }
 
+.search-login-container {
+  display: flex;
+  align-items: center;
+  column-gap: 1em;
+}
+
 .home-link {
   text-decoration: none;
 }
