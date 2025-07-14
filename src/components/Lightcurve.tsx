@@ -13,6 +13,7 @@ import Plotly, {
 } from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
+import { DEFAULT_CUTOUT_EXT } from '../configs/constants';
 
 type LightcurveProps = {
   lightcurveData: LightcurveData;
@@ -85,7 +86,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             clickedMarkerData.markerId.pointIndex
           ];
         const response = await fetch(
-          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${id}`
+          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${id}?ext=${DEFAULT_CUTOUT_EXT}`
         );
         if (!response.ok) {
           return response.statusText;
