@@ -20,3 +20,5 @@ export const DEFAULT_NANOPLOT_Y_TRANSFORM = 0.75;
 export const DEFAULT_SOURCES_PER_PAGE = Number(
   import.meta.env.VITE_DEFAULT_SOURCES_PER_PAGE
 );
+
+export const DEFAULT_CUTOUT_EXT = 'png';
