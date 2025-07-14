@@ -13,9 +13,7 @@ import { DEFAULT_SOURCES_PER_PAGE } from '../configs/constants';
  */
 export function Sources() {
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
-  const [totalSources, setTotalSources] = useState<number | undefined>(
-    undefined
-  );
+
   const { data: sources, isLoading } = useQuery<
     SourcesFeedResponse['items'] | undefined
   >({
@@ -35,8 +33,6 @@ export function Sources() {
 
       const responseJson: SourcesFeedResponse =
         (await response.json()) as SourcesFeedResponse;
-
-      setTotalSources(responseJson.total_number_of_sources);
 
       const sourcesWithNanoplot = (await Promise.all(
         responseJson.items.map(async (r) => {
@@ -66,12 +62,12 @@ export function Sources() {
 
   const customPaginationState = useMemo(() => {
     return {
-      totalItems: totalSources ?? 0,
+      totalItems: sources?.length ?? 0,
       itemsPerPage: DEFAULT_SOURCES_PER_PAGE,
       currentPageNumber,
       setCurrentPageNumber,
     };
-  }, [totalSources, currentPageNumber]);
+  }, [sources, currentPageNumber]);
 
   return (
     <Table
