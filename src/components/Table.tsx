@@ -93,7 +93,14 @@ export function Table<T>({
                         header.column.columnDef.header,
                         header.getContext()
                       )}
-                      <span style={{ position: 'absolute', right: 5 }}>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: -5,
+                          top: -6,
+                          fontSize: '0.9em',
+                        }}
+                      >
                         {{
                           asc: '▲',
                           desc: '▼',
