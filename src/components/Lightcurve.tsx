@@ -356,7 +356,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         <div
           className="plot-tooltip-container"
           style={{
-            left: `${clickedMarkerData.data.pageX}px`,
+            left: `${clickedMarkerData.data.pageX + 5}px`,
             top: `${clickedMarkerData.data.pageY}px`,
           }}
         >
@@ -372,7 +372,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               title="Click to close (or press Esc)"
               onClick={handleRelayoutOrTooltipClose}
             >
-              x
+              X
             </button>
           </div>
           <div className="plot-tooltip-content-container">
