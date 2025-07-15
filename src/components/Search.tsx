@@ -5,7 +5,7 @@ import { SearchIcon } from './icons/SearchIcon';
 
 export function Search() {
   const navigation = useNavigate();
-  const [value, setValue] = useState<string>('id-search');
+  const [value, setValue] = useState<string>('cone-search');
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
@@ -47,8 +47,8 @@ export function Search() {
         id="search-type"
         value={value}
       >
-        <option value="id-search">Search by ID</option>
         <option value="cone-search">Cone search (ra, dec, radius)</option>
+        <option value="id-search">Search by ID</option>
         <option disabled value="catalog-search">
           Search by catalog via SIMBAD
         </option>
