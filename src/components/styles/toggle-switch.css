@@ -1,0 +1,85 @@
+.toggle-container {
+  position: absolute;
+  z-index: 1;
+  margin: 0.25em;
+  background-color: white;
+  padding: 3px;
+}
+
+.toggle-container:hover:not(.disabled) {
+  border-color: black;
+}
+
+.toggle-container.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.label {
+  display: flex;
+  flex-direction: row;
+  font-size: 0.8em;
+  align-items: center;
+}
+
+.label.disabled {
+  cursor: not-allowed;
+}
+
+.input {
+  display: none;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 16px;
+}
+
+.slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: '';
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 1px;
+  background-color: white;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+input:checked + .label .slider {
+  background-color: black;
+}
+
+input:checked + .label .slider:before {
+  -webkit-transform: translateX(12px);
+  -ms-transform: translateX(12px);
+  transform: translateX(12px);
+}
+
+.slider.round {
+  border-radius: 34px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.left,
+.right {
+  margin: 0 0.5em;
+}
