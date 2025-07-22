@@ -14,6 +14,7 @@ import Plotly, {
 import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import { DEFAULT_CUTOUT_EXT } from '../configs/constants';
+import { ToggleSwitch } from './ToggleSwitch';
 
 type LightcurveProps = {
   lightcurveData: LightcurveData;
@@ -344,12 +345,13 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
 
   return (
     <div className="lightcurve-container">
-      <button
-        className="hide-data-btn"
-        onClick={() => setHideFlaggedData(!hideFlaggedData)}
-      >
-        {hideFlaggedData ? 'Show All' : 'Hide Flagged'} Observations
-      </button>
+      <ToggleSwitch
+        checked={!hideFlaggedData}
+        onChange={() => setHideFlaggedData(!hideFlaggedData)}
+        disabled={false}
+        checkedLabel="Show All Observations"
+        uncheckedLabel="Hide All Observations"
+      />
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
       <div id="lightcurve-plot" ref={plotlyRef} />
       {clickedMarkerData && imageUrl && (
