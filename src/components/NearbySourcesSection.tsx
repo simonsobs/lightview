@@ -1,36 +1,20 @@
 import { DEFAULT_NEARBY_SOURCE_RADIUS } from '../configs/constants';
-import { useQuery } from '../hooks/useQuery';
 import { SourceResponse } from '../types';
 import { Table } from './Table';
 import { Link } from 'react-router';
 
-type NearbySourcesProps = Omit<SourceResponse, 'variable' | 'extra'>;
+type NearbySourcesProps = {
+  nearbySources: SourceResponse[] | undefined;
+  isLoading: boolean;
+  error: Error | null;
+};
 
 /** Renders a Table of sources found within a cone search of x radius from a given source */
-export function NearbySourcesSection({ id, ra, dec }: NearbySourcesProps) {
-  const {
-    data: nearbySources,
-    isLoading,
-    error,
-  } = useQuery({
-    initialData: undefined,
-    queryKey: [],
-    queryFn: async () => {
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${ra}&dec=${dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Error fetching nearby sources: ${response.statusText}`
-        );
-      }
-      const data: SourceResponse[] =
-        (await response.json()) as SourceResponse[];
-      // Filter out current source's data
-      return data.filter((d) => d.id !== id);
-    },
-  });
-
+export function NearbySourcesSection({
+  nearbySources,
+  isLoading,
+  error,
+}: NearbySourcesProps) {
   return (
     <div>
       <h3
