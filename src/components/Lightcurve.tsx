@@ -178,7 +178,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           },
         },
         title: {
-          text: `Lightcurve for SO-${lightcurveData.source.id}`,
+          text: `Light Curve for SO-${lightcurveData.source.id}`,
         },
         showlegend: true,
         legend: {
