@@ -9,7 +9,7 @@ export function Navigation() {
     <div className="nav-container">
       <nav>
         <Link className="home-link" to="/">
-          <span>Simons Observatory Lightcurves</span>
+          <span>Light Curves</span>
         </Link>
       </nav>
       <div className="search-login-container">
