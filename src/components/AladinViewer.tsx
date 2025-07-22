@@ -3,9 +3,10 @@ import { SourceResponse } from '../types';
 
 type AladinViewerProps = {
   source: SourceResponse;
+  nearbySources: SourceResponse[];
 };
 
-export function AladinViewer({ source }: AladinViewerProps) {
+export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   const aladinContainerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
 
@@ -30,6 +31,33 @@ export function AladinViewer({ source }: AladinViewerProps) {
               projection: 'ZEA',
             }
           );
+
+          // Create catalog for source and nearby sources
+          const cat = window.A!.catalog({
+            name: 'Source and nearby sources',
+            sourceSize: 10,
+          });
+          aladinInstanceRef.current.addCatalog(cat);
+
+          // Add markers for the source and nearby sources
+          cat.addSources([
+            window.A!.marker(source.ra, source.dec, {
+              popupTitle: 'SO-' + source.id,
+              popupDesc: `<em>RA:</em> ${source.ra.toFixed(3)}<br/><em>Dec:</em> ${source.dec.toFixed(3)}`,
+            }),
+          ]);
+
+          if (nearbySources.length) {
+            cat.addSources(
+              nearbySources.map((nearbySource) =>
+                window.A!.marker(nearbySource.ra, nearbySource.dec, {
+                  popupTitle: 'SO-' + nearbySource.id,
+                  popupDesc: `<em>RA:</em> ${nearbySource.ra.toFixed(3)}<br/><em>Dec:</em> ${nearbySource.dec.toFixed(3)}`,
+                })
+              )
+            );
+          }
+
           // Center Aladin's cursor on the source's location
           aladinInstanceRef.current.gotoRaDec(source.ra, source.dec);
         }
@@ -42,7 +70,7 @@ export function AladinViewer({ source }: AladinViewerProps) {
     return () => {
       aladinInstanceRef.current = null;
     };
-  }, [source.ra, source.dec]);
+  }, [source.id, source.ra, source.dec, nearbySources]);
 
   return <div ref={aladinContainerRef} className="aladin-viewer-container" />;
 }

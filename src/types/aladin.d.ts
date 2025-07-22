@@ -10,6 +10,11 @@
  */
 interface Aladin {
   gotoRaDec: (ra: number, dec: number) => void;
+  addCatalog: (catalog: unknown) => void;
+}
+
+interface Catalog {
+  addSources: (markers: object[]) => unknown;
 }
 
 /**
@@ -28,6 +33,8 @@ interface AladinStatic {
       projection?: string;
     }
   ) => Aladin;
+  catalog: (options: unknown) => Catalog;
+  marker: (ra: number, dec: number, options: unknown) => object;
   init: Promise<void>;
 }
 

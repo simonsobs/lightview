@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
-import { LightcurveData, SourceSummary } from '../types';
+import { LightcurveData, SourceSummary, SourceResponse } from '../types';
 import { SourceHeader } from './SourceHeader';
 import {
   findMidBand,
@@ -13,6 +13,7 @@ import { NearbySourcesSection } from './NearbySourcesSection';
 import { AladinViewer } from './AladinViewer';
 import { LightcurveDataTable } from './LightcurveDataTable';
 import { useQuery } from '../hooks/useQuery';
+import { DEFAULT_NEARBY_SOURCE_RADIUS } from '../configs/constants';
 
 /**
  * Renders all the components related to a Source, like:
@@ -78,6 +79,31 @@ export function Source() {
     },
   });
 
+  const {
+    data: nearbySources,
+    isLoading,
+    error,
+  } = useQuery({
+    initialData: undefined,
+    queryKey: [sourceSummary],
+    queryFn: async () => {
+      if (!sourceSummary) return;
+      const { source } = sourceSummary;
+      const response: Response = await fetch(
+        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${source.ra}&dec=${source.dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
+      );
+      if (!response.ok) {
+        throw new Error(
+          `Error fetching nearby sources: ${response.statusText}`
+        );
+      }
+      const data: SourceResponse[] =
+        (await response.json()) as SourceResponse[];
+      // Filter out current source's data
+      return data.filter((d) => d.id !== source.id);
+    },
+  });
+
   // Memoize the "expensive" data used for the badges
   const badgeData = useMemo(() => {
     if (!lightcurveData) return;
@@ -120,12 +146,17 @@ export function Source() {
               crossMatches={sourceSummary.source.extra.cross_matches}
             />
             <NearbySourcesSection
-              id={sourceSummary.source.id}
-              ra={sourceSummary.source.ra}
-              dec={sourceSummary.source.dec}
+              nearbySources={nearbySources}
+              isLoading={isLoading}
+              error={error}
             />
           </div>
-          <AladinViewer source={sourceSummary.source} />
+          {nearbySources && (
+            <AladinViewer
+              source={sourceSummary.source}
+              nearbySources={nearbySources}
+            />
+          )}
         </div>
         {lightcurveData && (
           <LightcurveDataTable lightcurveData={lightcurveData} />
