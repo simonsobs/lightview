@@ -21,4 +21,4 @@ export const DEFAULT_SOURCES_PER_PAGE = Number(
   import.meta.env.VITE_DEFAULT_SOURCES_PER_PAGE
 );
 
-export const DEFAULT_CUTOUT_EXT = 'png';
+export const CUTOUT_EXT_OPTIONS = ['png', 'fits', 'hdf5'];

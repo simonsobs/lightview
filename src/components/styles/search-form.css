@@ -43,7 +43,7 @@ form {
   width: 10ch;
 }
 
-select {
+.source-search {
   width: 150px;
   background-color: rgb(248, 249, 250);
   appearance: none;
@@ -61,7 +61,7 @@ select {
   border-radius: var(--search-border-radius-left);
 }
 
-select:hover {
+.source-search:hover {
   background-color: #e4e5e6;
 }
 

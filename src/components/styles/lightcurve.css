@@ -78,3 +78,31 @@
   margin-bottom: 1.25em;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
+
+.download-cutout-container {
+  display: flex;
+  flex-direction: column;
+  column-gap: 0.5em;
+  align-self: flex-start;
+}
+
+.download-cutout-label {
+  font-size: 12px;
+  padding: 0;
+  margin: 0;
+  font-weight: bold;
+}
+
+.select-cutout-format {
+  font-size: 11px;
+  width: 55px;
+}
+
+.download-cutout-controls {
+  display: flex;
+  column-gap: 0.25em;
+}
+
+.download-cutout-controls > button {
+  font-size: 11px;
+}
