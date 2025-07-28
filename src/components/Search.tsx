@@ -46,6 +46,7 @@ export function Search() {
         onChange={(e) => setValue(e.target.value)}
         id="search-type"
         value={value}
+        className="source-search"
       >
         <option value="cone-search">Cone search (ra, dec, radius)</option>
         <option value="id-search">Search by ID</option>
