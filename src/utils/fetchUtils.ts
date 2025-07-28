@@ -75,7 +75,7 @@ export function fetchCutout(cutoutId: number, ext: CutoutFileExtensions) {
  * @param ext One of the string literals defined in DataFileExtensions
  */
 export function fetchTableData(sourceId: number, ext: DataFileExtensions) {
-  const endpoint = `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${sourceId}/all/download?ext=${ext}`;
+  const endpoint = `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${sourceId}/all/download?format=${ext}`;
   const object = 'source-data';
   const filename = makeFileName(object, sourceId, ext);
 
