@@ -13,8 +13,9 @@ import Plotly, {
 } from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
-import { DEFAULT_CUTOUT_EXT } from '../configs/constants';
 import { ToggleSwitch } from './ToggleSwitch';
+import { CUTOUT_EXT_OPTIONS } from '../configs/constants';
+import { DownloadIcon } from './icons/DownloadIcon';
 
 type LightcurveProps = {
   lightcurveData: LightcurveData;
@@ -87,7 +88,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
             clickedMarkerData.markerId.pointIndex
           ];
         const response = await fetch(
-          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${id}?ext=${DEFAULT_CUTOUT_EXT}`
+          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${id}?ext=${CUTOUT_EXT_OPTIONS[0]}`
         );
         if (!response.ok) {
           return response.statusText;
@@ -199,7 +200,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           family: 'sans-serif',
         },
       }) as Layout,
-    []
+    [lightcurveData.source.id]
   );
 
   /** Invokes Plotly.restyle in order to update changes to marker styles */
@@ -272,7 +273,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       // style clicked marker
       handleRestyle(curveNumber, pointIndex, false);
     },
-    [handleRestyle]
+    [handleRestyle, lightcurveData.bands]
   );
 
   const plotConfig: Partial<Config> = useMemo(() => {
@@ -404,6 +405,23 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               </div>
             ) : (
               <img className="flux-cutout" src={imageUrl} />
+            )}
+            {imageUrl !== 'Not Found' && (
+              <div className="download-cutout-container">
+                <p className="download-cutout-label">Download as</p>
+                <div className="download-cutout-controls">
+                  <select className="select-cutout-format">
+                    {CUTOUT_EXT_OPTIONS.map((ext) => (
+                      <option key={ext} value={ext}>
+                        {ext.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button">
+                    <DownloadIcon width={12} height={12} />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
