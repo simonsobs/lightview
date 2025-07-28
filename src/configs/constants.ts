@@ -22,3 +22,5 @@ export const DEFAULT_SOURCES_PER_PAGE = Number(
 );
 
 export const CUTOUT_EXT_OPTIONS = ['png', 'fits', 'hdf5'];
+
+export const DATA_EXT_OPTIONS = ['hdf5', 'csv'];

@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
-import { LightcurveData } from '../types';
+import { useCallback, useMemo, useState } from 'react';
+import { DataFileExtensions, LightcurveData } from '../types';
 import { Table } from './Table';
 import { ColumnDef, InitialTableState } from '@tanstack/react-table';
+import { DATA_EXT_OPTIONS } from '../configs/constants';
+import { DownloadIcon } from './icons/DownloadIcon';
+import { fetchTableData } from '../utils/fetchUtils';
 
 type LightcurveTableData = {
   id: number;
@@ -23,6 +26,8 @@ export function LightcurveDataTable({
 }: {
   lightcurveData: LightcurveData;
 }) {
+  const [dataExtension, setDataExtension] = useState(DATA_EXT_OPTIONS[0]);
+
   const tableData = useMemo(() => {
     const data: LightcurveTableData[] = [];
     lightcurveData.bands.forEach((band) => {
@@ -123,9 +128,42 @@ export function LightcurveDataTable({
     };
   }, []);
 
+  const downloadData = useCallback(() => {
+    fetchTableData(
+      lightcurveData.source.id,
+      dataExtension as DataFileExtensions
+    );
+  }, [dataExtension, lightcurveData.source]);
+
   return (
     <div className="data-access-container">
-      <h3 className="source-section-h3">Data Access</h3>
+      <div className="download-data-container">
+        <h3 className="source-section-h3">Data Access</h3>
+        <div className="download-data-controls-container">
+          <p className="download-data-label">Download as</p>
+          <div className="download-data-controls">
+            <select
+              className="select-data-format"
+              onChange={(e) => setDataExtension(e.target.value)}
+              value={dataExtension}
+            >
+              {DATA_EXT_OPTIONS.map((ext) => (
+                <option key={ext} value={ext}>
+                  {ext.toUpperCase()}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="download-data-btn"
+              onClick={downloadData}
+              title="Download light curve data"
+            >
+              <DownloadIcon width={12} height={12} />
+            </button>
+          </div>
+        </div>
+      </div>
       <Table
         data={tableData}
         columns={columns}

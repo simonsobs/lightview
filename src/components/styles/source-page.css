@@ -78,6 +78,34 @@
   max-width: 1280px;
 }
 
-.data-access-container > h3 {
+.download-data-container > h3 {
   margin-bottom: 0.5em;
+}
+
+.download-data-container {
+  display: flex;
+  column-gap: 50px;
+}
+
+.download-data-controls {
+  display: flex;
+  column-gap: 0.25em;
+  height: 1.5em;
+}
+
+.select-data-format {
+  font-size: 11px;
+}
+
+.download-data-controls-container {
+  position: relative;
+  margin-top: 3px;
+}
+
+.download-data-label {
+  position: absolute;
+  top: -14px;
+  margin: 0;
+  font-size: 10px;
+  font-weight: bold;
 }

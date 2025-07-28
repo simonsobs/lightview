@@ -426,13 +426,10 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
                   <select
                     className="select-cutout-format"
                     onChange={(e) => setCutoutExtension(e.target.value)}
+                    value={cutoutExtension}
                   >
                     {CUTOUT_EXT_OPTIONS.map((ext) => (
-                      <option
-                        key={ext}
-                        value={ext}
-                        selected={cutoutExtension === ext}
-                      >
+                      <option key={ext} value={ext}>
                         {ext.toUpperCase()}
                       </option>
                     ))}
