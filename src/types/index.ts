@@ -72,3 +72,6 @@ export type LightcurveData = {
 
 /** Literal type of possible cutout file extensions */
 export type CutoutFileExtensions = 'fits' | 'png' | 'hdf5';
+
+/** Literal type of possible light curve data file extensions */
+export type DataFileExtensions = 'csv' | 'hdf5';
