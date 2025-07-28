@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import './styles/lightcurve.css';
-import { LightcurveData } from '../types';
+import { CutoutFileExtensions, LightcurveData } from '../types';
 import Plotly, {
   Config,
   Datum,
@@ -16,6 +16,7 @@ import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CUTOUT_EXT_OPTIONS } from '../configs/constants';
 import { DownloadIcon } from './icons/DownloadIcon';
+import { fetchCutout } from '../utils/fetchUtils';
 
 type LightcurveProps = {
   lightcurveData: LightcurveData;
@@ -76,6 +77,8 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
   // the data used in the marker's tooltip
   const [clickedMarkerData, setClickedMarkerData] =
     useState<ClickedMarkerData>(undefined);
+
+  const [cutoutExtension, setCutoutExtension] = useState(CUTOUT_EXT_OPTIONS[0]);
 
   // set up a query to fetch the imageUrl for the tooltips that re-fetches when clickedMarkerData updates
   const { data: imageUrl } = useQuery<string | undefined>({
@@ -344,6 +347,16 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
     };
   }, [handleKeyDown]);
 
+  const downloadCutout = useCallback(() => {
+    if (clickedMarkerData && cutoutExtension) {
+      const id =
+        lightcurveData.bands[clickedMarkerData.markerId.curveNumber].id[
+          clickedMarkerData.markerId.pointIndex
+        ];
+      fetchCutout(id, cutoutExtension as CutoutFileExtensions);
+    }
+  }, [clickedMarkerData?.markerId, cutoutExtension]);
+
   return (
     <div className="lightcurve-container">
       <ToggleSwitch
@@ -410,14 +423,21 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
               <div className="download-cutout-container">
                 <p className="download-cutout-label">Download as</p>
                 <div className="download-cutout-controls">
-                  <select className="select-cutout-format">
+                  <select
+                    className="select-cutout-format"
+                    onChange={(e) => setCutoutExtension(e.target.value)}
+                  >
                     {CUTOUT_EXT_OPTIONS.map((ext) => (
-                      <option key={ext} value={ext}>
+                      <option
+                        key={ext}
+                        value={ext}
+                        selected={cutoutExtension === ext}
+                      >
                         {ext.toUpperCase()}
                       </option>
                     ))}
                   </select>
-                  <button type="button">
+                  <button type="button" onClick={downloadCutout}>
                     <DownloadIcon width={12} height={12} />
                   </button>
                 </div>

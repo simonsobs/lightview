@@ -69,3 +69,6 @@ export type LightcurveData = {
   source: SourceResponse;
   bands: LightcurveBand[];
 };
+
+/** Literal type of possible cutout file extensions */
+export type CutoutFileExtensions = 'fits' | 'png' | 'hdf5';
