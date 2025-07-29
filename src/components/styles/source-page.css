@@ -65,6 +65,11 @@
 .aladin-viewer-container {
   width: 400px;
   height: 400px;
+  z-index: 1;
+}
+
+.aladin-popupTitle {
+  height: 20px;
 }
 
 .data-access-container {

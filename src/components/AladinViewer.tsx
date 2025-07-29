@@ -47,7 +47,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
               canvasCtx.globalAlpha = 0.7;
               canvasCtx.stroke();
             },
-            onClick: 'showTable',
+            onClick: 'showPopup',
           });
           aladinInstanceRef.current.addCatalog(cat);
 
@@ -55,7 +55,8 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
           cat.addSources([
             window.A!.source(source.ra, source.dec, {
               name: 'SO-' + source.id,
-              '(ra,dec)': `(${source.ra.toFixed(3)},${source.dec.toFixed(3)})`,
+              RA: source.ra.toFixed(3),
+              Dec: source.dec.toFixed(3),
             }),
           ]);
 
@@ -64,7 +65,8 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
               nearbySources.map((nearbySource) =>
                 window.A!.source(nearbySource.ra, nearbySource.dec, {
                   name: 'SO-' + nearbySource.id,
-                  '(ra,dec)': `(${nearbySource.ra.toFixed(3)},${nearbySource.dec.toFixed(3)})`,
+                  RA: nearbySource.ra.toFixed(3),
+                  Dec: nearbySource.dec.toFixed(3),
                 })
               )
             );
