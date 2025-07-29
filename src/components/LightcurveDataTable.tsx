@@ -72,7 +72,7 @@ export function LightcurveDataTable({
           rowA.original.frequency - rowB.original.frequency,
       },
       {
-        header: 'Flux (I)',
+        header: 'Flux Density (I)',
         accessorFn: (row) => row.i_flux,
         cell: ({ getValue }) => {
           const value = getValue() as number;
@@ -81,7 +81,7 @@ export function LightcurveDataTable({
         sortingFn: (rowA, rowB) => rowA.original.i_flux - rowB.original.i_flux,
       },
       {
-        header: 'Flux Uncertainty (I)',
+        header: 'Flux Density Uncertainty (I)',
         accessorFn: (row) => row.i_uncertainty,
         cell: ({ getValue }) => {
           const value = getValue() as number;

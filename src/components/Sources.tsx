@@ -116,7 +116,7 @@ export function Sources() {
             size: 50,
           },
           {
-            header: 'flux',
+            header: 'recent data',
             size: 200,
             cell: ({ row }) => (
               <div
