@@ -17,6 +17,15 @@ interface Catalog {
   addSources: (markers: object[]) => unknown;
 }
 
+interface CatalogOptions {
+  name: string;
+  shape: (
+    source: { x: number; y: number },
+    canvasCtx: CanvasRenderingContext2D
+  ) => void;
+  onClick: string;
+}
+
 /**
  * Represents the interface that initializes the Aladin plugin and adds it to the Window object.
  *
@@ -33,8 +42,8 @@ interface AladinStatic {
       projection?: string;
     }
   ) => Aladin;
-  catalog: (options: unknown) => Catalog;
-  marker: (ra: number, dec: number, options: unknown) => object;
+  catalog: (options: CatalogOptions) => Catalog;
+  source: (ra: number, dec: number, options: unknown) => object;
   init: Promise<void>;
 }
 

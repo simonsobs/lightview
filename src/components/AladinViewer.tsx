@@ -35,24 +35,36 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
           // Create catalog for source and nearby sources
           const cat = window.A!.catalog({
             name: 'Source and nearby sources',
-            sourceSize: 10,
+            shape: function (
+              source: { x: number; y: number },
+              canvasCtx: CanvasRenderingContext2D
+            ) {
+              canvasCtx.beginPath();
+              canvasCtx.arc(source.x, source.y, 8, 0, 2 * Math.PI, false);
+              canvasCtx.closePath();
+              canvasCtx.strokeStyle = '#c38';
+              canvasCtx.lineWidth = 3;
+              canvasCtx.globalAlpha = 0.7;
+              canvasCtx.stroke();
+            },
+            onClick: 'showTable',
           });
           aladinInstanceRef.current.addCatalog(cat);
 
           // Add markers for the source and nearby sources
           cat.addSources([
-            window.A!.marker(source.ra, source.dec, {
-              popupTitle: 'SO-' + source.id,
-              popupDesc: `<em>RA:</em> ${source.ra.toFixed(3)}<br/><em>Dec:</em> ${source.dec.toFixed(3)}`,
+            window.A!.source(source.ra, source.dec, {
+              name: 'SO-' + source.id,
+              '(ra,dec)': `(${source.ra.toFixed(3)},${source.dec.toFixed(3)})`,
             }),
           ]);
 
           if (nearbySources.length) {
             cat.addSources(
               nearbySources.map((nearbySource) =>
-                window.A!.marker(nearbySource.ra, nearbySource.dec, {
-                  popupTitle: 'SO-' + nearbySource.id,
-                  popupDesc: `<em>RA:</em> ${nearbySource.ra.toFixed(3)}<br/><em>Dec:</em> ${nearbySource.dec.toFixed(3)}`,
+                window.A!.source(nearbySource.ra, nearbySource.dec, {
+                  name: 'SO-' + nearbySource.id,
+                  '(ra,dec)': `(${nearbySource.ra.toFixed(3)},${nearbySource.dec.toFixed(3)})`,
                 })
               )
             );
