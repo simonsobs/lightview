@@ -24,7 +24,7 @@ export function NearbySourcesSection({
       <h3 className="source-section-h3">Nearby Sources</h3>
       <RangeInput
         min={0.1}
-        max={50}
+        max={5}
         step={0.1}
         defaultValue={nearbySourceRadius}
         onFinalChange={setNearbySourceRadius}
