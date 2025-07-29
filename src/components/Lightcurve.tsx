@@ -53,7 +53,7 @@ type ScatterDataWithErrorYAndMarkers = ScatterData & {
     size: number;
     line: {
       width: number[];
-      color: string;
+      color: string[];
     };
   };
 };
@@ -126,9 +126,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
           size: 5,
           line: {
             width: [] as number[],
-            // Set the marker's outline color to be white for purposes of mouse events, i.e. the white
-            // outline only shows when a marker is clicked or hovered
-            color: '#FFF',
+            color: [] as string[],
           },
         },
         hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
@@ -138,12 +136,9 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       // for no particular reason
       lightcurveBand.time.forEach((time, index) => {
         const extra = lightcurveBand.extra[index];
-        if (
-          hideFlaggedData &&
-          extra &&
-          'flags' in extra &&
-          extra.flags.length
-        ) {
+        const isFlagged = !!(extra && 'flags' in extra && extra.flags.length);
+
+        if (hideFlaggedData && isFlagged) {
           return;
         }
         const day = new Date(time);
@@ -154,9 +149,17 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         data.x[index] = day;
         data.y[index] = flux;
         data.error_y.array[index] = errorY;
-        // Initially all marker lineWidths are 0 so that they do not show; rather, we set a marker's lineWidth
-        // to 1 only when clicked or hovered
-        data.marker.line.width[index] = 0;
+
+        // marker fill and outline
+        if (isFlagged) {
+          data.marker.line.color[index] = 'red';
+          data.marker.line.width[index] = 1.5;
+        } else {
+          data.marker.line.color[index] = '#000';
+          // Initially all non-flagged marker lineWidths are 0 so that they do not show; rather, we set a marker's lineWidth
+          // to 1 only when clicked or hovered
+          data.marker.line.width[index] = 0;
+        }
       });
       return data;
     });
@@ -214,16 +217,21 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       reset: boolean
     ) => {
       plotData.forEach((d, i) => {
-        const markerArrayLength = d.marker.line.width.length;
         // see if band has a marker with styles applied (note: currently just a marker width of 2)
         const hasStyledMarker = d.marker.line.width.indexOf(2);
 
         // get a clean marker config that can be used for a reset or to update a single marker
-        const newMarkerConfig = generateBaseMarkerConfig(markerArrayLength);
+        const newMarkerConfig = generateBaseMarkerConfig(
+          lightcurveData.bands[i]
+        );
 
         if (pointIndex !== undefined && i === curveNumber && !reset) {
           // we're requesting to update a marker on this band, so update it
-          newMarkerConfig.marker.line.width[pointIndex] = 2;
+          if (newMarkerConfig.marker.line.width[pointIndex] === 1.5) {
+            newMarkerConfig.marker.line.color[pointIndex] = '#000';
+          } else {
+            newMarkerConfig.marker.line.width[pointIndex] = 2;
+          }
         }
 
         void Plotly.restyle('lightcurve-plot', newMarkerConfig, [i]);
@@ -235,7 +243,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         }
       });
     },
-    [plotData]
+    [plotData, lightcurveData.bands]
   );
 
   /**
@@ -366,6 +374,12 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
         checkedLabel="Show All Observations"
         uncheckedLabel="Hide All Observations"
       />
+      <div className="flagged-marker-legend">
+        <div className="flagged-marker"></div>
+        <span className="flagged-marker-desc">
+          Indicates flagged observation
+        </span>
+      </div>
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
       <div id="lightcurve-plot" ref={plotlyRef} />
       {clickedMarkerData && imageUrl && (
