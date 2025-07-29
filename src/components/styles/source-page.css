@@ -109,3 +109,11 @@
   font-size: 10px;
   font-weight: bold;
 }
+
+.nearby-sources-results {
+  margin-left: 1em;
+}
+
+.nearby-sources-results > h4 {
+  margin: 0;
+}

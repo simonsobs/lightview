@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { LightcurveData, SourceSummary, SourceResponse } from '../types';
 import { SourceHeader } from './SourceHeader';
@@ -27,6 +27,9 @@ import { DEFAULT_NEARBY_SOURCE_RADIUS } from '../configs/constants';
 export function Source() {
   // Use the route's id parameter to get the source's ID; could just as easily pass it in as a prop though
   const { id } = useParams();
+  const [nearbySourceRadius, setNearbySourceRadius] = useState(
+    DEFAULT_NEARBY_SOURCE_RADIUS
+  );
 
   const { data: sourceSummary, error: sourceSummaryError } = useQuery<
     SourceSummary | undefined
@@ -85,12 +88,12 @@ export function Source() {
     error,
   } = useQuery({
     initialData: undefined,
-    queryKey: [sourceSummary],
+    queryKey: [sourceSummary, nearbySourceRadius],
     queryFn: async () => {
       if (!sourceSummary) return;
       const { source } = sourceSummary;
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${source.ra}&dec=${source.dec}&radius=${DEFAULT_NEARBY_SOURCE_RADIUS}`
+        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${source.ra}&dec=${source.dec}&radius=${nearbySourceRadius}`
       );
       if (!response.ok) {
         throw new Error(
@@ -149,6 +152,8 @@ export function Source() {
               nearbySources={nearbySources}
               isLoading={isLoading}
               error={error}
+              nearbySourceRadius={nearbySourceRadius}
+              setNearbySourceRadius={setNearbySourceRadius}
             />
           </div>
           {nearbySources && (
