@@ -73,18 +73,30 @@ export function getMaxFlux(band: LightcurveBand) {
  * @returns
  */
 export function generateBaseMarkerConfig(
-  arrayLength: number,
+  bandData: LightcurveBand,
   baseMarkerSize: number = 5,
   baseMarkerLineColor: string = '#000',
   baseMarkerLineWidth: number = 0
 ) {
-  return {
+  const markerData = {
     marker: {
       size: baseMarkerSize,
       line: {
-        color: baseMarkerLineColor,
-        width: new Array(arrayLength).fill(baseMarkerLineWidth),
+        width: [] as number[],
+        color: [] as string[],
       },
     },
   };
+  bandData.id.forEach((_, index) => {
+    const extra = bandData.extra[index];
+    const isFlagged = !!(extra && 'flags' in extra && extra.flags.length);
+    if (isFlagged) {
+      markerData.marker.line.color[index] = 'red';
+      markerData.marker.line.width[index] = 1.5;
+    } else {
+      markerData.marker.line.color[index] = baseMarkerLineColor;
+      markerData.marker.line.width[index] = baseMarkerLineWidth;
+    }
+  });
+  return markerData;
 }

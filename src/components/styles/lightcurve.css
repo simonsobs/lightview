@@ -106,3 +106,20 @@
 .download-cutout-controls > button {
   font-size: 11px;
 }
+
+.flagged-marker-legend {
+  position: absolute;
+  z-index: 1;
+  margin: 30px 0 0 14px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  column-gap: 0.5em;
+}
+
+.flagged-marker {
+  width: 5px;
+  height: 5px;
+  border: 2px solid red;
+  border-radius: 50%;
+}
