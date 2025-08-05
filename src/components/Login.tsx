@@ -5,7 +5,7 @@ import './styles/login.css';
 export function Login() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   useEffect(() => {
-    const hasAccessToken = getCookie('validate_access_token');
+    const hasAccessToken = getCookie('valid_access_token');
     const hasRefreshToken = getCookie('valid_refresh_token');
 
     setIsAuthenticated(!!hasAccessToken && !!hasRefreshToken);
