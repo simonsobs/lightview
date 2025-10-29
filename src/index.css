@@ -28,6 +28,26 @@ main {
   margin-top: 1.25em;
 }
 
+.home-light-curve {
+  position: relative;
+  width: fit-content;
+}
+
+.home-source-link,
+.home-source-link:visited {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: white;
+  background-color: #212529de;
+  padding: 5px 10px;
+  text-decoration: none;
+  border: 1px solid #c0c1c1;
+  font-size: 0.8em;
+  /* border-radius: var(--search-border-radius); */
+  border-radius: 5px;
+}
+
 @media (width > 1440px) {
   main {
     align-self: center;
