@@ -14,12 +14,16 @@ import Plotly, {
 import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import { ToggleSwitch } from './ToggleSwitch';
-import { CUTOUT_EXT_OPTIONS } from '../configs/constants';
+import { CUTOUT_EXT_OPTIONS, DEFAULT_PLOT_LAYOUT } from '../configs/constants';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { fetchCutout } from '../utils/fetchUtils';
 
 type LightcurveProps = {
   lightcurveData: LightcurveData;
+  plotLayout?: {
+    width: number;
+    height: number;
+  };
 };
 
 type ClickedMarker = {
@@ -68,7 +72,10 @@ type EnhancedPlotDatum = PlotDatum & {
 };
 
 /** Uses Plotly to generate a source's lightcurve. Currently plots all bands of a source, and only the i_flux */
-export function Lightcurve({ lightcurveData }: LightcurveProps) {
+export function Lightcurve({
+  lightcurveData,
+  plotLayout = DEFAULT_PLOT_LAYOUT,
+}: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
   const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
 
@@ -169,11 +176,11 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
    * Defines layout parameters for plotly and must be memoized in order for it to be stable
    * and render properly
    */
-  const plotLayout = useMemo(
+  const plotLayoutConfig = useMemo(
     () =>
       ({
-        width: 1280,
-        height: 500,
+        width: plotLayout.width,
+        height: plotLayout.height,
         yaxis: {
           title: {
             text: 'Flux Density (Jy)',
@@ -320,7 +327,7 @@ export function Lightcurve({ lightcurveData }: LightcurveProps) {
       void Plotly.newPlot(
         stablePlotlyReference,
         plotData,
-        plotLayout,
+        plotLayoutConfig,
         plotConfig
       );
 
