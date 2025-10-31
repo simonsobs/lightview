@@ -5,7 +5,6 @@ import { Link } from 'react-router';
 import { ColumnDef, InitialTableState } from '@tanstack/react-table';
 import { useQuery } from '../hooks/useQuery';
 import { getNanoPlotSVG } from '../utils/nanoPlotHelpers';
-import './styles/table.css';
 import { DEFAULT_SOURCES_PER_PAGE } from '../configs/constants';
 
 /**
