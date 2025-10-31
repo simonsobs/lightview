@@ -24,7 +24,7 @@ export function Sources() {
       const start =
         currentPageNumber === 1
           ? 0
-          : (currentPageNumber - 1) * DEFAULT_SOURCES_PER_PAGE + 1;
+          : (currentPageNumber - 1) * DEFAULT_SOURCES_PER_PAGE;
       const response: Response = await fetch(
         `${import.meta.env.VITE_SERVICE_URL}/sources/feed?start=${start}`
       );
