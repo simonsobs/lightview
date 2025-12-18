@@ -146,7 +146,7 @@ export function Source() {
         <div className="source-grid-container">
           <div>
             <CrossMatchSection
-              crossMatches={sourceSummary.source.extra.cross_matches}
+              crossMatches={sourceSummary.source.extra?.cross_matches}
             />
             <NearbySourcesSection
               nearbySources={nearbySources}

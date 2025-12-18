@@ -14,8 +14,10 @@ export function Main() {
     initialData: undefined,
     queryKey: [],
     queryFn: async () => {
+      const defaultId =
+        Number(import.meta.env.VITE_DEFAULT_HOMEPAGE_SOURCE_ID) || 1; // fallback to ID=1 if env var isn't set
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${import.meta.env.VITE_DEFAULT_HOMEPAGE_SOURCE_ID}/all`
+        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${defaultId}/all`
       );
       if (!response.ok) {
         throw new Error(
