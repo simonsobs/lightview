@@ -8,6 +8,7 @@ import {
   InitialTableState,
 } from '@tanstack/react-table';
 import { TablePaginationControls } from './TablePaginationControls';
+import './styles/table.css';
 
 export type TableProps<T> = {
   data: T[];

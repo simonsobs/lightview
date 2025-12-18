@@ -19,6 +19,7 @@
     "plotly.js-dist-min": "^3.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
     "react-router": "^7.5.2"
   },
   "devDependencies": {

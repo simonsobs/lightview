@@ -24,3 +24,13 @@ export const DEFAULT_SOURCES_PER_PAGE = Number(
 export const CUTOUT_EXT_OPTIONS = ['png', 'fits', 'hdf5'];
 
 export const DATA_EXT_OPTIONS = ['hdf5', 'csv'];
+
+export const DEFAULT_PLOT_LAYOUT = {
+  width: 1280,
+  height: 500,
+};
+
+export const DEFAULT_HOMEPAGE_PLOT_LAYOUT = {
+  width: DEFAULT_PLOT_LAYOUT.width * 0.75,
+  height: DEFAULT_PLOT_LAYOUT.height * 0.75,
+};
