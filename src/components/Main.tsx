@@ -1,23 +1,29 @@
-import { LightcurveData } from '../types';
+import {
+  FrequencyLightcurveData,
+  InstrumentLightcurveData,
+  SourcesFeedResponse,
+} from '../types';
 import { useQuery } from '../hooks/useQuery';
 import { Lightcurve } from './Lightcurve';
 import { DEFAULT_HOMEPAGE_PLOT_LAYOUT } from '../configs/constants';
 import home_content from '../configs/home_content.md?raw';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router';
+import { useEffect, useState } from 'react';
 
 /** Renders the "home" page of the web app */
 export function Main() {
+  const [defaultId, setDefaultId] = useState<string | undefined>(undefined);
+
   const { data: lightcurveData, error: lightcurveDataError } = useQuery<
-    LightcurveData | undefined
+    FrequencyLightcurveData | InstrumentLightcurveData | undefined
   >({
     initialData: undefined,
-    queryKey: [],
+    queryKey: [defaultId],
     queryFn: async () => {
-      const defaultId =
-        Number(import.meta.env.VITE_DEFAULT_HOMEPAGE_SOURCE_ID) || 1; // fallback to ID=1 if env var isn't set
+      if (!defaultId) return;
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${defaultId}/all`
+        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${defaultId}/unbinned`
       );
       if (!response.ok) {
         throw new Error(
@@ -25,29 +31,43 @@ export function Main() {
         );
       }
 
-      const data: LightcurveData = (await response.json()) as LightcurveData;
-      // Sort data by the frequency band so the plotly legend is sorted in ascending order
-      data.bands.sort((a, b) => a.band.frequency - b.band.frequency);
+      const data = (await response.json()) as
+        | FrequencyLightcurveData
+        | InstrumentLightcurveData;
 
       return data;
     },
   });
 
+  useEffect(() => {
+    const fetchDefaultId = async () => {
+      const sourcesFeed = await fetch(
+        `${import.meta.env.VITE_SERVICE_URL}/sources/feed`
+      );
+      const response = (await sourcesFeed.json()) as SourcesFeedResponse;
+
+      setDefaultId(response.items[0].source_id);
+    };
+
+    void fetchDefaultId();
+  }, []);
+
   if (lightcurveDataError) {
     throw lightcurveDataError;
   }
 
-  const sourceUrl =
-    '/source/' + import.meta.env.VITE_DEFAULT_HOMEPAGE_SOURCE_ID;
+  const sourceUrl = '/source/' + defaultId;
 
   return (
     <main>
       <ReactMarkdown>{home_content}</ReactMarkdown>
-      <p>
-        Below is an example light curve.{' '}
-        <Link to={sourceUrl}>View the source page</Link> to learn more about the
-        source and its data.
-      </p>
+      {defaultId && (
+        <p>
+          Below is an example light curve.{' '}
+          <Link to={sourceUrl}>View the source page</Link> to learn more about
+          the source and its data.
+        </p>
+      )}
       {lightcurveData && (
         <div className="home-light-curve">
           <Lightcurve

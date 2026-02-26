@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { DataFileExtensions, LightcurveData } from '../types';
+import {
+  DataFileExtensions,
+  FrequencyLightcurveData,
+  InstrumentLightcurveData,
+} from '../types';
 import { Table } from './Table';
 import { ColumnDef, InitialTableState } from '@tanstack/react-table';
 import { DATA_EXT_OPTIONS } from '../configs/constants';
@@ -7,43 +11,40 @@ import { DownloadIcon } from './icons/DownloadIcon';
 import { fetchTableData } from '../utils/fetchUtils';
 
 type LightcurveTableData = {
-  id: number;
+  id: string;
   frequency: number;
   time: string;
   timeParsed: number;
-  i_flux: number;
-  i_uncertainty: number;
+  ra: number;
+  dec: number;
+  flux: number;
+  flux_err: number;
   flags: string[];
-  // q_flux: number | undefined;
-  // q_uncertainty: number | undefined;
-  // u_flux: number | undefined;
-  // u_uncertainty: number | undefined;
 };
 
 /** Renders the lightcurve data used in the Lightcurve plot as a table instead */
 export function LightcurveDataTable({
   lightcurveData,
 }: {
-  lightcurveData: LightcurveData;
+  lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
 }) {
   const [dataExtension, setDataExtension] = useState(DATA_EXT_OPTIONS[0]);
 
   const tableData = useMemo(() => {
     const data: LightcurveTableData[] = [];
-    lightcurveData.bands.forEach((band) => {
-      band.id.forEach((id, idx) => {
+    const keys = Object.keys(lightcurveData.lightcurves);
+    keys.forEach((k) => {
+      lightcurveData.lightcurves[k].measurement_id.forEach((id, idx) => {
         data.push({
           id,
-          frequency: band.band.frequency,
-          time: band.time[idx],
-          timeParsed: Date.parse(band.time[idx]),
-          i_flux: band.i_flux[idx],
-          i_uncertainty: band.i_uncertainty[idx],
-          flags: band.extra[idx] ? band.extra[idx].flags : [],
-          // q_flux: 'q_flux' in band ? band.q_flux[idx] : undefined,
-          // q_uncertainty: 'q_uncertainty' in band ? band.q_uncertainty[idx] : undefined,
-          // u_flux: 'u_flux' in band ?band.u_flux[idx] : undefined,
-          // u_uncertainty: 'u_uncertainty' in band ? band.u_uncertainty[idx] : undefined,
+          frequency: lightcurveData.lightcurves[k].frequency,
+          time: lightcurveData.lightcurves[k].time[idx],
+          timeParsed: Date.parse(lightcurveData.lightcurves[k].time[idx]),
+          ra: lightcurveData.lightcurves[k].ra[idx],
+          dec: lightcurveData.lightcurves[k].dec[idx],
+          flux: lightcurveData.lightcurves[k].flux[idx],
+          flux_err: lightcurveData.lightcurves[k].flux_err[idx],
+          flags: lightcurveData.lightcurves[k].extra[idx]?.flags ?? [],
         });
       });
     });
@@ -55,8 +56,7 @@ export function LightcurveDataTable({
       {
         header: 'ID',
         accessorFn: (row) => row.id,
-        sortingFn: (rowA, rowB) => rowA.original.id - rowB.original.id,
-        size: 75,
+        size: 325,
       },
       {
         header: 'Time',
@@ -70,52 +70,45 @@ export function LightcurveDataTable({
         accessorFn: (row) => row.frequency,
         sortingFn: (rowA, rowB) =>
           rowA.original.frequency - rowB.original.frequency,
+        size: 100,
       },
       {
-        header: 'Flux Density (I)',
-        accessorFn: (row) => row.i_flux,
+        header: 'RA',
+        accessorFn: (row) => row.ra.toFixed(3),
+        sortingFn: (rowA, rowB) => rowA.original.ra - rowB.original.ra,
+        size: 60,
+      },
+      {
+        header: 'Dec',
+        accessorFn: (row) => row.dec.toFixed(3),
+        sortingFn: (rowA, rowB) => rowA.original.dec - rowB.original.dec,
+        size: 60,
+      },
+      {
+        header: 'Flux Density',
+        accessorFn: (row) => row.flux,
         cell: ({ getValue }) => {
           const value = getValue() as number;
-          return <span title={String(value)}>{value.toFixed(3)}</span>;
+          return <span title={String(value)}>{value.toPrecision(3)}</span>;
         },
-        sortingFn: (rowA, rowB) => rowA.original.i_flux - rowB.original.i_flux,
+        sortingFn: (rowA, rowB) => rowA.original.flux - rowB.original.flux,
+        size: 60,
       },
       {
-        header: 'Flux Density Uncertainty (I)',
-        accessorFn: (row) => row.i_uncertainty,
+        header: 'Flux Density Uncertainty',
+        accessorFn: (row) => row.flux_err,
         cell: ({ getValue }) => {
           const value = getValue() as number;
-          return <span title={String(value)}>{value.toFixed(3)}</span>;
+          return <span title={String(value)}>{value.toPrecision(3)}</span>;
         },
         sortingFn: (rowA, rowB) =>
-          rowA.original.i_uncertainty - rowB.original.i_uncertainty,
+          rowA.original.flux_err - rowB.original.flux_err,
+        size: 100,
       },
       {
         header: 'Flags',
         accessorFn: (row) => (row.flags.length ? row.flags.join(', ') : 'n/a'),
       },
-      // {
-      //   header: 'Flux (Q)',
-      //   accessorFn: (row) => 'q_flux' in row ? row.q_flux : 'n/a',
-      //   // sortingFn: (rowA, rowB) => rowA.original.q_flux - rowB.original.q_flux,
-      // },
-      // {
-      //   header: 'Flux Uncertainty (Q)',
-      //   accessorFn: (row) => 'q_uncertainty' in row ? row.q_uncertainty : 'n/a',
-      //   // sortingFn: (rowA, rowB) =>
-      //     // rowA.original.q_uncertainty - rowB.original.q_uncertainty,
-      // },
-      // {
-      //   header: 'Flux (U)',
-      //   accessorFn: (row) => 'u_flux' in row ? row.u_flux : 'n/a',
-      //   // sortingFn: (rowA, rowB) => rowA.original.u_flux - rowB.original.u_flux,
-      // },
-      // {
-      //   header: 'Flux Uncertainty (U)',
-      //   accessorFn: (row) => 'u_uncertainty' in row ? row.u_uncertainty : 'n/a',
-      //   // sortingFn: (rowA, rowB) =>
-      //     // rowA.original.u_uncertainty - rowB.original.u_uncertainty,
-      // },
     ] as ColumnDef<LightcurveTableData>[];
   }, []);
 
@@ -130,10 +123,10 @@ export function LightcurveDataTable({
 
   const downloadData = useCallback(() => {
     fetchTableData(
-      lightcurveData.source.id,
+      lightcurveData.source_id,
       dataExtension as DataFileExtensions
     );
-  }, [dataExtension, lightcurveData.source]);
+  }, [dataExtension, lightcurveData.source_id]);
 
   return (
     <div className="data-access-container">
@@ -157,7 +150,9 @@ export function LightcurveDataTable({
               type="button"
               className="download-data-btn"
               onClick={downloadData}
-              title="Download light curve data"
+              // title="Download light curve data"
+              title="This feature is currently unavailable."
+              disabled
             >
               <DownloadIcon width={12} height={12} />
             </button>
