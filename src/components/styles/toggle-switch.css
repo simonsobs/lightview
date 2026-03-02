@@ -1,11 +1,3 @@
-.toggle-container {
-  position: absolute;
-  z-index: 1;
-  margin: 0.25em;
-  background-color: white;
-  padding: 3px;
-}
-
 .toggle-container:hover:not(.disabled) {
   border-color: black;
 }
@@ -18,8 +10,9 @@
 .label {
   display: flex;
   flex-direction: row;
-  font-size: 0.8em;
+  font-size: 0.75em;
   align-items: center;
+  column-gap: 5px;
 }
 
 .label.disabled {
@@ -77,9 +70,4 @@ input:checked + .label .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
-}
-
-.left,
-.right {
-  margin: 0 0.5em;
 }
