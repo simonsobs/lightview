@@ -14,16 +14,19 @@ import { useEffect, useState } from 'react';
 /** Renders the "home" page of the web app */
 export function Main() {
   const [defaultId, setDefaultId] = useState<string | undefined>(undefined);
+  const [selectionStrategy, setSelectionStrategy] = useState<
+    'instrument' | 'frequency'
+  >('instrument');
 
   const { data: lightcurveData, error: lightcurveDataError } = useQuery<
     FrequencyLightcurveData | InstrumentLightcurveData | undefined
   >({
     initialData: undefined,
-    queryKey: [defaultId],
+    queryKey: [defaultId, selectionStrategy],
     queryFn: async () => {
       if (!defaultId) return;
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${defaultId}/unbinned`
+        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${defaultId}/unbinned?selection_strategy=${selectionStrategy}`
       );
       if (!response.ok) {
         throw new Error(
@@ -73,6 +76,8 @@ export function Main() {
           <Lightcurve
             lightcurveData={lightcurveData}
             plotLayout={DEFAULT_HOMEPAGE_PLOT_LAYOUT}
+            selectionStrategy={selectionStrategy}
+            setSelectionStrategy={setSelectionStrategy}
           />
           <Link className="home-source-link" to={sourceUrl}>
             View source page

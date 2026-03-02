@@ -1,4 +1,11 @@
-import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  ChangeEvent,
+} from 'react';
 import './styles/lightcurve.css';
 import {
   CutoutFileExtensions,
@@ -30,6 +37,8 @@ type LightcurveProps = {
     width: number;
     height: number;
   };
+  setSelectionStrategy: (s: 'instrument' | 'frequency') => void;
+  selectionStrategy: 'instrument' | 'frequency';
 };
 
 type ClickedMarkerData =
@@ -64,7 +73,8 @@ export type BaseScatterData = ScatterData & {
   };
   measurementId: Datum[];
   flags: Datum[];
-  lightcurveKey: Datum[];
+  /** The key of the trace's associated lightcurve object  */
+  customdata: Datum[];
 };
 
 export type FrequencyScatterData = BaseScatterData & {
@@ -79,13 +89,14 @@ type BasePlotDatum = PlotDatum & {
     };
     measurementId: string;
   };
-  lightcurveKey: string;
 };
 
 /** Uses Plotly to generate a source's lightcurve. Currently plots all lightcurves of a source. */
 export function Lightcurve({
   lightcurveData,
   plotLayout = DEFAULT_PLOT_LAYOUT,
+  setSelectionStrategy,
+  selectionStrategy,
 }: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
   const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
@@ -153,7 +164,7 @@ export function Lightcurve({
           measurementId: [] as Datum[],
           module: [] as Datum[],
           flags: [] as Datum[],
-          lightcurveKey: [] as Datum[],
+          customdata: [] as Datum[],
         } as FrequencyScatterData;
       } else {
         data = {
@@ -180,7 +191,7 @@ export function Lightcurve({
           hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
           measurementId: [] as Datum[],
           flags: [] as Datum[],
-          lightcurveKey: [] as Datum[],
+          customdata: [] as Datum[],
         } as BaseScatterData;
       }
 
@@ -205,7 +216,7 @@ export function Lightcurve({
         data.measurementId[idx] = lightcurve.measurement_id[idx];
         data.flags[idx] =
           lightcurve.extra[idx] && 'flags' in lightcurve.extra[idx] ? 1 : 0;
-        data.lightcurveKey[idx] = lightcurveKey;
+        data.customdata[idx] = lightcurveKey;
 
         if ('module' in data) {
           data.name = `${lightcurve.module[idx]}, f${lightcurve.frequency}`;
@@ -322,9 +333,7 @@ export function Lightcurve({
 
       const { x, y, curveNumber, pointIndex, data } = e.points[0];
 
-      const key = (e.points[0] as BasePlotDatum).lightcurveKey;
-
-      console.log(e.points[0]);
+      const key = String((e.points[0] as BasePlotDatum).customdata);
 
       const measurementId =
         lightcurveData.lightcurves[key].measurement_id[pointIndex];
@@ -455,6 +464,18 @@ export function Lightcurve({
           Indicates flagged observation
         </span>
       </div>
+      <label className="selection-strategy-dropdown">
+        Selection Strategy
+        <select
+          value={selectionStrategy}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setSelectionStrategy(e.target.value as 'instrument' | 'frequency')
+          }
+        >
+          <option value="instrument">Instrument</option>
+          <option value="frequency">Frequency</option>
+        </select>
+      </label>
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
       <div id="lightcurve-plot" ref={plotlyRef} />
       {clickedMarkerData && imageUrl && (

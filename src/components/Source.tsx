@@ -30,6 +30,9 @@ export function Source() {
   const [nearbySourceRadius, setNearbySourceRadius] = useState(
     DEFAULT_NEARBY_SOURCE_RADIUS
   );
+  const [selectionStrategy, setSelectionStrategy] = useState<
+    'instrument' | 'frequency'
+  >('instrument');
 
   const { data: sourceData, error: sourceDataError } = useQuery<
     SourceResponse | undefined
@@ -85,10 +88,10 @@ export function Source() {
     InstrumentLightcurveData | FrequencyLightcurveData | undefined
   >({
     initialData: undefined,
-    queryKey: [id],
+    queryKey: [id, selectionStrategy],
     queryFn: async () => {
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/unbinned`
+        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/unbinned?selection_strategy=${selectionStrategy}`
       );
       if (!response.ok) {
         throw new Error(
@@ -151,7 +154,13 @@ export function Source() {
           dec={sourceData.dec}
           stats={sourceSummary}
         />
-        {lightcurveData && <Lightcurve lightcurveData={lightcurveData} />}
+        {lightcurveData && (
+          <Lightcurve
+            lightcurveData={lightcurveData}
+            selectionStrategy={selectionStrategy}
+            setSelectionStrategy={setSelectionStrategy}
+          />
+        )}
         <div className="source-grid-container">
           <div>
             <CrossMatchSection crossMatches={sourceData.extra?.cross_matches} />
