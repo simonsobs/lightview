@@ -28,22 +28,32 @@ main {
   margin-top: 1.25em;
 }
 
-.home-light-curve {
+.home-light-curve,
+.home-lightcurve-placeholder,
+.sources-plot-container,
+.sources-plot-placeholder {
+  border-radius: 10px;
+  border: 1px solid #c4c8cb;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   width: fit-content;
+  min-width: 960px;
+  padding: 3px;
+  background-color: white;
+  margin-bottom: 1.25em;
+  height: 375px;
 }
 
 .home-source-link,
 .home-source-link:visited {
   position: relative;
-  bottom: 60px;
-  left: 15px;
+  bottom: 50px;
+  left: 10px;
   color: white;
   background-color: #212529de;
   padding: 5px 10px;
   text-decoration: none;
   border: 1px solid #c0c1c1;
   font-size: 0.8em;
-  /* border-radius: var(--search-border-radius); */
   border-radius: 5px;
 }
 
@@ -55,4 +65,12 @@ main {
 
 .page-not-found-container {
   align-self: flex-start;
+}
+
+.sources-plot-container {
+  height: fit-content;
+}
+
+.sources-plot-placeholder {
+  height: 450px;
 }

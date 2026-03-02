@@ -368,6 +368,7 @@ export function Lightcurve({
     return {
       responsive: true,
       displayModeBar: true,
+      displaylogo: false,
     };
   }, []);
 

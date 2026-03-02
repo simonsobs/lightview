@@ -154,12 +154,16 @@ export function Source() {
           dec={sourceData.dec}
           stats={sourceSummary}
         />
-        {lightcurveData && (
-          <Lightcurve
-            lightcurveData={lightcurveData}
-            selectionStrategy={selectionStrategy}
-            setSelectionStrategy={setSelectionStrategy}
-          />
+        {lightcurveData ? (
+          <div className="source-lightcurve-container">
+            <Lightcurve
+              lightcurveData={lightcurveData}
+              selectionStrategy={selectionStrategy}
+              setSelectionStrategy={setSelectionStrategy}
+            />
+          </div>
+        ) : (
+          <div className="source-lightcurve-placeholder" />
         )}
         <div className="source-grid-container">
           <div>
