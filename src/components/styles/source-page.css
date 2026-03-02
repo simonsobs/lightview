@@ -54,7 +54,7 @@
   display: grid;
   grid-template-columns: auto 400px;
   gap: 2em;
-  max-width: 1280px;
+  max-width: 1288px;
   border-radius: 10px;
   border: 1px solid #c4c8cb;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -89,7 +89,7 @@
   padding: 1em;
   background-color: #fff;
   margin-top: 1.25em;
-  max-width: 1280px;
+  max-width: 1288px;
   min-width: fit-content;
 }
 

@@ -262,9 +262,6 @@ export function Lightcurve({
             text: 'Date',
           },
         },
-        // title: {
-        //   text: `Light Curve for SO-${lightcurveData.source.id}`,
-        // },
         showlegend: true,
         legend: {
           x: 0,
@@ -284,7 +281,7 @@ export function Lightcurve({
           family: 'sans-serif',
         },
       }) as Layout,
-    [lightcurveData.source_id]
+    [plotLayout]
   );
 
   /** Invokes Plotly.restyle in order to update changes to marker styles */
@@ -319,7 +316,7 @@ export function Lightcurve({
         }
       });
     },
-    [plotData, lightcurveData.lightcurves]
+    [plotData]
   );
 
   /**
@@ -349,8 +346,8 @@ export function Lightcurve({
         y,
         flux_err: (e.points[0] as BasePlotDatum)['error_y.array'],
         flags,
-        pageX: e.event.pageX,
-        pageY: e.event.pageY,
+        pageX: e.event.offsetX,
+        pageY: e.event.offsetY,
         name,
         frequency: lightcurveData.lightcurves[key].frequency,
         bandColor: (e.points[0] as BasePlotDatum).fullData.marker.color,
@@ -370,6 +367,7 @@ export function Lightcurve({
   const plotConfig: Partial<Config> = useMemo(() => {
     return {
       responsive: true,
+      displayModeBar: true,
     };
   }, []);
 
@@ -419,7 +417,7 @@ export function Lightcurve({
     };
   }, [
     plotData,
-    plotLayout,
+    plotLayoutConfig,
     plotConfig,
     handleRelayoutOrTooltipClose,
     handleMarkerClick,
@@ -443,113 +441,127 @@ export function Lightcurve({
         cutoutExtension as CutoutFileExtensions
       );
     }
-  }, [
-    clickedMarkerData?.measurementId,
-    cutoutExtension,
-    lightcurveData.source_id,
-  ]);
+  }, [clickedMarkerData, cutoutExtension, lightcurveData.source_id]);
+
+  const onFlaggedObservationChange = useCallback((e: ChangeEvent) => {
+    e.stopPropagation();
+    setHideFlaggedData((prev) => !prev);
+  }, []);
+
+  const onSelectionStrategyChange = useCallback(
+    (e: ChangeEvent) => {
+      e.stopPropagation();
+      setSelectionStrategy(
+        selectionStrategy === 'frequency' ? 'instrument' : 'frequency'
+      );
+    },
+    [setSelectionStrategy, selectionStrategy]
+  );
 
   return (
     <div className="lightcurve-container">
-      <ToggleSwitch
-        checked={!hideFlaggedData}
-        onChange={() => setHideFlaggedData(!hideFlaggedData)}
-        disabled={false}
-        checkedLabel="Show All Observations"
-        uncheckedLabel="Hide All Observations"
-      />
-      <div className="flagged-marker-legend">
-        <div className="flagged-marker"></div>
-        <span className="flagged-marker-desc">
-          Indicates flagged observation
-        </span>
+      <div className="flagged-container">
+        <ToggleSwitch
+          toggleId="flag-obs"
+          checked={!hideFlaggedData}
+          onChange={onFlaggedObservationChange}
+          disabled={false}
+          checkedLabel="Show All Observations"
+          uncheckedLabel="Hide Flagged Observations"
+        />
+        <div className="flagged-marker-legend">
+          <span className="flagged-marker-desc">
+            Indicates flagged observation
+          </span>
+          <div className="flagged-marker"></div>
+        </div>
       </div>
-      <label className="selection-strategy-dropdown">
-        Selection Strategy
-        <select
-          value={selectionStrategy}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-            setSelectionStrategy(e.target.value as 'instrument' | 'frequency')
-          }
-        >
-          <option value="instrument">Instrument</option>
-          <option value="frequency">Frequency</option>
-        </select>
-      </label>
+      <div className="selection-strategy-container">
+        <ToggleSwitch
+          toggleId="selection-strategy"
+          checked={selectionStrategy === 'instrument'}
+          onChange={onSelectionStrategyChange}
+          disabled={false}
+          checkedLabel="Instrument"
+          uncheckedLabel="Frequency"
+        />
+      </div>
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
-      <div id="lightcurve-plot" ref={plotlyRef} />
-      {clickedMarkerData && imageUrl && (
-        <div
-          className="plot-tooltip-container"
-          style={{
-            left: `${clickedMarkerData.data.pageX + 5}px`,
-            top: `${clickedMarkerData.data.pageY}px`,
-          }}
-        >
+      <div id="lightcurve-plot" ref={plotlyRef}>
+        {clickedMarkerData && imageUrl && (
           <div
-            className="plot-tooltip-header-container"
+            className="plot-tooltip-container"
             style={{
-              backgroundColor: clickedMarkerData.data.bandColor,
+              left: `${clickedMarkerData.data.pageX + 5}px`,
+              top: `${clickedMarkerData.data.pageY}px`,
             }}
           >
-            <h4>{clickedMarkerData.data.name}</h4>
-            <button
-              type="button"
-              title="Click to close (or press Esc)"
-              onClick={handleRelayoutOrTooltipClose}
+            <div
+              className="plot-tooltip-header-container"
+              style={{
+                backgroundColor: clickedMarkerData.data.bandColor,
+              }}
             >
-              X
-            </button>
-          </div>
-          <div className="plot-tooltip-content-container">
-            <div className="plot-marker-data">
-              <p>
-                <span>Time:</span>
-                {String(clickedMarkerData.data.x)}
-              </p>
-              <p>
-                <span>Flux Density:</span>
-                {String(Number(clickedMarkerData.data.y).toFixed(3))} +/-{' '}
-                {String(Number(clickedMarkerData.data.flux_err).toFixed(3))} Jy
-              </p>
-              <p>
-                <span>Flags:</span>
-                {clickedMarkerData.data.flags?.length
-                  ? clickedMarkerData.data.flags.join(', ')
-                  : 'n/a'}
-              </p>
+              <h4>{clickedMarkerData.data.name}</h4>
+              <button
+                type="button"
+                title="Click to close (or press Esc)"
+                onClick={handleRelayoutOrTooltipClose}
+              >
+                X
+              </button>
             </div>
-            {imageUrl === 'Not Found' ? (
-              <div className="not-found flux-cutout">
-                <em>Cutout {imageUrl}</em>
+            <div className="plot-tooltip-content-container">
+              <div className="plot-marker-data">
+                <p>
+                  <span>Time:</span>
+                  {String(clickedMarkerData.data.x)}
+                </p>
+                <p>
+                  <span>Flux Density:</span>
+                  {String(Number(clickedMarkerData.data.y).toFixed(3))} +/-{' '}
+                  {String(Number(clickedMarkerData.data.flux_err).toFixed(3))}{' '}
+                  Jy
+                </p>
+                <p>
+                  <span>Flags:</span>
+                  {clickedMarkerData.data.flags?.length
+                    ? clickedMarkerData.data.flags.join(', ')
+                    : 'n/a'}
+                </p>
               </div>
-            ) : (
-              <img className="flux-cutout" src={imageUrl} />
-            )}
-            {imageUrl !== 'Not Found' && (
-              <div className="download-cutout-container">
-                <p className="download-cutout-label">Download as</p>
-                <div className="download-cutout-controls">
-                  <select
-                    className="select-cutout-format"
-                    onChange={(e) => setCutoutExtension(e.target.value)}
-                    value={cutoutExtension}
-                  >
-                    {CUTOUT_EXT_OPTIONS.map((ext) => (
-                      <option key={ext} value={ext}>
-                        {ext.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={downloadCutout}>
-                    <DownloadIcon width={12} height={12} />
-                  </button>
+              {imageUrl === 'Not Found' ? (
+                <div className="not-found flux-cutout">
+                  <em>Cutout {imageUrl}</em>
                 </div>
-              </div>
-            )}
+              ) : (
+                <img className="flux-cutout" src={imageUrl} />
+              )}
+              {imageUrl !== 'Not Found' && (
+                <div className="download-cutout-container">
+                  <p className="download-cutout-label">Download as</p>
+                  <div className="download-cutout-controls">
+                    <select
+                      className="select-cutout-format"
+                      onChange={(e) => setCutoutExtension(e.target.value)}
+                      value={cutoutExtension}
+                    >
+                      {CUTOUT_EXT_OPTIONS.map((ext) => (
+                        <option key={ext} value={ext}>
+                          {ext.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={downloadCutout}>
+                      <DownloadIcon width={12} height={12} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
