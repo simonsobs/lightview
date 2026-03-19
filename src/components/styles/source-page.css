@@ -1,15 +1,27 @@
 .source-header-container {
-  display: flex;
-  align-items: center;
-  column-gap: 2em;
-  row-gap: 0.5em;
-  flex-wrap: wrap;
   margin-bottom: 1.25em;
 }
 
 .source-header-container > h3 {
   margin: 0;
-  margin-right: 1em;
+}
+
+.source-header-container > label {
+  margin-left: 10px;
+  font-size: 0.9em;
+}
+
+.source-header-container > label > select {
+  margin-left: 5px;
+}
+
+.stats-container {
+  margin: 5px 10px 0px 10px;
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 5px;
+  flex-wrap: wrap;
 }
 
 .badge-container {
@@ -19,25 +31,22 @@
   background-color: #fcfcfd;
   display: flex;
   align-items: center;
-  column-gap: 1.5em;
+  column-gap: 5px;
+  font-size: 0.7em;
 }
 
 .badge-container > h4 {
   color: white;
   background-color: rgba(33, 37, 41, 0.75);
   margin: 0;
-  padding: 5px;
+  padding: 3px;
   border-right: 2px solid rgb(108, 117, 125);
   text-wrap: nowrap;
 }
 
 .badge-container > span {
   text-wrap: nowrap;
-  padding: 5px;
-}
-
-.freq-aside {
-  font-size: 0.75em;
+  padding: 3px;
 }
 
 .source-grid-container {
@@ -45,7 +54,7 @@
   display: grid;
   grid-template-columns: auto 400px;
   gap: 2em;
-  max-width: 1280px;
+  max-width: 1288px;
   border-radius: 10px;
   border: 1px solid #c4c8cb;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
@@ -80,7 +89,8 @@
   padding: 1em;
   background-color: #fff;
   margin-top: 1.25em;
-  max-width: 1280px;
+  max-width: 1288px;
+  min-width: fit-content;
 }
 
 .download-data-container > h3 {
@@ -113,6 +123,11 @@
   margin: 0;
   font-size: 10px;
   font-weight: bold;
+}
+
+.download-data-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .nearby-sources-results {

@@ -1,9 +1,10 @@
 import './styles/toggle-switch.css';
-import { ReactNode } from 'react';
+import { ChangeEvent, ReactNode } from 'react';
 
 type ToggleSwitchProps = {
+  toggleId: string;
   checked: boolean;
-  onChange: () => void;
+  onChange: (e: ChangeEvent) => void;
   disabled: boolean;
   disabledMessage?: string;
   checkedLabel: ReactNode;
@@ -11,6 +12,7 @@ type ToggleSwitchProps = {
 };
 
 export function ToggleSwitch({
+  toggleId,
   checked,
   onChange,
   disabled,
@@ -25,7 +27,7 @@ export function ToggleSwitch({
     >
       <input
         className="input"
-        id="toggle"
+        id={toggleId}
         type="checkbox"
         checked={checked}
         onChange={onChange}
@@ -33,7 +35,7 @@ export function ToggleSwitch({
       />
       <label
         className={'label' + (disabled ? ' disabled' : '')}
-        htmlFor="toggle"
+        htmlFor={toggleId}
       >
         <div className="left">{uncheckedLabel}</div>
         <div className="switch">

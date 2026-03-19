@@ -44,11 +44,11 @@ export function NearbySourcesSection({
                 header: 'ID',
                 // Link to individual sources from the table
                 cell: ({ row }) => (
-                  <Link to={`/source/${row.original.id}`}>
-                    {row.original.id}
+                  <Link to={`/source/${row.original.source_id}`}>
+                    {row.original.source_id}
                   </Link>
                 ),
-                accessorFn: (row) => row.id,
+                accessorFn: (row) => row.source_id,
                 size: 75,
               },
               // {

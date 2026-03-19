@@ -1,6 +1,19 @@
-import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  ChangeEvent,
+} from 'react';
 import './styles/lightcurve.css';
-import { CutoutFileExtensions, LightcurveData } from '../types';
+import {
+  CutoutFileExtensions,
+  FrequencyLightcurveData,
+  FrequencyLightcurveMeasurements,
+  InstrumentLightcurveData,
+  isFrequencyLightcurveData,
+} from '../types';
 import Plotly, {
   Config,
   Datum,
@@ -19,35 +32,33 @@ import { DownloadIcon } from './icons/DownloadIcon';
 import { fetchCutout } from '../utils/fetchUtils';
 
 type LightcurveProps = {
-  lightcurveData: LightcurveData;
+  lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
   plotLayout?: {
     width: number;
     height: number;
   };
-};
-
-type ClickedMarker = {
-  pointIndex: number;
-  curveNumber: number;
+  setSelectionStrategy: (s: 'instrument' | 'frequency') => void;
+  selectionStrategy: 'instrument' | 'frequency';
 };
 
 type ClickedMarkerData =
   | {
-      markerId: ClickedMarker;
+      measurementId: string;
       data: {
         x: Datum;
         y: Datum;
-        i_uncertainty: Datum;
+        flux_err: Datum;
         flags: string[] | null;
         pageX: number;
         pageY: number;
-        bandName: string;
+        name: string;
+        frequency: number;
         bandColor: string;
       };
     }
   | undefined;
 
-type ScatterDataWithErrorYAndMarkers = ScatterData & {
+export type BaseScatterData = ScatterData & {
   error_y: {
     type: 'data';
     array: Datum[];
@@ -60,21 +71,32 @@ type ScatterDataWithErrorYAndMarkers = ScatterData & {
       color: string[];
     };
   };
+  measurementId: Datum[];
+  flags: Datum[];
+  /** The key of the trace's associated lightcurve object  */
+  customdata: Datum[];
 };
 
-type EnhancedPlotDatum = PlotDatum & {
+export type FrequencyScatterData = BaseScatterData & {
+  module: Datum[];
+};
+
+type BasePlotDatum = PlotDatum & {
   'error_y.array': Datum;
   fullData: {
     marker: {
       color: string;
     };
+    measurementId: string;
   };
 };
 
-/** Uses Plotly to generate a source's lightcurve. Currently plots all bands of a source, and only the i_flux */
+/** Uses Plotly to generate a source's lightcurve. Currently plots all lightcurves of a source. */
 export function Lightcurve({
   lightcurveData,
   plotLayout = DEFAULT_PLOT_LAYOUT,
+  setSelectionStrategy,
+  selectionStrategy,
 }: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
   const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
@@ -93,12 +115,8 @@ export function Lightcurve({
     queryKey: [clickedMarkerData],
     queryFn: async () => {
       if (clickedMarkerData) {
-        const id =
-          lightcurveData.bands[clickedMarkerData.markerId.curveNumber].id[
-            clickedMarkerData.markerId.pointIndex
-          ];
         const response = await fetch(
-          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${id}?ext=${CUTOUT_EXT_OPTIONS[0]}`
+          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${lightcurveData.source_id}/${clickedMarkerData.measurementId}?ext=${CUTOUT_EXT_OPTIONS[0]}`
         );
         if (!response.ok) {
           return response.statusText;
@@ -112,64 +130,117 @@ export function Lightcurve({
 
   /** A plotly-compatible data structure derived from the lightcurveData prop */
   const plotData = useMemo(() => {
-    // Map over each band to restructure the data according to plotly configs
-    return lightcurveData.bands.map((lightcurveBand) => {
-      // Create a skeletal data object for each band that allows us to push data to the empty arrays initially set
-      const data = {
-        // String used in the plot legend
-        name: `${lightcurveBand.band.name}, ${lightcurveBand.band.telescope}, ${lightcurveBand.band.instrument}`,
-        x: [] as Datum[],
-        y: [] as Datum[],
-        error_y: {
-          type: 'data',
-          array: [] as Datum[],
-          color: undefined,
-          thickness: 1.0,
-          width: 1.0,
-        } as ErrorBar,
-        type: 'scatter',
-        mode: 'markers',
-        marker: {
-          size: 5,
-          line: {
-            width: [] as number[],
-            color: [] as string[],
+    const finalData = [];
+    const lightcurveKeys = Object.keys(lightcurveData.lightcurves);
+    for (const lightcurveKey of lightcurveKeys) {
+      const lightcurve = lightcurveData.lightcurves[lightcurveKey];
+      let data: FrequencyScatterData | BaseScatterData;
+
+      const isFrequencyLightcurve = isFrequencyLightcurveData(lightcurveData);
+
+      if (isFrequencyLightcurve) {
+        data = {
+          // String used in the plot legend
+          name: '',
+          x: [] as Datum[],
+          y: [] as Datum[],
+          error_y: {
+            type: 'data',
+            array: [] as Datum[],
+            color: undefined,
+            thickness: 1.0,
+            width: 1.0,
+          } as ErrorBar,
+          type: 'scatter',
+          mode: 'markers',
+          marker: {
+            size: 5,
+            line: {
+              width: [] as number[],
+              color: [] as string[],
+            },
           },
-        },
-        hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
-      } as ScatterDataWithErrorYAndMarkers;
-      // We expect each array of data in the LightcurveBand's data to be equal length, so
-      // we could have picked any of them to iterate over, but I chose lightcurveBand.time
-      // for no particular reason
-      lightcurveBand.time.forEach((time, index) => {
-        const extra = lightcurveBand.extra[index];
+          hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
+          measurementId: [] as Datum[],
+          module: [] as Datum[],
+          flags: [] as Datum[],
+          customdata: [] as Datum[],
+        } as FrequencyScatterData;
+      } else {
+        data = {
+          // String used in the plot legend
+          name: `${lightcurveKey}, f${lightcurve.frequency}`,
+          x: [] as Datum[],
+          y: [] as Datum[],
+          error_y: {
+            type: 'data',
+            array: [] as Datum[],
+            color: undefined,
+            thickness: 1.0,
+            width: 1.0,
+          } as ErrorBar,
+          type: 'scatter',
+          mode: 'markers',
+          marker: {
+            size: 5,
+            line: {
+              width: [] as number[],
+              color: [] as string[],
+            },
+          },
+          hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
+          measurementId: [] as Datum[],
+          flags: [] as Datum[],
+          customdata: [] as Datum[],
+        } as BaseScatterData;
+      }
+
+      // We expect each array of data in the lightcurve's data to be equal length, so
+      // we could have picked any of them to iterate over
+      lightcurve.extra.forEach((extra, idx) => {
         const isFlagged = !!(extra && 'flags' in extra && extra.flags.length);
 
+        // Exclude data point if flagged and hideFlaggedData is true
         if (hideFlaggedData && isFlagged) {
           return;
         }
-        const day = new Date(time);
+
+        const day = new Date(lightcurve.time[idx]);
         // Use the index of current iteration to set the data in the various arrays defined in this
         // band's `data` object
-        const flux = lightcurveBand.i_flux[index];
-        const errorY = lightcurveBand.i_uncertainty[index];
-        data.x[index] = day;
-        data.y[index] = flux;
-        data.error_y.array[index] = errorY;
+        const flux = lightcurve.flux[idx];
+        const errorY = lightcurve.flux_err[idx];
+        data.x[idx] = day;
+        data.y[idx] = flux;
+        data.error_y.array[idx] = errorY;
+        data.measurementId[idx] = lightcurve.measurement_id[idx];
+        data.flags[idx] =
+          lightcurve.extra[idx] && 'flags' in lightcurve.extra[idx] ? 1 : 0;
+        data.customdata[idx] = lightcurveKey;
+
+        if ('module' in data) {
+          data.name = `${lightcurve.module[idx]}, f${lightcurve.frequency}`;
+          data.module[idx] = (
+            lightcurve.module as FrequencyLightcurveMeasurements['module']
+          )[idx];
+        }
 
         // marker fill and outline
         if (isFlagged) {
-          data.marker.line.color[index] = 'red';
-          data.marker.line.width[index] = 1.5;
+          data.marker.line.color[idx] = 'red';
+          data.marker.line.width[idx] = 1.5;
         } else {
-          data.marker.line.color[index] = '#000';
+          data.marker.line.color[idx] = '#000';
           // Initially all non-flagged marker lineWidths are 0 so that they do not show; rather, we set a marker's lineWidth
           // to 1 only when clicked or hovered
-          data.marker.line.width[index] = 0;
+          data.marker.line.width[idx] = 0;
         }
       });
-      return data;
-    });
+
+      finalData.push(data);
+    }
+
+    return finalData;
   }, [lightcurveData, hideFlaggedData]);
 
   /**
@@ -191,9 +262,6 @@ export function Lightcurve({
             text: 'Date',
           },
         },
-        title: {
-          text: `Light Curve for SO-${lightcurveData.source.id}`,
-        },
         showlegend: true,
         legend: {
           x: 0,
@@ -213,7 +281,7 @@ export function Lightcurve({
           family: 'sans-serif',
         },
       }) as Layout,
-    [lightcurveData.source.id]
+    [plotLayout]
   );
 
   /** Invokes Plotly.restyle in order to update changes to marker styles */
@@ -228,9 +296,7 @@ export function Lightcurve({
         const hasStyledMarker = d.marker.line.width.indexOf(2);
 
         // get a clean marker config that can be used for a reset or to update a single marker
-        const newMarkerConfig = generateBaseMarkerConfig(
-          lightcurveData.bands[i]
-        );
+        const newMarkerConfig = generateBaseMarkerConfig(d);
 
         if (pointIndex !== undefined && i === curveNumber && !reset) {
           // we're requesting to update a marker on this band, so update it
@@ -250,7 +316,7 @@ export function Lightcurve({
         }
       });
     },
-    [plotData, lightcurveData.bands]
+    [plotData]
   );
 
   /**
@@ -262,41 +328,46 @@ export function Lightcurve({
       e.event.preventDefault();
       e.event.stopPropagation();
 
-      const { x, y, pointIndex, curveNumber, data } = e.points[0];
+      const { x, y, curveNumber, pointIndex, data } = e.points[0];
+
+      const key = String((e.points[0] as BasePlotDatum).customdata);
+
+      const measurementId =
+        lightcurveData.lightcurves[key].measurement_id[pointIndex];
+
+      const extra = lightcurveData.lightcurves[key].extra[pointIndex];
+      const flags = extra != null ? extra.flags : null;
 
       const { name } = data;
-      const extra = lightcurveData.bands[curveNumber].extra[pointIndex];
-      const flags = extra != null ? extra.flags : null;
 
       // Create an object used for the tooltip's content and positioning
       const pointData = {
         x,
         y,
-        i_uncertainty: (e.points[0] as EnhancedPlotDatum)['error_y.array'],
+        flux_err: (e.points[0] as BasePlotDatum)['error_y.array'],
         flags,
-        pageX: e.event.pageX,
-        pageY: e.event.pageY,
-        bandName: name,
-        bandColor: (e.points[0] as EnhancedPlotDatum).fullData.marker.color,
+        pageX: e.event.offsetX,
+        pageY: e.event.offsetY,
+        name,
+        frequency: lightcurveData.lightcurves[key].frequency,
+        bandColor: (e.points[0] as BasePlotDatum).fullData.marker.color,
       };
 
       setClickedMarkerData({
-        markerId: {
-          pointIndex,
-          curveNumber,
-        },
+        measurementId,
         data: pointData,
       });
 
       // style clicked marker
       handleRestyle(curveNumber, pointIndex, false);
     },
-    [handleRestyle, lightcurveData.bands]
+    [handleRestyle, lightcurveData.lightcurves]
   );
 
   const plotConfig: Partial<Config> = useMemo(() => {
     return {
       responsive: true,
+      displayModeBar: true,
     };
   }, []);
 
@@ -346,7 +417,7 @@ export function Lightcurve({
     };
   }, [
     plotData,
-    plotLayout,
+    plotLayoutConfig,
     plotConfig,
     handleRelayoutOrTooltipClose,
     handleMarkerClick,
@@ -364,106 +435,133 @@ export function Lightcurve({
 
   const downloadCutout = useCallback(() => {
     if (clickedMarkerData && cutoutExtension) {
-      const id =
-        lightcurveData.bands[clickedMarkerData.markerId.curveNumber].id[
-          clickedMarkerData.markerId.pointIndex
-        ];
-      fetchCutout(id, cutoutExtension as CutoutFileExtensions);
+      fetchCutout(
+        lightcurveData.source_id,
+        clickedMarkerData.measurementId,
+        cutoutExtension as CutoutFileExtensions
+      );
     }
-  }, [clickedMarkerData?.markerId, cutoutExtension]);
+  }, [clickedMarkerData, cutoutExtension, lightcurveData.source_id]);
+
+  const onFlaggedObservationChange = useCallback((e: ChangeEvent) => {
+    e.stopPropagation();
+    setHideFlaggedData((prev) => !prev);
+  }, []);
+
+  const onSelectionStrategyChange = useCallback(
+    (e: ChangeEvent) => {
+      e.stopPropagation();
+      setSelectionStrategy(
+        selectionStrategy === 'frequency' ? 'instrument' : 'frequency'
+      );
+    },
+    [setSelectionStrategy, selectionStrategy]
+  );
 
   return (
     <div className="lightcurve-container">
-      <ToggleSwitch
-        checked={!hideFlaggedData}
-        onChange={() => setHideFlaggedData(!hideFlaggedData)}
-        disabled={false}
-        checkedLabel="Show All Observations"
-        uncheckedLabel="Hide All Observations"
-      />
-      <div className="flagged-marker-legend">
-        <div className="flagged-marker"></div>
-        <span className="flagged-marker-desc">
-          Indicates flagged observation
-        </span>
+      <div className="flagged-container">
+        <ToggleSwitch
+          toggleId="flag-obs"
+          checked={!hideFlaggedData}
+          onChange={onFlaggedObservationChange}
+          disabled={false}
+          checkedLabel="Show All Observations"
+          uncheckedLabel="Hide Flagged Observations"
+        />
+        <div className="flagged-marker-legend">
+          <span className="flagged-marker-desc">
+            Indicates flagged observation
+          </span>
+          <div className="flagged-marker"></div>
+        </div>
+      </div>
+      <div className="selection-strategy-container">
+        <ToggleSwitch
+          toggleId="selection-strategy"
+          checked={selectionStrategy === 'instrument'}
+          onChange={onSelectionStrategyChange}
+          disabled={false}
+          checkedLabel="Instrument"
+          uncheckedLabel="Frequency"
+        />
       </div>
       {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
-      <div id="lightcurve-plot" ref={plotlyRef} />
-      {clickedMarkerData && imageUrl && (
-        <div
-          className="plot-tooltip-container"
-          style={{
-            left: `${clickedMarkerData.data.pageX + 5}px`,
-            top: `${clickedMarkerData.data.pageY}px`,
-          }}
-        >
+      <div id="lightcurve-plot" ref={plotlyRef}>
+        {clickedMarkerData && imageUrl && (
           <div
-            className="plot-tooltip-header-container"
+            className="plot-tooltip-container"
             style={{
-              backgroundColor: clickedMarkerData.data.bandColor,
+              left: `${clickedMarkerData.data.pageX + 5}px`,
+              top: `${clickedMarkerData.data.pageY}px`,
             }}
           >
-            <h4>{clickedMarkerData.data.bandName}</h4>
-            <button
-              type="button"
-              title="Click to close (or press Esc)"
-              onClick={handleRelayoutOrTooltipClose}
+            <div
+              className="plot-tooltip-header-container"
+              style={{
+                backgroundColor: clickedMarkerData.data.bandColor,
+              }}
             >
-              X
-            </button>
-          </div>
-          <div className="plot-tooltip-content-container">
-            <div className="plot-marker-data">
-              <p>
-                <span>Time:</span>
-                {String(clickedMarkerData.data.x)}
-              </p>
-              <p>
-                <span>Flux Density:</span>
-                {String(Number(clickedMarkerData.data.y).toFixed(3))} +/-{' '}
-                {String(
-                  Number(clickedMarkerData.data.i_uncertainty).toFixed(3)
-                )}{' '}
-                Jy
-              </p>
-              <p>
-                <span>Flags:</span>
-                {clickedMarkerData.data.flags?.length
-                  ? clickedMarkerData.data.flags.join(', ')
-                  : 'n/a'}
-              </p>
+              <h4>{clickedMarkerData.data.name}</h4>
+              <button
+                type="button"
+                title="Click to close (or press Esc)"
+                onClick={handleRelayoutOrTooltipClose}
+              >
+                X
+              </button>
             </div>
-            {imageUrl === 'Not Found' ? (
-              <div className="not-found flux-cutout">
-                <em>Cutout {imageUrl}</em>
+            <div className="plot-tooltip-content-container">
+              <div className="plot-marker-data">
+                <p>
+                  <span>Time:</span>
+                  {String(clickedMarkerData.data.x)}
+                </p>
+                <p>
+                  <span>Flux Density:</span>
+                  {String(Number(clickedMarkerData.data.y).toFixed(3))} +/-{' '}
+                  {String(Number(clickedMarkerData.data.flux_err).toFixed(3))}{' '}
+                  Jy
+                </p>
+                <p>
+                  <span>Flags:</span>
+                  {clickedMarkerData.data.flags?.length
+                    ? clickedMarkerData.data.flags.join(', ')
+                    : 'n/a'}
+                </p>
               </div>
-            ) : (
-              <img className="flux-cutout" src={imageUrl} />
-            )}
-            {imageUrl !== 'Not Found' && (
-              <div className="download-cutout-container">
-                <p className="download-cutout-label">Download as</p>
-                <div className="download-cutout-controls">
-                  <select
-                    className="select-cutout-format"
-                    onChange={(e) => setCutoutExtension(e.target.value)}
-                    value={cutoutExtension}
-                  >
-                    {CUTOUT_EXT_OPTIONS.map((ext) => (
-                      <option key={ext} value={ext}>
-                        {ext.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={downloadCutout}>
-                    <DownloadIcon width={12} height={12} />
-                  </button>
+              {imageUrl === 'Not Found' ? (
+                <div className="not-found flux-cutout">
+                  <em>Cutout {imageUrl}</em>
                 </div>
-              </div>
-            )}
+              ) : (
+                <img className="flux-cutout" src={imageUrl} />
+              )}
+              {imageUrl !== 'Not Found' && (
+                <div className="download-cutout-container">
+                  <p className="download-cutout-label">Download as</p>
+                  <div className="download-cutout-controls">
+                    <select
+                      className="select-cutout-format"
+                      onChange={(e) => setCutoutExtension(e.target.value)}
+                      value={cutoutExtension}
+                    >
+                      {CUTOUT_EXT_OPTIONS.map((ext) => (
+                        <option key={ext} value={ext}>
+                          {ext.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={downloadCutout}>
+                      <DownloadIcon width={12} height={12} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

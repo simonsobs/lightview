@@ -48,23 +48,38 @@ function downloadData(
 /**
  *
  * @param object String describing the object to be downloaded
- * @param id ID of object used in the filename
+ * @param sourceId ID of the cutout's source
+ * @param measurementId ID of the measurement for cutouts or null if table data
  * @param ext File extension
  * @returns string
  */
-function makeFileName(object: string, id: number, ext: string) {
-  return `${object}-${id}.${ext}`;
+function makeFileName(
+  object: string,
+  sourceId: string,
+  measurementId: string | null,
+  ext: string
+) {
+  let filename = `${object}-${sourceId}`;
+  if (measurementId) {
+    filename += `-${measurementId}`;
+  }
+  return filename + `.${ext}`;
 }
 
 /**
  * A fetch utility that downloads a cutout of a source
- * @param cutoutId ID of the cutout
+ * @param sourceId ID of the cutout's source
+ * @param measurementId ID of the measurement
  * @param ext One of the string literals defined in CutoutFileExtensions
  */
-export function fetchCutout(cutoutId: number, ext: CutoutFileExtensions) {
-  const endpoint = `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${cutoutId}?ext=${ext}`;
+export function fetchCutout(
+  sourceId: string,
+  measurementId: string,
+  ext: CutoutFileExtensions
+) {
+  const endpoint = `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${sourceId}/${measurementId}?ext=${ext}`;
   const object = 'cutout';
-  const filename = makeFileName(object, cutoutId, ext);
+  const filename = makeFileName(object, sourceId, measurementId, ext);
 
   downloadData(endpoint, filename, object);
 }
@@ -74,10 +89,10 @@ export function fetchCutout(cutoutId: number, ext: CutoutFileExtensions) {
  * @param sourceId ID of the source
  * @param ext One of the string literals defined in DataFileExtensions
  */
-export function fetchTableData(sourceId: number, ext: DataFileExtensions) {
+export function fetchTableData(sourceId: string, ext: DataFileExtensions) {
   const endpoint = `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${sourceId}/all/download?format=${ext}`;
   const object = 'source-data';
-  const filename = makeFileName(object, sourceId, ext);
+  const filename = makeFileName(object, sourceId, null, ext);
 
   downloadData(endpoint, filename, object);
 }

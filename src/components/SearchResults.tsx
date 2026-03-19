@@ -75,17 +75,15 @@ export function SearchResults() {
             columns={
               [
                 {
-                  header: 'ID',
+                  header: 'Source ID',
                   // Link to individual sources from the table
                   cell: ({ row }) => (
-                    <Link to={`/source/${row.original.id}`}>
-                      {row.original.id}
+                    <Link to={`/source/${row.original.source_id}`}>
+                      {row.original.source_id}
                     </Link>
                   ),
                   size: 50,
-                  accessorFn: (row) => row.id,
-                  sortingFn: (rowA, rowB) =>
-                    rowA.original.id - rowB.original.id,
+                  accessorFn: (row) => row.source_id,
                 },
                 {
                   header: 'ra',

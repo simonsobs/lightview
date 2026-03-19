@@ -3,7 +3,7 @@
   background-color: white;
   opacity: 0.8;
   border: 2px solid #c0c1c1;
-  z-index: 1;
+  z-index: 10;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
@@ -71,12 +71,14 @@
 }
 
 .lightcurve-container {
-  overflow: hidden;
+  position: relative;
   border-radius: 10px;
   border: 1px solid #c4c8cb;
   width: fit-content;
   margin-bottom: 1.25em;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  padding: 3px;
+  background-color: white;
 }
 
 .download-cutout-container {
@@ -107,10 +109,39 @@
   font-size: 11px;
 }
 
-.flagged-marker-legend {
+.selection-strategy-container,
+.flagged-container {
   position: absolute;
+  z-index: 2;
+  top: 5px;
+}
+
+.selection-strategy-container {
+  margin-left: 10px;
+}
+
+.selection-strategy-dropdown {
+  position: absolute;
+  margin: 60px 0 0 15px;
   z-index: 1;
-  margin: 30px 0 0 14px;
+  font-size: 0.8em;
+}
+
+.selection-strategy-dropdown > select {
+  margin-left: 5px;
+  font-size: 0.9em;
+}
+
+.flagged-container {
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  row-gap: 3px;
+  margin-right: 10px;
+}
+
+.flagged-marker-legend {
   font-size: 11px;
   display: flex;
   align-items: center;
@@ -122,4 +153,17 @@
   height: 5px;
   border: 2px solid red;
   border-radius: 50%;
+}
+
+.modebar-container {
+  display: flex;
+  justify-content: center;
+}
+
+.modebar {
+  right: unset !important;
+}
+
+.lightcurve-plot {
+  position: absolute;
 }

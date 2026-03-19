@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router';
-import { LightcurveData, SourceSummary, SourceResponse } from '../types';
-import { SourceHeader } from './SourceHeader';
 import {
-  findMidBand,
-  getMaxFlux,
-  getMedianFlux,
-} from '../utils/lightcurveDataHelpers';
+  InstrumentLightcurveData,
+  FrequencyLightcurveData,
+  SourceSummary,
+  SourceResponse,
+} from '../types';
+import { SourceHeader } from './SourceHeader';
 import { Lightcurve } from './Lightcurve';
 import { CrossMatchSection } from './CrossMatchSection';
 import { NearbySourcesSection } from './NearbySourcesSection';
@@ -30,6 +30,33 @@ export function Source() {
   const [nearbySourceRadius, setNearbySourceRadius] = useState(
     DEFAULT_NEARBY_SOURCE_RADIUS
   );
+  const [selectionStrategy, setSelectionStrategy] = useState<
+    'instrument' | 'frequency'
+  >('instrument');
+
+  const { data: sourceData, error: sourceDataError } = useQuery<
+    SourceResponse | undefined
+  >({
+    initialData: undefined,
+    queryKey: [id],
+    queryFn: async () => {
+      const response: Response = await fetch(
+        `${import.meta.env.VITE_SERVICE_URL}/sources/${id}`
+      );
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Source with ID ${id} not found.`);
+        } else {
+          throw new Error(`Error fetching source data: ${response.statusText}`);
+        }
+      }
+
+      const data: SourceResponse = (await response.json()) as SourceResponse;
+
+      return data;
+    },
+  });
 
   const { data: sourceSummary, error: sourceSummaryError } = useQuery<
     SourceSummary | undefined
@@ -58,15 +85,13 @@ export function Source() {
   });
 
   const { data: lightcurveData, error: lightcurveDataError } = useQuery<
-    LightcurveData | undefined
+    InstrumentLightcurveData | FrequencyLightcurveData | undefined
   >({
     initialData: undefined,
-    queryKey: [id, sourceSummary],
+    queryKey: [id, selectionStrategy],
     queryFn: async () => {
-      if (!sourceSummary) return;
-
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/all`
+        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/unbinned?selection_strategy=${selectionStrategy}`
       );
       if (!response.ok) {
         throw new Error(
@@ -74,9 +99,9 @@ export function Source() {
         );
       }
 
-      const data: LightcurveData = (await response.json()) as LightcurveData;
-      // Sort data by the frequency band so the plotly legend is sorted in ascending order
-      data.bands.sort((a, b) => a.band.frequency - b.band.frequency);
+      const data = (await response.json()) as
+        | InstrumentLightcurveData
+        | FrequencyLightcurveData;
 
       return data;
     },
@@ -88,12 +113,12 @@ export function Source() {
     error,
   } = useQuery({
     initialData: undefined,
-    queryKey: [sourceSummary, nearbySourceRadius],
+    queryKey: [sourceData, nearbySourceRadius],
     queryFn: async () => {
-      if (!sourceSummary) return;
-      const { source } = sourceSummary;
+      if (!sourceData) return;
+      const { source_id, ra, dec } = sourceData;
       const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${source.ra}&dec=${source.dec}&radius=${nearbySourceRadius}`
+        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${ra}&dec=${dec}&radius=${nearbySourceRadius}`
       );
       if (!response.ok) {
         throw new Error(
@@ -103,22 +128,13 @@ export function Source() {
       const data: SourceResponse[] =
         (await response.json()) as SourceResponse[];
       // Filter out current source's data
-      return data.filter((d) => d.id !== source.id);
+      return data.filter((d) => d.source_id !== source_id);
     },
   });
 
-  // Memoize the "expensive" data used for the badges
-  const badgeData = useMemo(() => {
-    if (!lightcurveData) return;
-    const bandForMaxAndMedian = findMidBand(lightcurveData.bands);
-    const medianFlux = getMedianFlux(bandForMaxAndMedian);
-    const maxFlux = getMaxFlux(bandForMaxAndMedian);
-    return {
-      freqForMaxAndMedian: bandForMaxAndMedian.band.name,
-      medianFlux,
-      maxFlux,
-    };
-  }, [lightcurveData]);
+  if (sourceDataError) {
+    throw sourceDataError;
+  }
 
   if (sourceSummaryError) {
     throw sourceSummaryError;
@@ -129,25 +145,25 @@ export function Source() {
   }
 
   return (
-    sourceSummary && (
+    sourceSummary &&
+    sourceData && (
       <main>
-        {badgeData && (
-          <SourceHeader
-            id={sourceSummary.source.id}
-            ra={sourceSummary.source.ra}
-            dec={sourceSummary.source.dec}
-            sourceClass="ACT"
-            maxFlux={badgeData.maxFlux}
-            medianFlux={badgeData.medianFlux}
-            freqForMaxAndMedian={badgeData.freqForMaxAndMedian}
+        <SourceHeader
+          name={sourceData.name}
+          ra={sourceData.ra}
+          dec={sourceData.dec}
+          stats={sourceSummary}
+        />
+        {lightcurveData && (
+          <Lightcurve
+            lightcurveData={lightcurveData}
+            selectionStrategy={selectionStrategy}
+            setSelectionStrategy={setSelectionStrategy}
           />
         )}
-        {lightcurveData && <Lightcurve lightcurveData={lightcurveData} />}
         <div className="source-grid-container">
           <div>
-            <CrossMatchSection
-              crossMatches={sourceSummary.source.extra?.cross_matches}
-            />
+            <CrossMatchSection crossMatches={sourceData.extra?.cross_matches} />
             <NearbySourcesSection
               nearbySources={nearbySources}
               isLoading={isLoading}
@@ -157,10 +173,7 @@ export function Source() {
             />
           </div>
           {nearbySources && (
-            <AladinViewer
-              source={sourceSummary.source}
-              nearbySources={nearbySources}
-            />
+            <AladinViewer source={sourceData} nearbySources={nearbySources} />
           )}
         </div>
         {lightcurveData && (
