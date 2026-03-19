@@ -70,15 +70,21 @@
   font-weight: 600;
 }
 
-.lightcurve-container {
-  position: relative;
+.source-lightcurve-container,
+.source-lightcurve-placeholder {
   border-radius: 10px;
   border: 1px solid #c4c8cb;
-  width: fit-content;
-  margin-bottom: 1.25em;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  width: fit-content;
+  min-width: 1280px;
   padding: 3px;
   background-color: white;
+  margin-bottom: 1.25em;
+  height: 500px;
+}
+
+.lightcurve-container {
+  position: relative;
 }
 
 .download-cutout-container {
