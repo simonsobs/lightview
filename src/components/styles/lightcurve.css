@@ -173,3 +173,9 @@
 .lightcurve-plot {
   position: absolute;
 }
+
+.lightcurve-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

@@ -100,6 +100,7 @@ export function Lightcurve({
 }: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
   const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
+  const [isDataReady, setIsDataReady] = useState(false);
 
   const [hideFlaggedData, setHideFlaggedData] = useState(false);
 
@@ -396,6 +397,8 @@ export function Lightcurve({
   useEffect(() => {
     const stablePlotlyReference = plotlyRef.current;
     if (stablePlotlyReference) {
+      setIsDataReady(false);
+
       void Plotly.newPlot(
         stablePlotlyReference,
         plotData,
@@ -406,6 +409,10 @@ export function Lightcurve({
       void stablePlotlyReference.on(
         'plotly_relayout',
         handleRelayoutOrTooltipClose
+      );
+
+      void stablePlotlyReference.on('plotly_afterplot', () =>
+        setIsDataReady(true)
       );
 
       void stablePlotlyReference.on('plotly_click', handleMarkerClick);
@@ -422,6 +429,7 @@ export function Lightcurve({
     plotConfig,
     handleRelayoutOrTooltipClose,
     handleMarkerClick,
+    setIsDataReady,
   ]);
 
   /** Attaches keyboard listeners to the window so we can close marker tooltips with "Esc" key */
@@ -487,8 +495,12 @@ export function Lightcurve({
           uncheckedLabel="Frequency"
         />
       </div>
-      {/* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/}
-      <div id="lightcurve-plot" ref={plotlyRef}>
+      <div
+        // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
+        ref={plotlyRef}
+        id="lightcurve-plot"
+        style={{ visibility: isDataReady ? 'visible' : 'hidden' }}
+      >
         {clickedMarkerData && imageUrl && (
           <div
             className="plot-tooltip-container"
@@ -563,6 +575,14 @@ export function Lightcurve({
           </div>
         )}
       </div>
+      {!isDataReady && (
+        <div
+          className="lightcurve-loading"
+          style={{ height: plotLayout.height, width: plotLayout.width }}
+        >
+          Loading...
+        </div>
+      )}
     </div>
   );
 }
