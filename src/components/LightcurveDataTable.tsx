@@ -8,7 +8,7 @@ import { Table } from './Table';
 import { ColumnDef, InitialTableState } from '@tanstack/react-table';
 import { DATA_EXT_OPTIONS } from '../configs/constants';
 import { DownloadIcon } from './icons/DownloadIcon';
-import { fetchTableData } from '../utils/fetchUtils';
+import { lightcurveApi } from '../api/client';
 
 type LightcurveTableData = {
   id: string;
@@ -122,7 +122,7 @@ export function LightcurveDataTable({
   }, []);
 
   const downloadData = useCallback(() => {
-    fetchTableData(
+    void lightcurveApi.downloadTableData(
       lightcurveData.source_id,
       dataExtension as DataFileExtensions
     );

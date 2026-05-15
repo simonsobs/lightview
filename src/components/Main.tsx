@@ -1,6 +1,7 @@
 import {
   FrequencyLightcurveData,
   InstrumentLightcurveData,
+  SelectionStrategy,
   SourceResponse,
 } from '../types';
 import { useQuery } from '../hooks/useQuery';
@@ -9,61 +10,42 @@ import { DEFAULT_HOMEPAGE_PLOT_LAYOUT } from '../configs/constants';
 import home_content from '../configs/home_content.md?raw';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AllSourcesPlot } from './AllSourcesPlot';
+import { lightcurveApi } from '../api/client';
 
 /** Renders the "home" page of the web app */
 export function Main() {
-  // const [defaultId, setDefaultId] = useState<string | undefined>(undefined);
-  const [sources, setSources] = useState<SourceResponse[] | undefined>(
-    undefined
-  );
-  const [selectionStrategy, setSelectionStrategy] = useState<
-    'instrument' | 'frequency'
-  >('instrument');
+  const [selectionStrategy, setSelectionStrategy] =
+    useState<SelectionStrategy>('instrument');
 
-  const { data: lightcurveData, error: lightcurveDataError } = useQuery<
-    FrequencyLightcurveData | InstrumentLightcurveData | undefined
+  const { data: initialLoadData, error: initialLoadError } = useQuery<
+    | {
+        sources: SourceResponse[];
+        lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
+      }
+    | undefined
   >({
     initialData: undefined,
-    queryKey: [sources, selectionStrategy],
+    queryKey: [selectionStrategy],
     queryFn: async () => {
+      const sources = await lightcurveApi.getSources();
       if (!sources) return;
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${sources[0].source_id}/unbinned?selection_strategy=${selectionStrategy}`
+      const lightcurveData = await lightcurveApi.getLightcurveData(
+        sources[0].source_id,
+        selectionStrategy
       );
-      if (!response.ok) {
-        throw new Error(
-          `Error fetching lightcurve data: ${response.statusText}`
-        );
-      }
-
-      const data = (await response.json()) as
-        | FrequencyLightcurveData
-        | InstrumentLightcurveData;
-
-      return data;
+      return { sources, lightcurveData };
     },
   });
 
-  useEffect(() => {
-    const fetchSources = async () => {
-      const sourcesReq = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/`
-      );
-      const response = (await sourcesReq.json()) as SourceResponse[];
-
-      setSources(response);
-    };
-
-    void fetchSources();
-  }, []);
-
-  if (lightcurveDataError) {
-    throw lightcurveDataError;
+  if (initialLoadError) {
+    throw initialLoadError;
   }
 
-  const sourceUrl = sources ? '/source/' + sources[0].source_id : undefined;
+  const sourceUrl = initialLoadData?.sources
+    ? '/source/' + initialLoadData.sources[0].source_id
+    : undefined;
 
   if (!sourceUrl) return null;
 
@@ -75,10 +57,10 @@ export function Main() {
         <Link to={sourceUrl}>View the source page</Link> to learn more about the
         source and its data.
       </p>
-      {lightcurveData ? (
+      {initialLoadData?.lightcurveData ? (
         <div className="home-light-curve">
           <Lightcurve
-            lightcurveData={lightcurveData}
+            lightcurveData={initialLoadData.lightcurveData}
             plotLayout={DEFAULT_HOMEPAGE_PLOT_LAYOUT}
             selectionStrategy={selectionStrategy}
             setSelectionStrategy={setSelectionStrategy}
@@ -94,9 +76,9 @@ export function Main() {
         Below is a plot of sources by their (RA,Dec) position. Click a source's
         marker to view its light curve and data on its source page.
       </p>
-      {sources ? (
+      {initialLoadData?.sources ? (
         <div className="sources-plot-container">
-          <AllSourcesPlot sources={sources} />
+          <AllSourcesPlot sources={initialLoadData.sources} />
         </div>
       ) : (
         <div className="sources-plot-placeholder"></div>

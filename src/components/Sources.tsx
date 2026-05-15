@@ -6,6 +6,7 @@ import { ColumnDef, InitialTableState } from '@tanstack/react-table';
 import { useQuery } from '../hooks/useQuery';
 import { getNanoPlotSVG } from '../utils/nanoPlotHelpers';
 import { DEFAULT_SOURCES_PER_PAGE } from '../configs/constants';
+import { lightcurveApi } from '../api/client';
 
 /**
  * Renders a Table of sources returned by the /sources endpoint
@@ -24,18 +25,11 @@ export function Sources() {
         currentPageNumber === 1
           ? 0
           : (currentPageNumber - 1) * DEFAULT_SOURCES_PER_PAGE;
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/feed?start=${start}`
-      );
-      if (!response.ok) {
-        throw new Error(`Error fetching sources: ${response.statusText}`);
-      }
 
-      const responseJson: SourcesFeedResponse =
-        (await response.json()) as SourcesFeedResponse;
+      const sourcesFeedResponse = await lightcurveApi.getSourcesFeed(start);
 
       const sourcesWithNanoplot = (await Promise.all(
-        responseJson.items.map(async (r) => {
+        sourcesFeedResponse.items.map(async (r) => {
           const plotData = {
             time: r.time,
             flux: r.flux,
@@ -50,7 +44,7 @@ export function Sources() {
 
       return {
         sources: sourcesWithNanoplot,
-        totalNumberOfSources: responseJson.total_number_of_sources,
+        totalNumberOfSources: sourcesFeedResponse.total_number_of_sources,
       };
     },
   });
