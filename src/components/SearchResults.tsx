@@ -3,6 +3,7 @@ import { useLocation, useParams, Link } from 'react-router';
 import { SourceResponse } from '../types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Table } from './Table';
+import { lightcurveApi } from '../api/client';
 
 export function SearchResults() {
   const params = useParams();
@@ -15,19 +16,16 @@ export function SearchResults() {
   useEffect(() => {
     async function getSearchResults() {
       if (params['*'] === 'cone' && location.search) {
-        const response: Response = await fetch(
-          `${import.meta.env.VITE_SERVICE_URL}/sources/cone${location.search}`
+        const searchResponse = await lightcurveApi.getNearbySources(
+          location.search
         );
 
-        if (!response.ok) {
+        if (!searchResponse) {
           setResults(undefined);
-          setError('An error occurred. Please try again.');
           return;
         }
 
-        const data: SourceResponse[] =
-          (await response.json()) as SourceResponse[];
-        setResults(data);
+        setResults(searchResponse);
         setError(undefined);
       }
     }

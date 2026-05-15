@@ -79,13 +79,15 @@ type BaseLightcurveData = {
   binning_strategy: '1 day' | '7 days' | '30 days' | 'none';
 };
 
+export type SelectionStrategy = 'frequency' | 'instrument';
+
 export type FrequencyLightcurveData = BaseLightcurveData & {
-  selection_strategy: 'frequency';
+  selection_strategy: Extract<SelectionStrategy, 'frequency'>;
   lightcurves: Record<string, FrequencyLightcurveMeasurements>;
 };
 
 export type InstrumentLightcurveData = BaseLightcurveData & {
-  selection_strategy: 'instrument';
+  selection_strategy: Extract<SelectionStrategy, 'instrument'>;
   lightcurves: Record<string, InstrumentLightcurveMeasurements>;
 };
 

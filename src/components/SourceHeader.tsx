@@ -3,25 +3,50 @@ import { SourceStatistics, SourceSummary } from '../types';
 import { Badge } from './Badge';
 import './styles/source-page.css';
 import { statsKeysToDisplaySpecs } from '../configs/stats';
+import { useQuery } from '../hooks/useQuery';
+import { lightcurveApi } from '../api/client';
 
 type SourceHeaderProps = {
+  sourceId: string;
   name: string;
   ra: number;
   dec: number;
-  stats: SourceSummary;
 };
 
 /**
  * Renders details about a source within the Source component
  */
-export function SourceHeader({ name, ra, dec, stats }: SourceHeaderProps) {
-  const freqs = Object.keys(stats);
-  const [freq, setFreq] = useState(freqs[0]);
+export function SourceHeader({ sourceId, name, ra, dec }: SourceHeaderProps) {
+  const [freq, setFreq] = useState<string | undefined>(undefined);
   const onFreqChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
     setFreq(e.target.value);
   }, []);
 
-  const currStats: SourceStatistics = stats[freq];
+  const { data: sourceSummary, error: sourceSummaryError } = useQuery<
+    SourceSummary | undefined
+  >({
+    initialData: undefined,
+    queryKey: [sourceId, setFreq],
+    queryFn: async () => {
+      const res = await lightcurveApi.getSourceSummary(sourceId);
+      setFreq(Object.keys(res)[0]);
+      return res;
+    },
+  });
+
+  if (sourceSummaryError) {
+    throw sourceSummaryError;
+  }
+
+  if (!sourceSummary || !freq)
+    return (
+      <div className="source-header-container">
+        <h4>Loading...</h4>
+      </div>
+    );
+
+  const freqs = Object.keys(sourceSummary);
+  const currStats: SourceStatistics = sourceSummary[freq];
   const currStatsKeys = Object.keys(currStats) as (keyof SourceStatistics)[];
   const statsKeysForDisplay = Object.keys(statsKeysToDisplaySpecs);
   return (

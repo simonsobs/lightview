@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import { getCookie } from '../utils/fetchUtils';
 import './styles/login.css';
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
+}
 
 export function Login() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);

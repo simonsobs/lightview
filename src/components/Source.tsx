@@ -3,8 +3,8 @@ import { useParams } from 'react-router';
 import {
   InstrumentLightcurveData,
   FrequencyLightcurveData,
-  SourceSummary,
   SourceResponse,
+  SelectionStrategy,
 } from '../types';
 import { SourceHeader } from './SourceHeader';
 import { Lightcurve } from './Lightcurve';
@@ -14,6 +14,7 @@ import { AladinViewer } from './AladinViewer';
 import { LightcurveDataTable } from './LightcurveDataTable';
 import { useQuery } from '../hooks/useQuery';
 import { DEFAULT_NEARBY_SOURCE_RADIUS } from '../configs/constants';
+import { lightcurveApi } from '../api/client';
 
 /**
  * Renders all the components related to a Source, like:
@@ -30,9 +31,8 @@ export function Source() {
   const [nearbySourceRadius, setNearbySourceRadius] = useState(
     DEFAULT_NEARBY_SOURCE_RADIUS
   );
-  const [selectionStrategy, setSelectionStrategy] = useState<
-    'instrument' | 'frequency'
-  >('instrument');
+  const [selectionStrategy, setSelectionStrategy] =
+    useState<SelectionStrategy>('instrument');
 
   const { data: sourceData, error: sourceDataError } = useQuery<
     SourceResponse | undefined
@@ -40,47 +40,8 @@ export function Source() {
     initialData: undefined,
     queryKey: [id],
     queryFn: async () => {
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/${id}`
-      );
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error(`Source with ID ${id} not found.`);
-        } else {
-          throw new Error(`Error fetching source data: ${response.statusText}`);
-        }
-      }
-
-      const data: SourceResponse = (await response.json()) as SourceResponse;
-
-      return data;
-    },
-  });
-
-  const { data: sourceSummary, error: sourceSummaryError } = useQuery<
-    SourceSummary | undefined
-  >({
-    initialData: undefined,
-    queryKey: [id],
-    queryFn: async () => {
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/${id}/summary`
-      );
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error(`Source with ID ${id} not found.`);
-        } else {
-          throw new Error(
-            `Error fetching source summary: ${response.statusText}`
-          );
-        }
-      }
-
-      const data: SourceSummary = (await response.json()) as SourceSummary;
-
-      return data;
+      if (!id) return;
+      return await lightcurveApi.getSourceData(id);
     },
   });
 
@@ -90,20 +51,8 @@ export function Source() {
     initialData: undefined,
     queryKey: [id, selectionStrategy],
     queryFn: async () => {
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/lightcurves/${id}/unbinned?selection_strategy=${selectionStrategy}`
-      );
-      if (!response.ok) {
-        throw new Error(
-          `Error fetching lightcurve data: ${response.statusText}`
-        );
-      }
-
-      const data = (await response.json()) as
-        | InstrumentLightcurveData
-        | FrequencyLightcurveData;
-
-      return data;
+      if (!id) return;
+      return await lightcurveApi.getLightcurveData(id, selectionStrategy);
     },
   });
 
@@ -117,16 +66,9 @@ export function Source() {
     queryFn: async () => {
       if (!sourceData) return;
       const { source_id, ra, dec } = sourceData;
-      const response: Response = await fetch(
-        `${import.meta.env.VITE_SERVICE_URL}/sources/cone?ra=${ra}&dec=${dec}&radius=${nearbySourceRadius}`
+      const data = await lightcurveApi.getNearbySources(
+        `?ra=${ra}&dec=${dec}&radius=${nearbySourceRadius}`
       );
-      if (!response.ok) {
-        throw new Error(
-          `Error fetching nearby sources: ${response.statusText}`
-        );
-      }
-      const data: SourceResponse[] =
-        (await response.json()) as SourceResponse[];
       // Filter out current source's data
       return data.filter((d) => d.source_id !== source_id);
     },
@@ -136,23 +78,18 @@ export function Source() {
     throw sourceDataError;
   }
 
-  if (sourceSummaryError) {
-    throw sourceSummaryError;
-  }
-
   if (lightcurveDataError) {
     throw lightcurveDataError;
   }
 
   return (
-    sourceSummary &&
     sourceData && (
       <main>
         <SourceHeader
+          sourceId={sourceData.source_id}
           name={sourceData.name}
           ra={sourceData.ra}
           dec={sourceData.dec}
-          stats={sourceSummary}
         />
         {lightcurveData ? (
           <div className="source-lightcurve-container">

@@ -29,7 +29,7 @@ import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CUTOUT_EXT_OPTIONS, DEFAULT_PLOT_LAYOUT } from '../configs/constants';
 import { DownloadIcon } from './icons/DownloadIcon';
-import { fetchCutout } from '../utils/fetchUtils';
+import { lightcurveApi } from '../api/client';
 
 type LightcurveProps = {
   lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
@@ -116,15 +116,11 @@ export function Lightcurve({
     queryKey: [clickedMarkerData],
     queryFn: async () => {
       if (clickedMarkerData) {
-        const response = await fetch(
-          `${import.meta.env.VITE_SERVICE_URL}/cutouts/flux/${lightcurveData.source_id}/${clickedMarkerData.measurementId}?ext=${CUTOUT_EXT_OPTIONS[0]}`
+        return await lightcurveApi.getCutoutUrl(
+          lightcurveData.source_id,
+          clickedMarkerData.measurementId,
+          CUTOUT_EXT_OPTIONS[0]
         );
-        if (!response.ok) {
-          return response.statusText;
-        }
-        const blob = await response.blob();
-        const imageUrl = URL.createObjectURL(blob);
-        return imageUrl;
       }
     },
   });
@@ -444,7 +440,7 @@ export function Lightcurve({
 
   const downloadCutout = useCallback(() => {
     if (clickedMarkerData && cutoutExtension) {
-      fetchCutout(
+      void lightcurveApi.downloadCutout(
         lightcurveData.source_id,
         clickedMarkerData.measurementId,
         cutoutExtension as CutoutFileExtensions
