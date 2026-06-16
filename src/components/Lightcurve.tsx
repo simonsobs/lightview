@@ -19,7 +19,6 @@ import Plotly, {
   Datum,
   PlotMouseEvent,
   ScatterData,
-  ErrorBar,
   PlotDatum,
   PlotlyHTMLElement,
   Layout,
@@ -147,7 +146,7 @@ export function Lightcurve({
             color: undefined,
             thickness: 1.0,
             width: 1.0,
-          } as ErrorBar,
+          },
           type: 'scatter',
           mode: 'markers',
           marker: {
@@ -175,7 +174,7 @@ export function Lightcurve({
             color: undefined,
             thickness: 1.0,
             width: 1.0,
-          } as ErrorBar,
+          },
           type: 'scatter',
           mode: 'markers',
           marker: {

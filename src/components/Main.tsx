@@ -11,8 +11,8 @@ import home_content from '../configs/home_content.md?raw';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router';
 import { useState } from 'react';
-import { AllSourcesPlot } from './AllSourcesPlot';
 import { lightcurveApi } from '../api/client';
+import AllSkyMap from './AllSkyMap';
 
 /** Renders the "home" page of the web app */
 export function Main() {
@@ -53,6 +53,24 @@ export function Main() {
     <main>
       <ReactMarkdown>{home_content}</ReactMarkdown>
       <p>
+        Below is a plot of sources by their (RA,Dec) position. Click a source's
+        marker to view its light curve and data on its source page.
+      </p>
+      {initialLoadData?.sources ? (
+        <div className="sources-plot-container">
+          <AllSkyMap
+            sources={initialLoadData.sources.map((s) => ({
+              ra: s.ra,
+              dec: s.dec,
+              name: s.name,
+              sourceId: s.source_id,
+            }))}
+          />
+        </div>
+      ) : (
+        <div className="sources-plot-placeholder"></div>
+      )}
+      <p>
         Below is an example light curve.{' '}
         <Link to={sourceUrl}>View the source page</Link> to learn more about the
         source and its data.
@@ -71,17 +89,6 @@ export function Main() {
         </div>
       ) : (
         <div className="home-lightcurve-placeholder" />
-      )}
-      <p>
-        Below is a plot of sources by their (RA,Dec) position. Click a source's
-        marker to view its light curve and data on its source page.
-      </p>
-      {initialLoadData?.sources ? (
-        <div className="sources-plot-container">
-          <AllSourcesPlot sources={initialLoadData.sources} />
-        </div>
-      ) : (
-        <div className="sources-plot-placeholder"></div>
       )}
     </main>
   );
