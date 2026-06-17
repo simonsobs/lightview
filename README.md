@@ -1,4 +1,4 @@
-# SO Lightview
+# SO Light Curve Viewer
 
 This repo allows users to interact with lightcurves in the browser.
 

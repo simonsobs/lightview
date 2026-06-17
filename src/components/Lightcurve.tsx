@@ -38,6 +38,10 @@ type LightcurveProps = {
   };
   setSelectionStrategy: (s: 'instrument' | 'frequency') => void;
   selectionStrategy: 'instrument' | 'frequency';
+  hideStrategyToggle?: boolean;
+  hideFlaggedObsToggle?: boolean;
+  title?: string;
+  subtitle?: string;
 };
 
 type ClickedMarkerData =
@@ -96,6 +100,10 @@ export function Lightcurve({
   plotLayout = DEFAULT_PLOT_LAYOUT,
   setSelectionStrategy,
   selectionStrategy,
+  hideStrategyToggle,
+  hideFlaggedObsToggle,
+  title,
+  subtitle,
 }: LightcurveProps) {
   // set up to use a plotlyRef instead of react-plotly for more control
   const plotlyRef = useRef<PlotlyHTMLElement | null>(null);
@@ -464,32 +472,52 @@ export function Lightcurve({
 
   return (
     <div className="lightcurve-container">
-      <div className="flagged-container">
-        <ToggleSwitch
-          toggleId="flag-obs"
-          checked={!hideFlaggedData}
-          onChange={onFlaggedObservationChange}
-          disabled={false}
-          checkedLabel="Show All Observations"
-          uncheckedLabel="Hide Flagged Observations"
-        />
-        <div className="flagged-marker-legend">
-          <span className="flagged-marker-desc">
-            Indicates flagged observation
-          </span>
-          <div className="flagged-marker"></div>
+      {(title || subtitle) && (
+        <div style={{ position: 'absolute', zIndex: 1 }}>
+          {title && (
+            <p style={{ fontWeight: 'bold', margin: 0, marginLeft: 10 }}>
+              {title}
+            </p>
+          )}
+          {subtitle && (
+            <p
+              style={{ fontSize: 13, color: '#888', margin: 0, marginLeft: 10 }}
+            >
+              {subtitle}
+            </p>
+          )}
         </div>
-      </div>
-      <div className="selection-strategy-container">
-        <ToggleSwitch
-          toggleId="selection-strategy"
-          checked={selectionStrategy === 'instrument'}
-          onChange={onSelectionStrategyChange}
-          disabled={false}
-          checkedLabel="Instrument"
-          uncheckedLabel="Frequency"
-        />
-      </div>
+      )}
+      {hideFlaggedObsToggle !== true && (
+        <div className="flagged-container">
+          <ToggleSwitch
+            toggleId="flag-obs"
+            checked={!hideFlaggedData}
+            onChange={onFlaggedObservationChange}
+            disabled={false}
+            checkedLabel="Show All Observations"
+            uncheckedLabel="Hide Flagged Observations"
+          />
+          <div className="flagged-marker-legend">
+            <span className="flagged-marker-desc">
+              Indicates flagged observation
+            </span>
+            <div className="flagged-marker"></div>
+          </div>
+        </div>
+      )}
+      {hideStrategyToggle !== true && (
+        <div className="selection-strategy-container">
+          <ToggleSwitch
+            toggleId="selection-strategy"
+            checked={selectionStrategy === 'instrument'}
+            onChange={onSelectionStrategyChange}
+            disabled={false}
+            checkedLabel="Instrument"
+            uncheckedLabel="Frequency"
+          />
+        </div>
+      )}
       <div
         // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
         ref={plotlyRef}
