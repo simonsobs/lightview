@@ -5,6 +5,7 @@ import { PageNotFound } from './components/PageNotFound';
 import { Source } from './components/Source';
 import { SearchResults } from './components/SearchResults';
 import { ErrorBoundaryWrapper } from './components/ErrorBoundaryWrapper';
+import { Footer } from './Footer';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </ErrorBoundaryWrapper>
+      <Footer />
     </>
   );
 }
