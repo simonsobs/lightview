@@ -103,7 +103,7 @@ export function LightcurveDataTable({
         },
         sortingFn: (rowA, rowB) =>
           rowA.original.flux_err - rowB.original.flux_err,
-        size: 100,
+        size: 120,
       },
       {
         header: 'Flags',

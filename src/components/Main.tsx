@@ -66,7 +66,7 @@ export function Main() {
           />
         </div>
       ) : (
-        <div className="home-lightcurve-placeholder"></div>
+        <div className="sources-plot-placeholder"></div>
       )}
       {initialLoadData?.lightcurveData ? (
         <div className="home-light-curve">

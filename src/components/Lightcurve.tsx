@@ -473,19 +473,9 @@ export function Lightcurve({
   return (
     <div className="lightcurve-container">
       {(title || subtitle) && (
-        <div style={{ position: 'absolute', zIndex: 1 }}>
-          {title && (
-            <p style={{ fontWeight: 'bold', margin: 0, marginLeft: 10 }}>
-              {title}
-            </p>
-          )}
-          {subtitle && (
-            <p
-              style={{ fontSize: 13, color: '#888', margin: 0, marginLeft: 10 }}
-            >
-              {subtitle}
-            </p>
-          )}
+        <div className="title-container">
+          {title && <p className="title-text">{title}</p>}
+          {subtitle && <p className="subtitle-text">{subtitle}</p>}
         </div>
       )}
       {hideFlaggedObsToggle !== true && (

@@ -77,7 +77,9 @@ export function Table<T>({
                       style={
                         sortable
                           ? {
-                              position: 'relative',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
                               cursor: header.column.getCanSort()
                                 ? 'pointer'
                                 : 'cursor',
@@ -90,18 +92,13 @@ export function Table<T>({
                           : undefined
                       }
                     >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                      <span
-                        style={{
-                          position: 'absolute',
-                          right: -5,
-                          top: -6,
-                          fontSize: '0.9em',
-                        }}
-                      >
+                      <span>
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                      </span>
+                      <span className="sort-icon">
                         {{
                           asc: '▲',
                           desc: '▼',

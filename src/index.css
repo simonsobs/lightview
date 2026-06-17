@@ -95,7 +95,7 @@ main {
 }
 
 .sources-plot-placeholder {
-  height: 450px;
+  height: 500px;
 }
 
 .nav-container,
@@ -117,4 +117,28 @@ footer {
 .home-page-header {
   margin-top: 0;
   font-size: 1.1em;
+}
+
+.title-container {
+  position: absolute;
+  z-index: 1;
+}
+
+.title-text,
+.subtitle-text {
+  margin: 0;
+  margin-left: 10px;
+}
+
+.title-text {
+  font-weight: bold;
+}
+
+.subtitle-text {
+  font-size: 13px;
+  color: #888;
+}
+
+.all-sky-wrapper {
+  position: relative;
 }

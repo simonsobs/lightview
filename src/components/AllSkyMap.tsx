@@ -191,12 +191,10 @@ export default function AllSkyMap({
   ]);
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute' }}>
-        <p style={{ fontWeight: 'bold', margin: 0, marginLeft: 10 }}>{title}</p>
-        <p style={{ fontSize: 13, color: '#888', margin: 0, marginLeft: 10 }}>
-          {subtitle}
-        </p>
+    <div className="all-sky-wrapper">
+      <div className="title-container">
+        <p className="title-text">{title}</p>
+        <p className="subtitle-text">{subtitle}</p>
       </div>
       <div
         // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
