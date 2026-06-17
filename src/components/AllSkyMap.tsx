@@ -172,11 +172,7 @@ export default function AllSkyMap({
 
     void el.on('plotly_afterplot', () => setIsDataReady(true));
 
-    const resizeObserver = new ResizeObserver(() => Plotly.Plots.resize(el));
-    resizeObserver.observe(el);
-
     return () => {
-      resizeObserver.disconnect();
       Plotly.purge(el);
     };
   }, [
