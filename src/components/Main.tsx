@@ -7,12 +7,11 @@ import {
 import { useQuery } from '../hooks/useQuery';
 import { Lightcurve } from './Lightcurve';
 import { DEFAULT_HOMEPAGE_PLOT_LAYOUT } from '../configs/constants';
-import home_content from '../configs/home_content.md?raw';
-import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { lightcurveApi } from '../api/client';
 import AllSkyMap from './AllSkyMap';
+import { LinkOutIcon } from './icons/LinkOutIcon';
 
 /** Renders the "home" page of the web app */
 export function Main() {
@@ -51,11 +50,10 @@ export function Main() {
 
   return (
     <main>
-      <ReactMarkdown>{home_content}</ReactMarkdown>
-      <p>
-        Below is a plot of sources by their (RA,Dec) position. Click a source's
-        marker to view its light curve and data on its source page.
-      </p>
+      <h2 className="home-page-header">
+        Use the interactive map below or the search feature above to explore
+        light curves.
+      </h2>
       {initialLoadData?.sources ? (
         <div className="sources-plot-container">
           <AllSkyMap
@@ -68,13 +66,8 @@ export function Main() {
           />
         </div>
       ) : (
-        <div className="sources-plot-placeholder"></div>
+        <div className="home-lightcurve-placeholder"></div>
       )}
-      <p>
-        Below is an example light curve.{' '}
-        <Link to={sourceUrl}>View the source page</Link> to learn more about the
-        source and its data.
-      </p>
       {initialLoadData?.lightcurveData ? (
         <div className="home-light-curve">
           <Lightcurve
@@ -82,10 +75,18 @@ export function Main() {
             plotLayout={DEFAULT_HOMEPAGE_PLOT_LAYOUT}
             selectionStrategy={selectionStrategy}
             setSelectionStrategy={setSelectionStrategy}
+            hideStrategyToggle={true}
+            hideFlaggedObsToggle={true}
+            title="Example light curve"
+            subtitle="View the source page to learn more"
           />
-          <Link className="home-source-link" to={sourceUrl}>
-            View source page
-          </Link>
+          <div className="home-source-link-container">
+            <Link className="home-source-link" to={sourceUrl}>
+              <span>
+                View source page <LinkOutIcon width={16} height={16} />
+              </span>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="home-lightcurve-placeholder" />

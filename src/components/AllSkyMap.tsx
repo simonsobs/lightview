@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import Plotly, {
   Layout,
   Data,
@@ -30,6 +30,7 @@ interface AllSkyMapProps {
   /** Color the markers by this field. "none" uses a flat color. */
   colorBy?: 'value' | 'dec' | 'none';
   title?: string;
+  subtitle?: string;
   height?: number;
 }
 
@@ -46,11 +47,13 @@ export default function AllSkyMap({
   projection = 'mollweide',
   coordinateSystem = 'Equatorial (RA/Dec)',
   colorBy = 'none',
-  title,
+  title = 'Sources by position',
+  subtitle = "Click a source's marker to view its light curve",
   height = 500,
 }: AllSkyMapProps) {
   const containerRef = useRef<PlotlyHTMLElement>(null);
   const navigate = useNavigate();
+  const [isDataReady, setIsDataReady] = useState(false);
 
   const lon = useMemo(() => sources.map((s) => raToLon(s.ra)), [sources]);
   const lat = useMemo(() => sources.map((s) => s.dec), [sources]);
@@ -78,6 +81,7 @@ export default function AllSkyMap({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    setIsDataReady(false);
 
     const data: Data[] = [
       {
@@ -108,7 +112,6 @@ export default function AllSkyMap({
     ];
 
     const layout: Partial<Layout> = {
-      title: title ? { text: title, font: { size: 15 } } : undefined,
       height,
       margin: { t: title ? 48 : 24, b: 8, l: 8, r: 8 },
       paper_bgcolor: 'transparent',
@@ -167,6 +170,8 @@ export default function AllSkyMap({
       void navigate(sourcePageUrl);
     });
 
+    void el.on('plotly_afterplot', () => setIsDataReady(true));
+
     const resizeObserver = new ResizeObserver(() => Plotly.Plots.resize(el));
     resizeObserver.observe(el);
 
@@ -189,6 +194,27 @@ export default function AllSkyMap({
     height,
   ]);
 
-  /* @ts-expect-error plotlyRef is an extended version of an HTMLDivElement*/
-  return <div ref={containerRef} />;
+  return (
+    <div style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute' }}>
+        <p style={{ fontWeight: 'bold', margin: 0, marginLeft: 10 }}>{title}</p>
+        <p style={{ fontSize: 13, color: '#888', margin: 0, marginLeft: 10 }}>
+          {subtitle}
+        </p>
+      </div>
+      <div
+        // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
+        ref={containerRef}
+        style={{
+          width: '100%',
+          visibility: isDataReady ? 'visible' : 'hidden',
+        }}
+      />
+      {!isDataReady && (
+        <div className="lightcurve-loading" style={{ height, width: '100%' }}>
+          Loading...
+        </div>
+      )}
+    </div>
+  );
 }
