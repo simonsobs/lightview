@@ -75,12 +75,15 @@
   border-radius: 10px;
   border: 1px solid #c4c8cb;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  width: fit-content;
-  min-width: 1280px;
   padding: 3px;
   background-color: white;
   margin-bottom: 1.25em;
   height: 500px;
+  width: 1280px;
+}
+
+.source-lightcurve-container {
+  height: fit-content;
 }
 
 .lightcurve-container {

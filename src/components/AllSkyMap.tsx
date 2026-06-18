@@ -32,6 +32,7 @@ interface AllSkyMapProps {
   title?: string;
   subtitle?: string;
   height?: number;
+  width?: number;
 }
 
 /**
@@ -50,6 +51,7 @@ export default function AllSkyMap({
   title = 'Sources by position',
   subtitle = "Click a source's marker to view its light curve",
   height = 500,
+  width = 375,
 }: AllSkyMapProps) {
   const containerRef = useRef<PlotlyHTMLElement>(null);
   const navigate = useNavigate();
@@ -113,6 +115,7 @@ export default function AllSkyMap({
 
     const layout: Partial<Layout> = {
       height,
+      width,
       margin: { t: title ? 48 : 24, b: 8, l: 8, r: 8 },
       paper_bgcolor: 'transparent',
       plot_bgcolor: 'transparent',
@@ -172,11 +175,7 @@ export default function AllSkyMap({
 
     void el.on('plotly_afterplot', () => setIsDataReady(true));
 
-    const resizeObserver = new ResizeObserver(() => Plotly.Plots.resize(el));
-    resizeObserver.observe(el);
-
     return () => {
-      resizeObserver.disconnect();
       Plotly.purge(el);
     };
   }, [
@@ -195,12 +194,10 @@ export default function AllSkyMap({
   ]);
 
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute' }}>
-        <p style={{ fontWeight: 'bold', margin: 0, marginLeft: 10 }}>{title}</p>
-        <p style={{ fontSize: 13, color: '#888', margin: 0, marginLeft: 10 }}>
-          {subtitle}
-        </p>
+    <div className="all-sky-wrapper">
+      <div className="title-container">
+        <p className="title-text">{title}</p>
+        <p className="subtitle-text">{subtitle}</p>
       </div>
       <div
         // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement

@@ -63,10 +63,11 @@ export function Main() {
               name: s.name,
               sourceId: s.source_id,
             }))}
+            width={DEFAULT_HOMEPAGE_PLOT_LAYOUT.width}
           />
         </div>
       ) : (
-        <div className="home-lightcurve-placeholder"></div>
+        <div className="sources-plot-placeholder"></div>
       )}
       {initialLoadData?.lightcurveData ? (
         <div className="home-light-curve">
