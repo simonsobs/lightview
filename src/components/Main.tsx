@@ -63,6 +63,7 @@ export function Main() {
               name: s.name,
               sourceId: s.source_id,
             }))}
+            width={DEFAULT_HOMEPAGE_PLOT_LAYOUT.width}
           />
         </div>
       ) : (

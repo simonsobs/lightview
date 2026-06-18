@@ -254,8 +254,7 @@ export function Lightcurve({
   const plotLayoutConfig = useMemo(
     () =>
       ({
-        width: plotLayout.width,
-        height: plotLayout.height,
+        autosize: true,
         yaxis: {
           title: {
             text: 'Flux Density (Jy)',

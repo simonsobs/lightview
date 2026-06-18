@@ -32,6 +32,7 @@ interface AllSkyMapProps {
   title?: string;
   subtitle?: string;
   height?: number;
+  width?: number;
 }
 
 /**
@@ -50,6 +51,7 @@ export default function AllSkyMap({
   title = 'Sources by position',
   subtitle = "Click a source's marker to view its light curve",
   height = 500,
+  width = 375,
 }: AllSkyMapProps) {
   const containerRef = useRef<PlotlyHTMLElement>(null);
   const navigate = useNavigate();
@@ -113,6 +115,7 @@ export default function AllSkyMap({
 
     const layout: Partial<Layout> = {
       height,
+      width,
       margin: { t: title ? 48 : 24, b: 8, l: 8, r: 8 },
       paper_bgcolor: 'transparent',
       plot_bgcolor: 'transparent',

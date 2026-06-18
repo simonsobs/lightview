@@ -56,12 +56,13 @@ export function LightcurveDataTable({
       {
         header: 'ID',
         accessorFn: (row) => row.id,
-        size: 325,
+        size: 310,
       },
       {
         header: 'Time',
         accessorKey: 'time',
         accessorFn: (row) => row.time,
+        size: 160,
         sortingFn: (rowA, rowB) =>
           rowA.original.timeParsed - rowB.original.timeParsed,
       },

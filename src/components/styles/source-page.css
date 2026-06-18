@@ -50,17 +50,25 @@
   padding: 3px;
 }
 
-.source-grid-container {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: auto 400px;
-  gap: 2em;
-  max-width: 1288px;
-  border-radius: 10px;
+.source-grid-container,
+.data-access-container {
   border: 1px solid #c4c8cb;
+  border-radius: 10px;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   padding: 1em;
   background-color: #fff;
+  width: 1280px;
+}
+
+.source-grid-container {
+  display: grid;
+  grid-template-columns: auto 400px;
+  gap: 2em;
+}
+
+.data-access-container {
+  margin-top: 1.25em;
+  overflow-x: auto;
 }
 
 .source-section-h3 {
@@ -80,18 +88,6 @@
 
 .aladin-popupTitle {
   height: 20px;
-}
-
-.data-access-container {
-  box-sizing: border-box;
-  border: 1px solid #c4c8cb;
-  border-radius: 10px;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  padding: 1em;
-  background-color: #fff;
-  margin-top: 1.25em;
-  max-width: 1288px;
-  min-width: fit-content;
 }
 
 .download-data-container > h3 {

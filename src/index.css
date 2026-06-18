@@ -9,8 +9,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
+  min-width: 1280px;
   min-height: 100%;
   margin: 0;
   padding: 0;
@@ -37,12 +42,23 @@ main {
   border-radius: 10px;
   border: 1px solid #c4c8cb;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  width: fit-content;
-  min-width: 960px;
+  width: 960px;
   padding: 3px;
   background-color: white;
   margin-bottom: 1.25em;
+}
+
+.home-lightcurve-placeholder {
   height: 375px;
+}
+
+.sources-plot-placeholder {
+  height: 500px;
+}
+
+.sources-plot-container,
+.home-light-curve {
+  height: fit-content;
 }
 
 .home-light-curve {
@@ -88,14 +104,6 @@ main {
 
 .page-not-found-container {
   align-self: flex-start;
-}
-
-.sources-plot-container {
-  height: fit-content;
-}
-
-.sources-plot-placeholder {
-  height: 500px;
 }
 
 .nav-container,
