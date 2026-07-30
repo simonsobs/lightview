@@ -1,8 +1,6 @@
-import { expect, afterEach, vi, beforeAll } from 'vitest';
+import { afterEach, vi, beforeAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import * as matchers from '@testing-library/jest-dom/matchers';
-
-expect.extend(matchers);
+import '@testing-library/jest-dom/vitest';
 
 global.URL.createObjectURL = vi.fn();
 
