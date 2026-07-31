@@ -1,28 +1,46 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  type Mock,
+} from 'vitest';
 
 import { LightcurveApiClient } from '../../src/api/client';
 
 const BASE_URL = 'http://test.api';
 
 function jsonResponse(data: unknown, ok = true, status = 200) {
-  return { ok, status, json: () => Promise.resolve(data) };
+  return {
+    ok,
+    status,
+    json: () => Promise.resolve(data),
+  } as unknown as Response;
 }
 
 function blobResponse(ok = true, status = 200) {
-  return { ok, status, blob: () => Promise.resolve(new Blob(['data'])) };
+  return {
+    ok,
+    status,
+    blob: () => Promise.resolve(new Blob(['data'])),
+  } as unknown as Response;
 }
 
 describe('LightcurveApiClient', () => {
   let client: LightcurveApiClient;
-  let fetchMock: ReturnType<typeof vi.fn>;
-  let revokeObjectURLMock: ReturnType<typeof vi.fn>;
+  let fetchMock: Mock<typeof fetch>;
+  let revokeObjectURLMock: Mock<(url: string) => void>;
 
   beforeEach(() => {
     client = new LightcurveApiClient(BASE_URL);
-    fetchMock = vi.fn();
+    fetchMock = vi.fn<typeof fetch>();
     global.fetch = fetchMock;
-    URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
-    revokeObjectURLMock = vi.fn();
+    URL.createObjectURL = vi
+      .fn<() => string>()
+      .mockReturnValue('blob:mock-url');
+    revokeObjectURLMock = vi.fn<(url: string) => void>();
     URL.revokeObjectURL = revokeObjectURLMock;
     // jsdom attempts real navigation on anchor clicks, which logs noisy
     // "Not implemented" errors; downloads aren't real navigation anyway.
