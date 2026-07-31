@@ -9,7 +9,7 @@ import {
   SourceSummary,
 } from '../types';
 
-class LightcurveApiClient {
+export class LightcurveApiClient {
   private baseUrl: string;
   private fluxUrlStub: string;
 
