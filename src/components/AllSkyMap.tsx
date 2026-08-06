@@ -1,10 +1,4 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
-import Plotly, {
-  Layout,
-  Data,
-  PlotMouseEvent,
-  PlotlyHTMLElement,
-} from 'plotly.js-dist-min';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 export interface SkySource {
@@ -12,186 +6,149 @@ export interface SkySource {
   ra: number;
   dec: number;
   name: string;
-  /** Optional: drives marker color via a continuous colorscale */
-  value?: number;
 }
 
 interface AllSkyMapProps {
   sources: SkySource[];
-  /** Plotly geo projection type. Aitoff and Mollweide are the most common for astronomy. */
-  projection?:
-    | 'mollweide'
-    | 'aitoff'
-    | 'orthographic'
-    | 'equirectangular'
-    | 'stereographic';
-  /** Axis system label shown on the plot – purely cosmetic, does NOT reproject the data */
-  coordinateSystem?: 'Equatorial (RA/Dec)' | 'Galactic (l/b)';
-  /** Color the markers by this field. "none" uses a flat color. */
-  colorBy?: 'value' | 'dec' | 'none';
   title?: string;
   subtitle?: string;
   height?: number;
   width?: number;
 }
 
-/**
- * Remap RA from [0, 360) → [-180, 180] so the map centers on RA = 0h.
- * Plotly's geo treats longitude 0 as the center; this keeps the center at RA 0h.
- */
-function raToLon(ra: number): number {
-  return ra > 180 ? ra - 360 : ra;
+interface HoveredSource {
+  name: string;
+  ra: number;
+  dec: number;
+  x: number;
+  y: number;
 }
 
+/**
+ * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
+ * Aladin Lite (loaded globally as window.A via the script tag in index.html - see
+ * AladinViewer.tsx for the same pattern used on the Source page).
+ */
 export default function AllSkyMap({
   sources,
-  projection = 'mollweide',
-  coordinateSystem = 'Equatorial (RA/Dec)',
-  colorBy = 'none',
   title = 'Sources by position',
   subtitle = "Click a source's marker to view its light curve",
   height = 500,
   width = 375,
 }: AllSkyMapProps) {
-  const containerRef = useRef<PlotlyHTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const aladinInstanceRef = useRef<Aladin | null>(null);
+
+  // react-router's useNavigate() isn't a stable reference across every render, so use a ref to
+  // keep it up-to-date for the link-out in the popups. Since it's not stable, putting `navigate`
+  // directly in the init effect's deps below was tearing down and recreating the  entire Aladin/WebGL
+  // instance on nearly every re-render. But the catalog-rebuild effect doesn't rerun when that happens
+  // bc its own deps are unchanged, so the fresh instance was left with no markers. The ref allows the
+  // init effect to depend on nothing and still call current navigate and the markers show up as desired.
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+
   const [isDataReady, setIsDataReady] = useState(false);
-
-  const lon = useMemo(() => sources.map((s) => raToLon(s.ra)), [sources]);
-  const lat = useMemo(() => sources.map((s) => s.dec), [sources]);
-  const customdata = useMemo(() => sources.map((s) => s.sourceId), [sources]);
-
-  const markerColor: number[] | string = useMemo(() => {
-    if (colorBy === 'value') return sources.map((s) => s.value ?? 0);
-    if (colorBy === 'dec') return lat;
-    return '#1f77b4';
-  }, [sources, colorBy, lat]);
-
-  const hoverText = useMemo(
-    () =>
-      sources.map(
-        (s) =>
-          `${s.name ?? 'Source'}<br>RA: ${s.ra.toFixed(3)}°<br>Dec: ${s.dec.toFixed(3)}°${
-            s.value !== undefined ? `<br>Value: ${s.value.toFixed(3)}` : ''
-          }`
-      ),
-    [sources]
+  const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
+    null
   );
 
-  const isColored = colorBy !== 'none';
-
+  // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
+  // component (see App.tsx, which keeps Main mounted across navigation).
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    setIsDataReady(false);
 
-    const data: Data[] = [
-      {
-        type: 'scattergeo',
-        lon,
-        lat,
-        customdata,
-        mode: 'markers',
-        text: hoverText,
-        hoverinfo: 'text',
-        marker: {
-          size: 5,
-          opacity: 0.8,
-          color: markerColor as never,
-          ...(isColored
-            ? {
-                colorscale: 'Viridis',
-                showscale: true,
-                colorbar: {
-                  title: colorBy === 'dec' ? 'Dec (°)' : 'Value',
-                  thickness: 12,
-                  len: 0.6,
-                },
-              }
-            : {}),
-        },
-      },
-    ];
+    if (!window.A) {
+      console.error('Aladin API is not loaded.');
+      return;
+    }
 
-    const layout: Partial<Layout> = {
-      height,
-      width,
-      margin: { t: title ? 48 : 24, b: 8, l: 8, r: 8 },
-      paper_bgcolor: 'transparent',
-      plot_bgcolor: 'transparent',
-      geo: {
-        projection: { type: projection as never },
-        showland: false,
-        showocean: false,
-        showlakes: false,
-        showcoastlines: false,
-        showcountries: false,
-        showframe: true,
-        framewidth: 1,
-        lonaxis: {
-          showgrid: true,
-          gridcolor: '#2a3a4a',
-          gridwidth: 0.5,
-          dtick: 30,
-          tick0: 0,
-        },
-        lataxis: {
-          showgrid: true,
-          gridcolor: '#2a3a4a',
-          gridwidth: 0.5,
-          dtick: 30,
-        },
-      },
-      modebar: {
-        bgcolor: 'rgba(255,255,255,0.5)',
-      },
-      annotations: [
-        {
-          text: coordinateSystem,
-          xref: 'paper',
-          yref: 'paper',
-          x: 0.01,
-          y: 0.01,
-          showarrow: false,
-          font: { size: 11, color: '#888888' },
-        },
-      ],
-    };
+    let cancelled = false;
 
-    void Plotly.react(el, data, layout, {
-      displayModeBar: true,
-      displaylogo: false,
-      modeBarButtonsToRemove: ['select2d', 'lasso2d'],
-      responsive: true,
-    });
+    window.A.init
+      .then(() => {
+        if (cancelled || !window.A) return;
+        const aladin = window.A.aladin(el, {
+          fov: 360,
+          cooFrame: 'equatorial',
+          projection: 'MOL',
+        });
+        // fov as an init option is unreliable on this build; set it explicitly.
+        aladin.setFov(360);
+        aladinInstanceRef.current = aladin;
 
-    void el.on('plotly_click', (e: PlotMouseEvent) => {
-      e.event.preventDefault();
-      e.event.stopPropagation();
-      const sourceId = e.points[0].customdata as string;
-      const sourcePageUrl = '/source/' + sourceId;
-      void navigate(sourcePageUrl);
-    });
+        aladin.on('objectClicked', (object) => {
+          const sourceId = object.data?.sourceId;
+          if (typeof sourceId === 'string') {
+            void navigateRef.current('/source/' + sourceId);
+          }
+        });
 
-    void el.on('plotly_afterplot', () => setIsDataReady(true));
+        aladin.on('objectHovered', (object, xyMouseCoords) => {
+          const name = object.data?.name;
+          if (
+            typeof name === 'string' &&
+            typeof object.ra === 'number' &&
+            typeof object.dec === 'number'
+          ) {
+            setHoveredSource({
+              name,
+              ra: object.ra,
+              dec: object.dec,
+              x: xyMouseCoords.x,
+              y: xyMouseCoords.y,
+            });
+          }
+        });
+        aladin.on('objectHoveredStop', () => setHoveredSource(null));
+
+        setIsDataReady(true);
+      })
+      .catch(() => {
+        console.error('Aladin API failed to initialize.');
+      });
 
     return () => {
-      Plotly.purge(el);
+      cancelled = true;
     };
-  }, [
-    lon,
-    lat,
-    customdata,
-    navigate,
-    markerColor,
-    hoverText,
-    isColored,
-    colorBy,
-    projection,
-    coordinateSystem,
-    title,
-    height,
-  ]);
+    // Intentionally empty: this must only run once for the component's whole lifetime (see
+    // navigateRef comment above for why `navigate` itself isn't a dependency here).
+  }, []);
+
+  // Repopulate the sources catalog whenever the source list changes. Relies on the caller
+  // (Main.tsx) memoizing `sources` so this doesn't refire on unrelated re-renders - this
+  // component stays mounted for the whole session now (see App.tsx), so an unmemoized caller
+  // would otherwise retrigger a full catalog teardown/rebuild on every re-render, including
+  // ones that happen while hidden (display:none), which Aladin doesn't reliably recover from.
+  useEffect(() => {
+    const aladin = aladinInstanceRef.current;
+    if (!aladin || !window.A) return;
+
+    aladin.removeLayers();
+
+    const catalog = window.A.catalog({
+      name: 'All sources',
+      shape: (source, canvasCtx) => {
+        canvasCtx.beginPath();
+        canvasCtx.arc(source.x, source.y, 4, 0, 2 * Math.PI, false);
+        canvasCtx.closePath();
+        canvasCtx.fillStyle = '#1f77b4';
+        canvasCtx.globalAlpha = 0.8;
+        canvasCtx.fill();
+      },
+    });
+    aladin.addCatalog(catalog);
+    catalog.addSources(
+      sources.map((s) =>
+        window.A!.source(s.ra, s.dec, {
+          sourceId: s.sourceId,
+          name: s.name,
+        })
+      )
+    );
+  }, [sources, isDataReady]);
 
   return (
     <div className="all-sky-wrapper">
@@ -200,16 +157,27 @@ export default function AllSkyMap({
         <p className="subtitle-text">{subtitle}</p>
       </div>
       <div
-        // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
         ref={containerRef}
         style={{
           width: '100%',
+          height,
+          maxWidth: width,
           visibility: isDataReady ? 'visible' : 'hidden',
         }}
       />
       {!isDataReady && (
         <div className="lightcurve-loading" style={{ height, width: '100%' }}>
           Loading...
+        </div>
+      )}
+      {hoveredSource && (
+        <div
+          className="all-sky-tooltip"
+          style={{ left: hoveredSource.x + 12, top: hoveredSource.y + 12 }}
+        >
+          <div className="all-sky-tooltip-name">{hoveredSource.name}</div>
+          <div>RA: {hoveredSource.ra.toFixed(3)}°</div>
+          <div>Dec: {hoveredSource.dec.toFixed(3)}°</div>
         </div>
       )}
     </div>

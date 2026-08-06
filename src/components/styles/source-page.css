@@ -78,12 +78,12 @@
 .aladin-container {
   border: 1px solid #c4c8cb;
   border-radius: 5px;
+  z-index: 5;
 }
 
 .aladin-viewer-container {
   width: 400px;
   height: 400px;
-  z-index: 1;
 }
 
 .aladin-popupTitle {

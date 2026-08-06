@@ -149,4 +149,33 @@ footer {
 
 .all-sky-wrapper {
   position: relative;
+  color: white;
+}
+
+.sources-plot-container.all-sky {
+  background-color: black;
+}
+
+/* Aladin Lite renders its own coordinate/projection toolbar across the top of the
+   canvas, so make title container relative in order to push the Aladin Lite viewer
+   beneath the title container */
+.all-sky-wrapper .title-container {
+  position: relative;
+}
+
+.all-sky-tooltip {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.all-sky-tooltip-name {
+  font-weight: bold;
+  margin-bottom: 2px;
 }
