@@ -8,9 +8,9 @@ import { useQuery } from '../hooks/useQuery';
 import { Lightcurve } from './Lightcurve';
 import { DEFAULT_HOMEPAGE_PLOT_LAYOUT } from '../configs/constants';
 import { Link } from 'react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { lightcurveApi } from '../api/client';
-import AllSkyMap from './AllSkyMap';
+import AllSkyMap, { SkySource } from './AllSkyMap';
 import { LinkOutIcon } from './icons/LinkOutIcon';
 
 /** Renders the "home" page of the web app */
@@ -42,6 +42,21 @@ export function Main() {
     throw initialLoadError;
   }
 
+  // initialLoadData.sources is only ever replaced when a new fetch actually resolves (see
+  // useQuery), so memoizing this transform keeps the array passed to AllSkyMap referentially
+  // stable across re-renders
+  const sources = initialLoadData?.sources;
+  const skySources: SkySource[] = useMemo(
+    () =>
+      sources?.map((s) => ({
+        ra: s.ra,
+        dec: s.dec,
+        name: s.name,
+        sourceId: s.source_id,
+      })) ?? [],
+    [sources]
+  );
+
   const sourceUrl = initialLoadData?.sources
     ? '/source/' + initialLoadData.sources[0].source_id
     : undefined;
@@ -55,14 +70,9 @@ export function Main() {
         light curves.
       </h2>
       {initialLoadData?.sources ? (
-        <div className="sources-plot-container">
+        <div className="sources-plot-container all-sky">
           <AllSkyMap
-            sources={initialLoadData.sources.map((s) => ({
-              ra: s.ra,
-              dec: s.dec,
-              name: s.name,
-              sourceId: s.source_id,
-            }))}
+            sources={skySources}
             width={DEFAULT_HOMEPAGE_PLOT_LAYOUT.width}
           />
         </div>
