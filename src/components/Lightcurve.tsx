@@ -215,11 +215,15 @@ export function Lightcurve({
     queryKey: [clickedMarkerData],
     queryFn: async () => {
       if (clickedMarkerData) {
-        return await lightcurveApi.getCutoutUrl(
-          lightcurveData.source_id,
-          clickedMarkerData.measurementId,
-          CUTOUT_EXT_OPTIONS[0]
-        );
+        try {
+          return await lightcurveApi.getCutoutUrl(
+            lightcurveData.source_id,
+            clickedMarkerData.measurementId,
+            CUTOUT_EXT_OPTIONS[0]
+          );
+        } catch {
+          return 'Not Found';
+        }
       }
     },
   });
