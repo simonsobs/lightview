@@ -136,7 +136,6 @@ describe('LightcurveApiClient', () => {
 
       expect(anchor?.download).toBe('cutout-src-1-meas-1.png');
       expect(anchor?.href).toBe('blob:mock-url');
-      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:mock-url');
     });
 
     it('throws when the cutout fetch fails', async () => {
@@ -145,6 +144,23 @@ describe('LightcurveApiClient', () => {
       await expect(
         client.downloadCutout('src-1', 'meas-1', 'png')
       ).rejects.toThrow('Failed to get cutout: 404');
+    });
+
+    it('does not revoke the cutout blob url, since getCutoutUrl caches it for reuse elsewhere (e.g. an open tooltip)', async () => {
+      fetchMock.mockResolvedValueOnce(blobResponse());
+
+      await client.downloadCutout('src-1', 'meas-1', 'png');
+
+      expect(revokeObjectURLMock).not.toHaveBeenCalled();
+    });
+
+    it('reuses an already-fetched cutout url instead of fetching again', async () => {
+      fetchMock.mockResolvedValueOnce(blobResponse());
+
+      await client.getCutoutUrl('src-1', 'meas-1', 'png');
+      await client.downloadCutout('src-1', 'meas-1', 'png');
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -166,6 +182,79 @@ describe('LightcurveApiClient', () => {
         );
 
       expect(anchor?.download).toBe('source-data-src-1.csv');
+      expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:mock-url');
+    });
+  });
+
+  describe('caching', () => {
+    it('caches GET results by key, fetching only once for repeated calls', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ source_id: '42' }));
+
+      const first = await client.getSourceData('42');
+      const second = await client.getSourceData('42');
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(second).toEqual(first);
+    });
+
+    it('fetches separately for different keys', async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ source_id: '1' }))
+        .mockResolvedValueOnce(jsonResponse({ source_id: '2' }));
+
+      await client.getSourceData('1');
+      await client.getSourceData('2');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('dedupes concurrent in-flight requests for the same key', async () => {
+      let resolveFetch: (res: Response) => void = () => {};
+      fetchMock.mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+      );
+
+      const first = client.getSourceData('42');
+      const second = client.getSourceData('42');
+      resolveFetch(jsonResponse({ source_id: '42' }));
+
+      await expect(first).resolves.toEqual({ source_id: '42' });
+      await expect(second).resolves.toEqual({ source_id: '42' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('evicts a failed request so it can be retried', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(null, false, 500));
+      await expect(client.getSourceData('42')).rejects.toThrow();
+
+      fetchMock.mockResolvedValueOnce(jsonResponse({ source_id: '42' }));
+      const result = await client.getSourceData('42');
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ source_id: '42' });
+    });
+
+    it('does not cache the sources feed, since it reflects a live/growing list', async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ items: [] }))
+        .mockResolvedValueOnce(jsonResponse({ items: [] }));
+
+      await client.getSourcesFeed(10);
+      await client.getSourcesFeed(10);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('caches cutout urls, reusing the same blob url for repeated requests', async () => {
+      fetchMock.mockResolvedValueOnce(blobResponse());
+
+      const first = await client.getCutoutUrl('src-1', 'meas-1', 'png');
+      const second = await client.getCutoutUrl('src-1', 'meas-1', 'png');
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(second).toBe(first);
     });
   });
 });
