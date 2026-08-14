@@ -182,3 +182,12 @@
   justify-content: center;
   align-items: center;
 }
+
+/* The plot container it sits alongside stays in flow at visibility:hidden while not yet ready
+   (not display:none - Plotly needs a laid-out element to measure/draw into), so without this the
+   loading placeholder would stack below that invisible-but-space-occupying plot and roughly
+   double the perceived height for a moment. Overlay it instead. */
+.lightcurve-container .lightcurve-loading {
+  position: absolute;
+  inset: 0;
+}

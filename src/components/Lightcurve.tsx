@@ -663,7 +663,10 @@ export function Lightcurve({
         // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
         ref={plotlyRef}
         id={plotElementId}
-        style={{ visibility: isDataReady ? 'visible' : 'hidden' }}
+        style={{
+          visibility: isDataReady ? 'visible' : 'hidden',
+          height: plotLayout.height,
+        }}
       >
         {clickedMarkerData && imageUrl && (
           <div
