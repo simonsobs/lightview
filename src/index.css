@@ -15,7 +15,7 @@
 
 html,
 body {
-  min-width: 1280px;
+  min-width: 320px;
   min-height: 100%;
   margin: 0;
   padding: 0;
@@ -29,27 +29,20 @@ body {
 }
 
 main {
-  padding: 0 10px;
-  margin-bottom: 10px;
-  max-width: 1440px;
-  margin-top: 1.25em;
+  padding: 10px;
 }
 
 .home-light-curve,
-.home-lightcurve-placeholder,
 .sources-plot-container,
 .sources-plot-placeholder {
   border-radius: 10px;
   border: 1px solid #c4c8cb;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  width: 960px;
+  width: 100%;
+  max-width: 960px;
   padding: 3px;
   background-color: white;
-  margin-bottom: 1.25em;
-}
-
-.home-lightcurve-placeholder {
-  height: 375px;
+  /* margin-bottom: 1.25em; */
 }
 
 .sources-plot-placeholder {
@@ -63,6 +56,18 @@ main {
 
 .home-light-curve {
   position: relative;
+}
+
+.home-lightcurve-dialog {
+  position: absolute;
+  top: 225px;
+  left: 0;
+  z-index: 20;
+  width: 100%;
+  max-width: 960px;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .home-source-link-container {
@@ -88,12 +93,31 @@ main {
   border-radius: 5px;
   display: 'flex';
   align-items: center;
+  cursor: pointer;
 }
 
 .home-source-link > span {
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.home-dialog-close-button {
+  position: absolute;
+  z-index: 15;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: white;
+  background-color: #212529de;
+  border: 1px solid #c0c1c1;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 @media (width > 1440px) {
@@ -120,11 +144,6 @@ footer {
   border-top: 1px solid #c4c8cb;
   height: 2em;
   margin-top: auto;
-}
-
-.home-page-header {
-  margin-top: 0;
-  font-size: 1.1em;
 }
 
 .title-container {
@@ -154,6 +173,8 @@ footer {
 
 .sources-plot-container.all-sky {
   background-color: black;
+  width: 100%;
+  max-width: none;
 }
 
 /* Aladin Lite renders its own coordinate/projection toolbar across the top of the

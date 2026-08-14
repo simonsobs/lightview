@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import {
   InstrumentLightcurveData,
@@ -33,6 +33,10 @@ export function Source() {
   );
   const [selectionStrategy, setSelectionStrategy] =
     useState<SelectionStrategy>('instrument');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const { data: sourceData, error: sourceDataError } = useQuery<
     SourceResponse | undefined

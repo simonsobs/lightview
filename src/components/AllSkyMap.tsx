@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { CSSProperties, useEffect, useRef, useState } from 'react';
 
 export interface SkySource {
   sourceId: string;
@@ -12,8 +11,8 @@ interface AllSkyMapProps {
   sources: SkySource[];
   title?: string;
   subtitle?: string;
-  height?: number;
-  width?: number;
+  height?: CSSProperties['height'];
+  setClickedSourceId: (id: string) => void;
 }
 
 interface HoveredSource {
@@ -32,22 +31,21 @@ interface HoveredSource {
 export default function AllSkyMap({
   sources,
   title = 'Sources by position',
-  subtitle = "Click a source's marker to view its light curve",
-  height = 500,
-  width = 375,
+  subtitle = "Click a source's marker to preview its light curve",
+  height = 600,
+  setClickedSourceId,
 }: AllSkyMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
 
-  // react-router's useNavigate() isn't a stable reference across every render, so use a ref to
-  // keep it up-to-date for the link-out in the popups. Since it's not stable, putting `navigate`
-  // directly in the init effect's deps below was tearing down and recreating the  entire Aladin/WebGL
-  // instance on nearly every re-render. But the catalog-rebuild effect doesn't rerun when that happens
-  // bc its own deps are unchanged, so the fresh instance was left with no markers. The ref allows the
-  // init effect to depend on nothing and still call current navigate and the markers show up as desired.
-  const navigate = useNavigate();
-  const navigateRef = useRef(navigate);
-  navigateRef.current = navigate;
+  // setClickedSourceId isn't guaranteed to be a stable reference across every render (its
+  // caller may recreate it), so keep it in a ref for the init effect below to read. Putting it
+  // directly in the init effect's deps would tear down and recreate the entire Aladin/WebGL
+  // instance on nearly every re-render. But the catalog-rebuild effect doesn't rerun when that
+  // happens bc its own deps are unchanged, so the fresh instance would be left with no markers.
+  // The ref lets the init effect depend on nothing while always calling the current callback.
+  const setClickedSourceIdRef = useRef(setClickedSourceId);
+  setClickedSourceIdRef.current = setClickedSourceId;
 
   const [isDataReady, setIsDataReady] = useState(false);
   const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
@@ -80,9 +78,9 @@ export default function AllSkyMap({
         aladinInstanceRef.current = aladin;
 
         aladin.on('objectClicked', (object) => {
-          const sourceId = object.data?.sourceId;
+          const sourceId = object?.data?.sourceId;
           if (typeof sourceId === 'string') {
-            void navigateRef.current('/source/' + sourceId);
+            setClickedSourceIdRef.current(sourceId);
           }
         });
 
@@ -114,7 +112,7 @@ export default function AllSkyMap({
       cancelled = true;
     };
     // Intentionally empty: this must only run once for the component's whole lifetime (see
-    // navigateRef comment above for why `navigate` itself isn't a dependency here).
+    // setClickedSourceIdRef comment above for why setClickedSourceId itself isn't a dependency here).
   }, []);
 
   // Repopulate the sources catalog whenever the source list changes. Relies on the caller
@@ -161,7 +159,6 @@ export default function AllSkyMap({
         style={{
           width: '100%',
           height,
-          maxWidth: width,
           visibility: isDataReady ? 'visible' : 'hidden',
         }}
       />
