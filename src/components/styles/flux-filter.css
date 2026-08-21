@@ -1,0 +1,176 @@
+/* Styles for the flux-filter UI used in the AllSkyMap on the main page;
+  affects the filter menu, Aladin-like buttons (w/ tooltips), and the
+  "filter details" display in the header
+*/
+
+.flux-filter-controls {
+  align-self: center;
+  width: 250px;
+}
+
+.flux-filter-btn-container {
+  position: relative;
+  font-family: monospace;
+  color: #ececec;
+  display: flex;
+  justify-content: end;
+  width: 100%;
+}
+
+.flux-filter-btn,
+.flux-filter-btn-tooltip,
+.flux-filter-menu,
+.close-flux-menu-btn,
+.clear-filter-btn,
+.clear-filter-btn-tooltip {
+  color: inherit;
+  background: black;
+  border: 1px solid #ececec;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.close-flux-menu-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.flux-filter-btn {
+  height: 30px;
+}
+
+.flux-filter-btn-tooltip,
+.clear-filter-btn-tooltip {
+  position: absolute;
+  padding: 0 6px;
+  z-index: 10;
+}
+
+.flux-filter-btn-tooltip {
+  height: auto;
+  bottom: -24px;
+}
+
+.clear-filter-btn-tooltip {
+  font-size: 13px;
+  right: 3px;
+  top: 20px;
+}
+
+.clear-filter-btn {
+  font-size: 10px;
+}
+
+.flux-filter-btn:hover,
+.close-flux-menu-btn:hover,
+.clear-filter-btn:hover {
+  border-color: greenyellow;
+}
+
+.flux-filter-menu {
+  position: absolute;
+  z-index: 20;
+  padding: 5px;
+  right: 3px;
+  display: flex;
+  flex-direction: column;
+}
+
+.flux-filter-menu > label {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+}
+
+.flux-filter-menu > label > select {
+  border: 1px solid #ececec;
+  background-color: black;
+  color: #ececec;
+  margin: 5px;
+  margin-right: 25px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 5px;
+}
+
+.min-max-inputs {
+  display: flex;
+  column-gap: 10px;
+  align-items: end;
+  margin: 0 10px;
+}
+
+.min-max-inputs > label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  font-size: 11px;
+  font-style: italic;
+  flex-grow: 1;
+}
+
+.filter-details-container {
+  width: 300px;
+}
+
+.active-filter-subtitle-container {
+  position: relative;
+  display: flex;
+  column-gap: 5px;
+}
+
+.active-filter-count,
+.active-filter-details {
+  margin: 0;
+  text-wrap: nowrap;
+}
+
+.active-filter-count {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.active-filter-details {
+  font-style: italic;
+  font-size: 12px;
+}
+
+.apply-filter-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.apply-filter-btn.disabled:hover {
+  cursor: not-allowed;
+  border-color: inherit;
+}
+
+.filter-btns-container {
+  display: flex;
+  justify-content: center;
+  column-gap: 15px;
+}
+
+.flux-filter-btn-tooltip.apply {
+  left: 25px;
+}
+
+.flux-filter-btn-tooltip.clear {
+  right: 25px;
+}
+
+.flux-filter-btn.clear:hover {
+  border-color: red;
+}
+
+.temp-filters-details {
+  font-size: 12px;
+  font-style: italic;
+  margin: 5px 10px;
+}
+
+.filter-btns-container > button {
+  width: 125px;
+}

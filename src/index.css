@@ -146,15 +146,28 @@ footer {
   margin-top: auto;
 }
 
+.all-sky-header {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 4px;
+}
+
+/* Shared with Lightcurve.tsx's own title-container - position:absolute overlays the title on
+   top of that component's plot. AllSkyMap's header needs the title to sit inline as a flex
+   item instead, so it opts back out below. */
 .title-container {
   position: absolute;
   z-index: 1;
 }
 
+.all-sky-header .title-container {
+  position: static;
+  z-index: auto;
+}
+
 .title-text,
 .subtitle-text {
   margin: 0;
-  margin-left: 10px;
 }
 
 .title-text {
@@ -169,19 +182,13 @@ footer {
 .all-sky-wrapper {
   position: relative;
   color: white;
+  overflow: hidden;
 }
 
 .sources-plot-container.all-sky {
   background-color: black;
   width: 100%;
   max-width: none;
-}
-
-/* Aladin Lite renders its own coordinate/projection toolbar across the top of the
-   canvas, so make title container relative in order to push the Aladin Lite viewer
-   beneath the title container */
-.all-sky-wrapper .title-container {
-  position: relative;
 }
 
 .all-sky-tooltip {

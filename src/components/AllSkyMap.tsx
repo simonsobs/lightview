@@ -1,14 +1,27 @@
-import { CSSProperties, useEffect, useRef, useState } from 'react';
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
+import SourceFluxFilter from './SourceFluxFilter';
+import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
 
 export interface SkySource {
   sourceId: string;
   ra: number;
   dec: number;
   name: string;
+  properties?: {
+    median_flux: Record<string, number>;
+  };
 }
 
 interface AllSkyMapProps {
   sources: SkySource[];
+  bands: Set<string>;
   title?: string;
   subtitle?: string;
   height?: CSSProperties['height'];
@@ -30,6 +43,7 @@ interface HoveredSource {
  */
 export default function AllSkyMap({
   sources,
+  bands,
   title = 'Sources by position',
   subtitle = "Click a source's marker to preview its light curve",
   height = 600,
@@ -37,6 +51,9 @@ export default function AllSkyMap({
 }: AllSkyMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
+  const catalogRef = useRef<Catalog | null>(null);
+  const [appliedBand, setAppliedBand] = useState('');
+  const [appliedRange, setAppliedRange] = useState(MIN_MAX_FLUX_VALUES);
 
   // setClickedSourceId isn't guaranteed to be a stable reference across every render (its
   // caller may recreate it), so keep it in a ref for the init effect below to read. Putting it
@@ -146,13 +163,68 @@ export default function AllSkyMap({
         })
       )
     );
+    catalogRef.current = catalog;
   }, [sources, isDataReady]);
+
+  // The set of sources currently shown on the map. Derived (rather than copied into its own
+  // state on "Apply") so that it automatically recomputes if `sources` itself changes (e.g. a
+  // refetch) while a filter is active - otherwise a stale filter snapshot would keep hiding
+  // markers from the old source list after the catalog below has already been rebuilt with new
+  // ones.
+  const visibleSources = useMemo(() => {
+    if (appliedBand === '') return sources;
+    return sources.filter((s) => {
+      const flux = s.properties?.median_flux[appliedBand];
+      return flux != null && flux >= appliedRange[0] && flux <= appliedRange[1];
+    });
+  }, [sources, appliedBand, appliedRange]);
+
+  // Applies the derived visible set to the Aladin catalog. Re-runs whenever `visibleSources`
+  // changes, which includes right after the catalog-rebuild effect above runs (since that
+  // effect shares the `sources` dependency), so a newly rebuilt catalog picks the active filter
+  // back up instead of momentarily showing every source.
+  useEffect(() => {
+    const catalog = catalogRef.current;
+    if (!catalog) return;
+    const visibleIds = new Set(visibleSources.map((s) => s.sourceId));
+    catalog.getSources().forEach((s) => {
+      const isVisible = visibleIds.has(s.data?.sourceId);
+      if (isVisible) {
+        s.show();
+      } else {
+        s.hide();
+      }
+    });
+  }, [visibleSources]);
+
+  // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
+  // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move).
+  const handleApplyFilter = useCallback((band: string, range: number[]) => {
+    setAppliedBand(band);
+    setAppliedRange(range);
+  }, []);
+
+  const handleClearFilter = useCallback(() => {
+    setAppliedBand('');
+    setAppliedRange(MIN_MAX_FLUX_VALUES);
+  }, []);
 
   return (
     <div className="all-sky-wrapper">
-      <div className="title-container">
-        <p className="title-text">{title}</p>
-        <p className="subtitle-text">{subtitle}</p>
+      <div className="all-sky-header">
+        <div className="title-container">
+          <p className="title-text">{title}</p>
+          <p className="subtitle-text">{subtitle}</p>
+        </div>
+        <SourceFluxFilter
+          sources={sources}
+          bands={bands}
+          visibleCount={visibleSources.length}
+          appliedBand={appliedBand}
+          appliedRange={appliedRange}
+          onApply={handleApplyFilter}
+          onClear={handleClearFilter}
+        />
       </div>
       <div
         ref={containerRef}
