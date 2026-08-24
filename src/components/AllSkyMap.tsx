@@ -32,9 +32,16 @@ interface HoveredSource {
   name: string;
   ra: number;
   dec: number;
-  x: number;
   y: number;
+  /** Which side of the marker the tooltip is anchored to, and how far from it;
+   * lets the tooltip flip to the marker's left near the right edge instead of
+   * overflowing the (overflow: hidden) all-sky-wrapper. */
+  horizontal: { side: 'left' | 'right'; offset: number };
 }
+
+// Rough upper bound on the tooltip's rendered width (name + RA/Dec lines), used to decide
+// whether anchoring it to the marker's right edge would run it past the container's edge.
+const TOOLTIP_WIDTH_ESTIMATE = 180;
 
 /**
  * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
@@ -108,12 +115,17 @@ export default function AllSkyMap({
             typeof object.ra === 'number' &&
             typeof object.dec === 'number'
           ) {
+            const containerWidth = containerRef.current?.clientWidth ?? 0;
+            const wouldOverflowRight =
+              xyMouseCoords.x + TOOLTIP_WIDTH_ESTIMATE + 12 > containerWidth;
             setHoveredSource({
               name,
               ra: object.ra,
               dec: object.dec,
-              x: xyMouseCoords.x,
               y: xyMouseCoords.y,
+              horizontal: wouldOverflowRight
+                ? { side: 'right', offset: containerWidth - xyMouseCoords.x }
+                : { side: 'left', offset: xyMouseCoords.x },
             });
           }
         });
@@ -242,7 +254,11 @@ export default function AllSkyMap({
       {hoveredSource && (
         <div
           className="all-sky-tooltip"
-          style={{ left: hoveredSource.x + 12, top: hoveredSource.y + 12 }}
+          style={{
+            [hoveredSource.horizontal.side]:
+              hoveredSource.horizontal.offset + 12,
+            top: hoveredSource.y + 12,
+          }}
         >
           <div className="all-sky-tooltip-name">{hoveredSource.name}</div>
           <div>RA: {hoveredSource.ra.toFixed(3)}°</div>
