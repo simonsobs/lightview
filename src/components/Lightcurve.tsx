@@ -166,7 +166,7 @@ function makeLegendProxyTrace(
       thickness: 1.0,
       width: 1.0,
     },
-    type: 'scatter',
+    type: 'scattergl',
     mode: 'markers',
     marker: {
       size: 5,
@@ -276,7 +276,7 @@ export function Lightcurve({
                 thickness: 1.0,
                 width: 1.0,
               },
-              type: 'scatter',
+              type: 'scattergl',
               mode: 'markers',
               marker: {
                 size: 5,
@@ -328,7 +328,7 @@ export function Lightcurve({
             thickness: 1.0,
             width: 1.0,
           },
-          type: 'scatter',
+          type: 'scattergl',
           mode: 'markers',
           marker: {
             size: 5,
