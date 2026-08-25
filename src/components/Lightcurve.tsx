@@ -554,9 +554,17 @@ export function Lightcurve({
   /** Creates the Plotly plot and attaches our handlers to the plot */
   useEffect(() => {
     const stablePlotlyReference = plotlyRef.current;
-    if (stablePlotlyReference) {
-      setIsDataReady(false);
+    if (!stablePlotlyReference) return;
 
+    setIsDataReady(false);
+
+    // Plotly.newPlot is a synchronous, potentially expensive call for a lightcurve with many
+    // traces/points; since React flushes every effect for a commit in one synchronous
+    // pass, running it directly here would block any other component's effects in that same
+    // commit (e.g. Main.tsx's dialog-open transition-kickoff effect) until it finishes. Deferring
+    // it to the next animation frame lets those effects run first, so this Lightcurve mounting
+    // with already-cached (near-instant) data doesn't stall an in-progress UI transition.
+    const raf = requestAnimationFrame(() => {
       void Plotly.newPlot(
         stablePlotlyReference,
         plotData,
@@ -574,12 +582,11 @@ export function Lightcurve({
       );
 
       void stablePlotlyReference.on('plotly_click', handleMarkerClick);
-    }
+    });
 
     return () => {
-      if (stablePlotlyReference) {
-        Plotly.purge(stablePlotlyReference);
-      }
+      cancelAnimationFrame(raf);
+      Plotly.purge(stablePlotlyReference);
     };
   }, [
     plotData,
