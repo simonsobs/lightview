@@ -1,11 +1,4 @@
-import {
-  CSSProperties,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useMemo,
-} from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import SourceFluxFilter from './SourceFluxFilter';
 import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
 
@@ -24,7 +17,7 @@ interface AllSkyMapProps {
   bands: Set<string>;
   title?: string;
   subtitle?: string;
-  height?: CSSProperties['height'];
+  height?: number;
   setClickedSourceId: (id: string) => void;
 }
 
@@ -32,16 +25,24 @@ interface HoveredSource {
   name: string;
   ra: number;
   dec: number;
-  y: number;
   /** Which side of the marker the tooltip is anchored to, and how far from it;
    * lets the tooltip flip to the marker's left near the right edge instead of
    * overflowing the (overflow: hidden) all-sky-wrapper. */
   horizontal: { side: 'left' | 'right'; offset: number };
+  /** Same idea as horizontal, but for the bottom edge: flips the tooltip to sit above the marker
+   * instead of below it near the bottom edge. There's no analogous top-edge check because the
+   * tooltip's default ('top') anchoring already starts below the cursor, so it can't overflow
+   * upward regardless of how close to the top edge the marker is. */
+  vertical: { side: 'top' | 'bottom'; offset: number };
 }
 
 // Rough upper bound on the tooltip's rendered width (name + RA/Dec lines), used to decide
 // whether anchoring it to the marker's right edge would run it past the container's edge.
 const TOOLTIP_WIDTH_ESTIMATE = 180;
+
+// Rough upper bound on the tooltip's rendered height (name + RA/Dec lines), used to decide
+// whether anchoring it below the marker would run it past the container's bottom edge.
+const TOOLTIP_HEIGHT_ESTIMATE = 70;
 
 /**
  * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
@@ -75,6 +76,14 @@ export default function AllSkyMap({
   const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
     null
   );
+  // Aladin's fullscreen mode (with the default realFullscreen: false) doesn't use the browser's
+  // real Fullscreen API; instead, it makes the container div position:fixed and covers the whole
+  // viewport via a CSS class. That means xyMouseCoords (already relative to the container's own
+  // top-left) become viewport-relative too, but our tooltip's own position:absolute is anchored
+  // to all-sky-wrapper - a box that no longer corresponds to where the map is actually rendered
+  // once the container escapes it via position:fixed. Tracking this lets the tooltip switch to
+  // position:fixed itself (see the render below) so it keeps tracking the cursor in both modes.
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
   // component (see App.tsx, which keeps Main mounted across navigation).
@@ -92,13 +101,18 @@ export default function AllSkyMap({
     window.A.init
       .then(() => {
         if (cancelled || !window.A) return;
+        // calculate a FOV based on user's viewport width to enforce full [360,180] on load
+        const fov =
+          window.innerWidth < height
+            ? 360 / (window.innerWidth / height)
+            : 360 * (window.innerWidth / height);
         const aladin = window.A.aladin(el, {
-          fov: 360,
+          fov,
           cooFrame: 'equatorial',
           projection: 'MOL',
         });
-        // fov as an init option is unreliable on this build; set it explicitly.
-        aladin.setFov(360);
+        // for good measure, in case aladin ignores the init structure
+        aladin.setFov(fov);
         aladinInstanceRef.current = aladin;
 
         aladin.on('objectClicked', (object) => {
@@ -116,20 +130,29 @@ export default function AllSkyMap({
             typeof object.dec === 'number'
           ) {
             const containerWidth = containerRef.current?.clientWidth ?? 0;
+            const containerHeight = containerRef.current?.clientHeight ?? 0;
             const wouldOverflowRight =
               xyMouseCoords.x + TOOLTIP_WIDTH_ESTIMATE + 12 > containerWidth;
+            const wouldOverflowBottom =
+              xyMouseCoords.y + TOOLTIP_HEIGHT_ESTIMATE + 12 > containerHeight;
             setHoveredSource({
               name,
               ra: object.ra,
               dec: object.dec,
-              y: xyMouseCoords.y,
               horizontal: wouldOverflowRight
                 ? { side: 'right', offset: containerWidth - xyMouseCoords.x }
                 : { side: 'left', offset: xyMouseCoords.x },
+              vertical: wouldOverflowBottom
+                ? { side: 'bottom', offset: containerHeight - xyMouseCoords.y }
+                : { side: 'top', offset: xyMouseCoords.y },
             });
           }
         });
         aladin.on('objectHoveredStop', () => setHoveredSource(null));
+
+        aladin.on('fullScreenToggled', (isInFullscreen) => {
+          setIsFullscreen(isInFullscreen);
+        });
 
         setIsDataReady(true);
       })
@@ -255,9 +278,15 @@ export default function AllSkyMap({
         <div
           className="all-sky-tooltip"
           style={{
+            // In fullscreen, the Aladin container (and so xyMouseCoords, which these values are
+            // derived from) is viewport-relative rather than relative to all-sky-wrapper - see
+            // isFullscreen's comment above - so the tooltip has to switch to matching
+            // viewport-relative positioning too, or it ends up anchored to a box that no longer
+            // lines up with where the map is actually rendered.
+            position: isFullscreen ? 'fixed' : 'absolute',
             [hoveredSource.horizontal.side]:
               hoveredSource.horizontal.offset + 12,
-            top: hoveredSource.y + 12,
+            [hoveredSource.vertical.side]: hoveredSource.vertical.offset + 12,
           }}
         >
           <div className="all-sky-tooltip-name">{hoveredSource.name}</div>
