@@ -53,6 +53,12 @@ interface Aladin {
 interface Catalog {
   addSources: (markers: object[]) => unknown;
   getSources: () => AladinSource[];
+  setShape: (
+    shape: (
+      source: { x: number; y: number },
+      canvasCtx: CanvasRenderingContext2D
+    ) => void
+  ) => void;
 }
 
 interface CatalogOptions {

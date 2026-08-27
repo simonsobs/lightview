@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import SourceFluxFilter from './SourceFluxFilter';
 import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
+import { FREQUENCY_COLORS, SO_FALLBACK_COLOR } from '../configs/socolors';
 
 export interface SkySource {
   sourceId: string;
@@ -43,6 +44,20 @@ const TOOLTIP_WIDTH_ESTIMATE = 180;
 // Rough upper bound on the tooltip's rendered height (name + RA/Dec lines), used to decide
 // whether anchoring it below the marker would run it past the container's bottom edge.
 const TOOLTIP_HEIGHT_ESTIMATE = 70;
+
+// Creates a shape function for Aladin's catalogs used to update the marker color
+const getShapeFunction =
+  (appliedBand: string) =>
+  (source: { x: number; y: number }, canvasCtx: CanvasRenderingContext2D) => {
+    canvasCtx.beginPath();
+    canvasCtx.arc(source.x, source.y, 4, 0, 2 * Math.PI, false);
+    canvasCtx.closePath();
+    // Sets AllSkyMap marker colors to the filter's applied freq band, if selected
+    // and defined in FREQUENCY_COLORS
+    canvasCtx.fillStyle = FREQUENCY_COLORS[appliedBand] ?? SO_FALLBACK_COLOR;
+    canvasCtx.globalAlpha = 0.8;
+    canvasCtx.fill();
+  };
 
 /**
  * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
@@ -180,14 +195,7 @@ export default function AllSkyMap({
 
     const catalog = window.A.catalog({
       name: 'All sources',
-      shape: (source, canvasCtx) => {
-        canvasCtx.beginPath();
-        canvasCtx.arc(source.x, source.y, 4, 0, 2 * Math.PI, false);
-        canvasCtx.closePath();
-        canvasCtx.fillStyle = '#1f77b4';
-        canvasCtx.globalAlpha = 0.8;
-        canvasCtx.fill();
-      },
+      shape: getShapeFunction(''),
     });
     aladin.addCatalog(catalog);
     catalog.addSources(
@@ -222,6 +230,7 @@ export default function AllSkyMap({
     const catalog = catalogRef.current;
     if (!catalog) return;
     const visibleIds = new Set(visibleSources.map((s) => s.sourceId));
+    catalog.setShape(getShapeFunction(appliedBand));
     catalog.getSources().forEach((s) => {
       const isVisible = visibleIds.has(s.data?.sourceId);
       if (isVisible) {
@@ -230,7 +239,7 @@ export default function AllSkyMap({
         s.hide();
       }
     });
-  }, [visibleSources]);
+  }, [visibleSources, appliedBand]);
 
   // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
   // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move).
