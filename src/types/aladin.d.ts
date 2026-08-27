@@ -14,6 +14,14 @@ interface AladinClickedObject {
   dec?: number;
 }
 
+type AladinSource = {
+  data: {
+    sourceId: string;
+  };
+  show: () => void;
+  hide: () => void;
+};
+
 interface Aladin {
   gotoRaDec: (ra: number, dec: number) => void;
   addCatalog: (catalog: unknown) => void;
@@ -40,6 +48,13 @@ interface Aladin {
 
 interface Catalog {
   addSources: (markers: object[]) => unknown;
+  getSources: () => AladinSource[];
+  setShape: (
+    shape: (
+      source: { x: number; y: number },
+      canvasCtx: CanvasRenderingContext2D
+    ) => void
+  ) => void;
 }
 
 interface CatalogOptions {

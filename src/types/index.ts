@@ -9,6 +9,9 @@ export type SourceResponse = {
     cross_matches?: { name: string }[];
     socat_id?: number;
   };
+  properties?: {
+    median_flux: Record<string, number>;
+  };
 };
 
 export type SourcesFeedItem = {

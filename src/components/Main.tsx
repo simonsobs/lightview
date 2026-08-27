@@ -72,16 +72,29 @@ export function Main() {
   // useQuery), so memoizing this transform keeps the array passed to AllSkyMap referentially
   // stable across re-renders
   const sources = allSources?.sources;
-  const skySources: SkySource[] = useMemo(
-    () =>
-      sources?.map((s) => ({
-        ra: s.ra,
-        dec: s.dec,
-        name: s.name,
-        sourceId: s.source_id,
-      })) ?? [],
-    [sources]
-  );
+  const allSkyData: { skySources: SkySource[]; bands: Set<string> } =
+    useMemo(() => {
+      const bands = new Set<string>();
+      const skySources =
+        sources?.map((s) => {
+          const source = {
+            ra: s.ra,
+            dec: s.dec,
+            name: s.name,
+            sourceId: s.source_id,
+          } as SkySource;
+
+          if (s.properties && s.properties.median_flux) {
+            source['properties'] = s.properties;
+            for (const band of Object.keys(s.properties['median_flux'])) {
+              if (!bands.has(band)) bands.add(band);
+            }
+          }
+
+          return source;
+        }) ?? [];
+      return { bands, skySources };
+    }, [sources]);
 
   // Opens the dialog synchronously and unconditionally, so re-clicking the same already-selected
   // marker after closing the dialog reopens it too (selectedSourceId alone wouldn't change in
@@ -110,9 +123,10 @@ export function Main() {
   return (
     <main>
       <div className="sources-plot-container all-sky">
-        {skySources ? (
+        {allSkyData ? (
           <AllSkyMap
-            sources={skySources}
+            sources={allSkyData.skySources}
+            bands={allSkyData.bands}
             setClickedSourceId={handleClickedSource}
           />
         ) : (

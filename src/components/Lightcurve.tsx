@@ -18,6 +18,7 @@ import {
 } from '../types';
 import Plotly, {
   Config,
+  Data,
   Datum,
   PlotMouseEvent,
   ScatterData,
@@ -424,6 +425,17 @@ export function Lightcurve({
         return;
       }
 
+      // Batch every real trace's marker.line update into a single Plotly.restyle call instead of
+      // one call per trace: Plotly.restyle isn't free, and a source with many module/frequency
+      // traces (each with many unbinned points) turned "one call per trace" into a multi-second
+      // stall on every click and on every tooltip close. Using the dotted-path attribute form
+      // (rather than a nested `marker: {...}` object) also means restyle only touches
+      // marker.line.* and leaves marker.color/symbol alone, so there's no need to re-supply them
+      // defensively on every call.
+      const traceIndices: number[] = [];
+      const widths: number[][] = [];
+      const colors: string[][] = [];
+
       plotData.forEach((d, i) => {
         // Skip legend-only proxy traces (see makeLegendProxyTrace) - they carry no real flagged
         // data (data.flags is empty) and restyling them would just overwrite their fixed,
@@ -431,9 +443,6 @@ export function Lightcurve({
         if (d.showlegend) {
           return;
         }
-
-        // see if band has a marker with styles applied (note: currently just a marker width of 2)
-        const hasStyledMarker = d.marker.line.width.indexOf(2);
 
         // get a clean marker config that can be used for a reset or to update a single marker
         const baseMarkerConfig = generateBaseMarkerConfig(d);
@@ -447,27 +456,22 @@ export function Lightcurve({
           }
         }
 
-        // generateBaseMarkerConfig only sets size/line - Plotly.restyle replaces the whole
-        // marker object with what's given rather than merging it, so any property left out
-        // (color, symbol) gets wiped and falls back to Plotly's defaults (positional colorway,
-        // circle). Re-include the band's real color/symbol so every restyle call - which fires
-        // on every click and on reset - doesn't undo the socolors styling.
-        const newMarkerConfig = {
-          marker: {
-            ...baseMarkerConfig.marker,
-            color: d.marker.color,
-            symbol: d.marker.symbol,
-          },
-        };
-
-        void Plotly.restyle(plotElement, newMarkerConfig, [i]);
-
-        if (hasStyledMarker !== -1) {
-          // if the band had a styled marker, then we've already removed all marker styles via the
-          // newMarkerConfig and can break out of the forEach
-          return;
-        }
+        traceIndices.push(i);
+        widths.push(baseMarkerConfig.marker.line.width);
+        colors.push(baseMarkerConfig.marker.line.color);
       });
+
+      // @types/plotly.js only models restyle's nested-object update form (Partial<PlotData>),
+      // not the dotted-attribute-path form used here - the latter is standard, documented
+      // Plotly.js API (see Plotly.restyle docs), just not one the types account for.
+      void Plotly.restyle(
+        plotElement,
+        {
+          'marker.line.width': widths,
+          'marker.line.color': colors,
+        } as unknown as Data,
+        traceIndices
+      );
     },
     [plotData]
   );

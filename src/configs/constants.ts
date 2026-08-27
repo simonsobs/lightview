@@ -34,3 +34,5 @@ export const DEFAULT_HOMEPAGE_PLOT_LAYOUT = {
   width: DEFAULT_PLOT_LAYOUT.width * 0.75,
   height: DEFAULT_PLOT_LAYOUT.height * 0.75,
 };
+
+export const MIN_MAX_FLUX_VALUES = [0.001, 5];

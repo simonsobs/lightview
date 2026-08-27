@@ -1,14 +1,28 @@
-import { CSSProperties, useEffect, useRef, useState } from 'react';
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
+import SourceFluxFilter from './SourceFluxFilter';
+import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
+import { FREQUENCY_COLORS, SO_FALLBACK_COLOR } from '../configs/socolors';
 
 export interface SkySource {
   sourceId: string;
   ra: number;
   dec: number;
   name: string;
+  properties?: {
+    median_flux: Record<string, number>;
+  };
 }
 
 interface AllSkyMapProps {
   sources: SkySource[];
+  bands: Set<string>;
   title?: string;
   subtitle?: string;
   height?: CSSProperties['height'];
@@ -19,9 +33,30 @@ interface HoveredSource {
   name: string;
   ra: number;
   dec: number;
-  x: number;
   y: number;
+  /** Which side of the marker the tooltip is anchored to, and how far from it;
+   * lets the tooltip flip to the marker's left near the right edge instead of
+   * overflowing the (overflow: hidden) all-sky-wrapper. */
+  horizontal: { side: 'left' | 'right'; offset: number };
 }
+
+// Rough upper bound on the tooltip's rendered width (name + RA/Dec lines), used to decide
+// whether anchoring it to the marker's right edge would run it past the container's edge.
+const TOOLTIP_WIDTH_ESTIMATE = 180;
+
+// Creates a shape function for Aladin's catalogs used to update the marker color
+const getShapeFunction =
+  (appliedBand: string) =>
+  (source: { x: number; y: number }, canvasCtx: CanvasRenderingContext2D) => {
+    canvasCtx.beginPath();
+    canvasCtx.arc(source.x, source.y, 4, 0, 2 * Math.PI, false);
+    canvasCtx.closePath();
+    // Sets AllSkyMap marker colors to the filter's applied freq band, if selected
+    // and defined in FREQUENCY_COLORS
+    canvasCtx.fillStyle = FREQUENCY_COLORS[appliedBand] ?? SO_FALLBACK_COLOR;
+    canvasCtx.globalAlpha = 0.8;
+    canvasCtx.fill();
+  };
 
 /**
  * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
@@ -30,6 +65,7 @@ interface HoveredSource {
  */
 export default function AllSkyMap({
   sources,
+  bands,
   title = 'Sources by position',
   subtitle = "Click a source's marker to preview its light curve",
   height = 600,
@@ -37,6 +73,9 @@ export default function AllSkyMap({
 }: AllSkyMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
+  const catalogRef = useRef<Catalog | null>(null);
+  const [appliedBand, setAppliedBand] = useState('');
+  const [appliedRange, setAppliedRange] = useState(MIN_MAX_FLUX_VALUES);
 
   // setClickedSourceId isn't guaranteed to be a stable reference across every render (its
   // caller may recreate it), so keep it in a ref for the init effect below to read. Putting it
@@ -91,12 +130,17 @@ export default function AllSkyMap({
             typeof object.ra === 'number' &&
             typeof object.dec === 'number'
           ) {
+            const containerWidth = containerRef.current?.clientWidth ?? 0;
+            const wouldOverflowRight =
+              xyMouseCoords.x + TOOLTIP_WIDTH_ESTIMATE + 12 > containerWidth;
             setHoveredSource({
               name,
               ra: object.ra,
               dec: object.dec,
-              x: xyMouseCoords.x,
               y: xyMouseCoords.y,
+              horizontal: wouldOverflowRight
+                ? { side: 'right', offset: containerWidth - xyMouseCoords.x }
+                : { side: 'left', offset: xyMouseCoords.x },
             });
           }
         });
@@ -128,14 +172,7 @@ export default function AllSkyMap({
 
     const catalog = window.A.catalog({
       name: 'All sources',
-      shape: (source, canvasCtx) => {
-        canvasCtx.beginPath();
-        canvasCtx.arc(source.x, source.y, 4, 0, 2 * Math.PI, false);
-        canvasCtx.closePath();
-        canvasCtx.fillStyle = '#1f77b4';
-        canvasCtx.globalAlpha = 0.8;
-        canvasCtx.fill();
-      },
+      shape: getShapeFunction(''),
     });
     aladin.addCatalog(catalog);
     catalog.addSources(
@@ -146,13 +183,69 @@ export default function AllSkyMap({
         })
       )
     );
+    catalogRef.current = catalog;
   }, [sources, isDataReady]);
+
+  // The set of sources currently shown on the map. Derived (rather than copied into its own
+  // state on "Apply") so that it automatically recomputes if `sources` itself changes (e.g. a
+  // refetch) while a filter is active - otherwise a stale filter snapshot would keep hiding
+  // markers from the old source list after the catalog below has already been rebuilt with new
+  // ones.
+  const visibleSources = useMemo(() => {
+    if (appliedBand === '') return sources;
+    return sources.filter((s) => {
+      const flux = s.properties?.median_flux[appliedBand];
+      return flux != null && flux >= appliedRange[0] && flux <= appliedRange[1];
+    });
+  }, [sources, appliedBand, appliedRange]);
+
+  // Applies the derived visible set to the Aladin catalog. Re-runs whenever `visibleSources`
+  // changes, which includes right after the catalog-rebuild effect above runs (since that
+  // effect shares the `sources` dependency), so a newly rebuilt catalog picks the active filter
+  // back up instead of momentarily showing every source.
+  useEffect(() => {
+    const catalog = catalogRef.current;
+    if (!catalog) return;
+    const visibleIds = new Set(visibleSources.map((s) => s.sourceId));
+    catalog.setShape(getShapeFunction(appliedBand));
+    catalog.getSources().forEach((s) => {
+      const isVisible = visibleIds.has(s.data?.sourceId);
+      if (isVisible) {
+        s.show();
+      } else {
+        s.hide();
+      }
+    });
+  }, [visibleSources, appliedBand]);
+
+  // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
+  // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move).
+  const handleApplyFilter = useCallback((band: string, range: number[]) => {
+    setAppliedBand(band);
+    setAppliedRange(range);
+  }, []);
+
+  const handleClearFilter = useCallback(() => {
+    setAppliedBand('');
+    setAppliedRange(MIN_MAX_FLUX_VALUES);
+  }, []);
 
   return (
     <div className="all-sky-wrapper">
-      <div className="title-container">
-        <p className="title-text">{title}</p>
-        <p className="subtitle-text">{subtitle}</p>
+      <div className="all-sky-header">
+        <div className="title-container">
+          <p className="title-text">{title}</p>
+          <p className="subtitle-text">{subtitle}</p>
+        </div>
+        <SourceFluxFilter
+          sources={sources}
+          bands={bands}
+          visibleCount={visibleSources.length}
+          appliedBand={appliedBand}
+          appliedRange={appliedRange}
+          onApply={handleApplyFilter}
+          onClear={handleClearFilter}
+        />
       </div>
       <div
         ref={containerRef}
@@ -170,7 +263,11 @@ export default function AllSkyMap({
       {hoveredSource && (
         <div
           className="all-sky-tooltip"
-          style={{ left: hoveredSource.x + 12, top: hoveredSource.y + 12 }}
+          style={{
+            [hoveredSource.horizontal.side]:
+              hoveredSource.horizontal.offset + 12,
+            top: hoveredSource.y + 12,
+          }}
         >
           <div className="all-sky-tooltip-name">{hoveredSource.name}</div>
           <div>RA: {hoveredSource.ra.toFixed(3)}°</div>
