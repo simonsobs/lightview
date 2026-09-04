@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import SourceFluxFilter from './SourceFluxFilter';
 import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
-import { FREQUENCY_COLORS, SO_FALLBACK_COLOR } from '../configs/socolors';
+import {
+  FREQUENCY_COLORS,
+  SO_FALLBACK_COLOR,
+  frequencyKey,
+} from '../configs/socolors';
 
 export interface SkySource {
   sourceId: string;
@@ -54,7 +58,9 @@ const getShapeFunction =
     canvasCtx.closePath();
     // Sets AllSkyMap marker colors to the filter's applied freq band, if selected
     // and defined in FREQUENCY_COLORS
-    canvasCtx.fillStyle = FREQUENCY_COLORS[appliedBand] ?? SO_FALLBACK_COLOR;
+    const freq = Number(appliedBand.split('_')[1]);
+    canvasCtx.fillStyle =
+      FREQUENCY_COLORS[frequencyKey(freq)] ?? SO_FALLBACK_COLOR;
     canvasCtx.globalAlpha = 0.8;
     canvasCtx.fill();
   };
