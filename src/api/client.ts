@@ -7,6 +7,9 @@ import {
   SourceResponse,
   SourcesFeedResponse,
   SourceSummary,
+  UnassignedFluxMeasurement,
+  UnassignedSourceData,
+  UnassignedSourceResponse,
 } from '../types';
 
 export class LightcurveApiClient {
@@ -89,6 +92,10 @@ export class LightcurveApiClient {
     return await this.get<T>(`/sources${path}`);
   }
 
+  private async getUnassignedSource<T>(path: string): Promise<T> {
+    return await this.get<T>(`/unassigned${path}`);
+  }
+
   async getSources() {
     return await this.cached('sources', () =>
       this.getSource<SourceResponse[]>(`/`)
@@ -136,6 +143,54 @@ export class LightcurveApiClient {
           this.fluxUrlStub + `${sourceId}/${measurementId}?ext=${ext}`;
         return this.getUrl(endpoint, 'cutout');
       }
+    );
+  }
+
+  async getUnassignedSources() {
+    return await this.cached('unassigned_sources', () =>
+      this.getUnassignedSource<UnassignedSourceResponse[]>('/')
+    );
+  }
+
+  async getUnassignedSourcesInRadius(
+    ra: number,
+    dec: number,
+    radius: number = 2,
+    status: string | undefined = undefined
+  ) {
+    return await this.cached(`unassigned_sources_in_radius:${ra},${dec}`, () =>
+      this.get<UnassignedSourceResponse[]>(
+        `/unassigned/search?ra=${ra}&dec=${dec}&radius_arcmin=${radius}` +
+          (status ? `&status=${status}` : '')
+      )
+    );
+  }
+
+  async getUnassignedSourceData(
+    id: string,
+    radius: number = 2,
+    status: string | undefined = undefined
+  ): Promise<UnassignedSourceData> {
+    const source = await this.cached(`unassigned-source:${id}`, () =>
+      this.getUnassignedSource<UnassignedSourceResponse>(`/${id}`)
+    );
+    const search = await this.cached(
+      `unassigned_sources_in_radius:${source.ra},${source.dec}`,
+      () =>
+        this.get<UnassignedSourceResponse[]>(
+          `/unassigned/search?ra=${source.ra}&dec=${source.dec}&radius_arcmin=${radius}` +
+            (status ? `&status=${status}` : '')
+        )
+    );
+    return {
+      ...source,
+      in_radius: search.filter((s) => s.source_id !== id),
+    };
+  }
+
+  async getUnassignedFluxBySource(sourceId: string) {
+    return await this.cached(`unassigned_flux:${sourceId}`, () =>
+      this.get<UnassignedFluxMeasurement[]>(`/unassigned/flux/${sourceId}`)
     );
   }
 

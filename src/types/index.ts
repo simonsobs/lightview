@@ -1,9 +1,21 @@
-export type SourceResponse = {
+type SourceBase = {
   source_id: string;
-  socat_id: number;
-  name: string;
   ra: number;
   dec: number;
+};
+
+export const SourceStatuses = [
+  'unmatched',
+  'merged',
+  'external_match',
+  'novel',
+  'noise',
+] as const;
+type SourceStatus = (typeof SourceStatuses)[number];
+
+export type SourceResponse = SourceBase & {
+  socat_id: number;
+  name: string;
   variable: boolean;
   extra?: {
     cross_matches?: { name: string }[];
@@ -14,11 +26,29 @@ export type SourceResponse = {
   };
 };
 
-export type SourcesFeedItem = {
-  source_id: string;
+export type UnassignedSourceResponse = SourceBase & {
+  /** times are Date strings */
+  first_seen: string;
+  last_seen: string;
+  reviewed_at?: string;
+  status: SourceStatus;
+  version: number; // should be an integer
+  reviewed_by?: string;
+  review_metadata?: Record<string, unknown>;
+  extra?: {
+    flags: string[];
+    simulation_scenario?: string;
+    reference_name?: string;
+    simulation_seed?: number; // should be an integer
+  };
+};
+
+export type UnassignedSourceData = UnassignedSourceResponse & {
+  in_radius: UnassignedSourceResponse[];
+};
+
+export type SourcesFeedItem = SourceBase & {
   source_name: string;
-  ra: number;
-  dec: number;
   /** time is sent as a Date string */
   time: string[];
   flux: number[];
@@ -52,6 +82,25 @@ export type SourceStatistics = {
 
 export type SourceSummary = Record<string, SourceStatistics>;
 
+export type UnassignedFluxMeasurement = {
+  measurement_id: string;
+  frequency: number;
+  module: string;
+  source_id: string;
+  time: string;
+  ra: number;
+  dec: number;
+  ra_uncertainty?: number;
+  dec_uncertainty?: number;
+  flux: number;
+  flux_err: number;
+  extra?: {
+    flags: string[];
+    map_id?: string;
+    simulation_scenaior?: string;
+  };
+};
+
 type ExtraDictionary = {
   flags: string[];
 } | null;
@@ -63,7 +112,9 @@ type BaseLightcurveMeasurements = {
   /** time is sent as a Date string */
   time: string[];
   ra: number[];
+  ra_uncertainty: number[];
   dec: number[];
+  dec_uncertainty: number[];
   flux: number[];
   flux_err: number[];
   extra: ExtraDictionary[];
