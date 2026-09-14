@@ -47,6 +47,8 @@ export type UnassignedSourceData = UnassignedSourceResponse & {
   in_radius: UnassignedSourceResponse[];
 };
 
+export type SimbadConeResponse = { data: string[] };
+
 export type SourcesFeedItem = SourceBase & {
   source_name: string;
   /** time is sent as a Date string */

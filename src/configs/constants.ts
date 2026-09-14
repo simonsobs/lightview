@@ -36,3 +36,5 @@ export const DEFAULT_HOMEPAGE_PLOT_LAYOUT = {
 };
 
 export const MIN_MAX_FLUX_VALUES = [0.001, 5];
+
+export const SIMBAD_BASE_URL = 'https://simbad.cds.unistra.fr';
