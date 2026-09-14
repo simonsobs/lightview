@@ -130,7 +130,7 @@ export function Table<T>({
                 <span>Loading...</span>
               </td>
             </tr>
-          ) : (
+          ) : table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
@@ -146,6 +146,15 @@ export function Table<T>({
                 ))}
               </tr>
             ))
+          ) : (
+            <tr>
+              <td
+                colSpan={table.getAllLeafColumns().length}
+                style={{ fontStyle: 'italic' }}
+              >
+                No results
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
