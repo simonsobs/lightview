@@ -23,6 +23,12 @@ body {
   margin: 0;
   padding: 0;
   background-color: rgb(248, 249, 250);
+  /* Reserves the vertical scrollbar's space on every page, whether or not that page's content
+   * is actually tall enough to scroll. Without this, a shared layout (e.g. CrossMatchHeader)
+   * visibly changes width when navigating between a short page and a tall one, purely because
+   * a classic (space-reserving) scrollbar toggles on/off - the CSS applied to it never changes,
+   * only the viewport width available underneath it. */
+  scrollbar-gutter: stable;
 }
 
 #root {

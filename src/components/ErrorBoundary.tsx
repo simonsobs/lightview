@@ -1,5 +1,4 @@
 import { Component, ReactNode } from 'react';
-import './styles/error-boundary.css';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -31,7 +30,9 @@ export class ErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <main>
-          <h2>Oops! Something went wrong.</h2>
+          <h2 style={{ margin: '0.5em 0', fontSize: '1.25em' }}>
+            Oops! Something went wrong.
+          </h2>
           <p>{this.state.error?.message || 'An unexpected error occurred.'}</p>
         </main>
       );

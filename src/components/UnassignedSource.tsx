@@ -17,6 +17,7 @@ import { ReactNode, useState } from 'react';
 import { UnassignedLightcurvePlot } from './UnassignedLightcurvePlot';
 import { UnassignedSkyPlot } from './UnassignedSkyPlot';
 import { UnassignedAladinMap } from './UnassignedAladinMap';
+import { CrossMatchHeader } from './UnassignedSourcesTable';
 
 /** Converts our -180<ra<180 convention to SIMBAD's expected 0->360 convention. */
 function toSimbadRa(ra: number): number {
@@ -97,13 +98,16 @@ export function UnassignedSource() {
 
   return (
     <div className="unassigned-source-page-container">
+      <CrossMatchHeader />
       <header className="unassigned-source-page-header">
-        <Link
-          className="text-so-blue font-medium to-unassigned-sources"
-          to={'/unassigned/'}
-        >
-          ← All unassigned sources
-        </Link>
+        <div className="to-unassigned-sources-container">
+          <Link
+            className="text-so-blue font-medium to-unassigned-sources"
+            to={'/unassigned/'}
+          >
+            ← All unassigned sources
+          </Link>
+        </div>
         <div className="unassigned-source-page-header-container">
           <p className="uppercase-subheader text-so-blue font-medium">
             Source Review

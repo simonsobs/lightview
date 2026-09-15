@@ -6,6 +6,7 @@ import { Table } from './Table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Link } from 'react-router';
 import { formatSourceStatus } from '../utils/lightcurveDataHelpers';
+import './styles/cross-matcher.css';
 
 type UnassignedSourcesTableData = {
   id: string;
@@ -58,7 +59,7 @@ export function UnassignedSourcesTable() {
       {
         header: 'Source ID',
         accessorFn: (row) => row.id,
-        size: 310,
+        size: 250,
       },
       {
         header: 'Position (ICRS)',
@@ -78,53 +79,79 @@ export function UnassignedSourcesTable() {
       },
       {
         header: 'Status',
+        size: 100,
         accessorKey: 'status',
       },
       {
         header: 'Review',
         accessorFn: (row) => row.review,
+        size: 100,
         cell: ({ getValue }) => {
           const id = getValue() as string;
-          return <Link to={id}>Review</Link>;
+          return (
+            <Link
+              className="text-so-blue to-unassigned-sources font-bold"
+              to={id}
+            >
+              Review
+            </Link>
+          );
         },
       },
     ] as ColumnDef<UnassignedSourcesTableData>[];
   }, []);
 
   return (
-    <div>
-      <div>
-        <h2>Cross Matcher</h2>
-        <p>
-          Review unassigned LightcurveDB detections before any catalogue action.
-        </p>
-      </div>
-      <div>
+    <div className="unassigned-source-page-container">
+      <CrossMatchHeader />
+      <div className="unassigned-sources-table-subheader">
         <div>
           <h3>Unassigned sources</h3>
           <p>Detected sources awaiting review</p>
         </div>
-        <div>
-          <label>
+        <div className="unassigned-status-filter-container">
+          <label
+            htmlFor="unassigned-status-filter"
+            className="small-txt font-medium"
+          >
             Status
-            <select onChange={(e) => setStatusFilter(e.target.value)}>
-              {[INCLUDE_ALL_STATUSES].concat(SourceStatuses).map((s) => (
-                <option key={s} value={s}>
-                  {formatSourceStatus(s)}
-                </option>
-              ))}
-            </select>
           </label>
+          <select
+            className="unassigned-status-select"
+            id="unassigned-status-filter"
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            {[INCLUDE_ALL_STATUSES].concat(SourceStatuses).map((s) => (
+              <option key={s} value={s}>
+                {formatSourceStatus(s)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-      <div>
+      <p className="small-txt">
         {tableData.length}{' '}
         {statusFilter === INCLUDE_ALL_STATUSES
           ? 'detected'
           : formatSourceStatus(statusFilter).toLowerCase()}{' '}
         sources awaiting review
-      </div>
-      <Table data={tableData} columns={columns} />
+      </p>
+      <Table
+        className="unassigned-sources-table"
+        data={tableData}
+        columns={columns}
+      />
+    </div>
+  );
+}
+
+export function CrossMatchHeader() {
+  return (
+    <div className="cross-match-header">
+      <h2>Cross Matcher</h2>
+      <p>
+        Review unassigned LightcurveDB detections before any catalogue action.
+      </p>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import {
 import { useQuery } from '../hooks/useQuery';
 import { Lightcurve } from './Lightcurve';
 import { DEFAULT_HOMEPAGE_PLOT_LAYOUT } from '../configs/constants';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lightcurveApi } from '../api/client';
 import AllSkyMap, { SkySource } from './AllSkyMap';
@@ -122,6 +122,7 @@ export function Main() {
 
   return (
     <main>
+      <Link to="/unassigned">Go to Cross Matcher</Link>
       <div className="sources-plot-container all-sky">
         {allSkyData ? (
           <AllSkyMap
