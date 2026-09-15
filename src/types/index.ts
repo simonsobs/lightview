@@ -47,7 +47,30 @@ export type UnassignedSourceData = UnassignedSourceResponse & {
   in_radius: UnassignedSourceResponse[];
 };
 
-export type SimbadConeResponse = { data: string[] };
+/** One row of SIMBAD's /cone response (responseformat=json, verb=2): a fixed columnar layout
+ * confirmed against the live endpoint - [distance_deg, main_id, ra_deg, dec_deg, otype, ...] -
+ * with further columns present but unused here. */
+export type SimbadConeMatchRow = [
+  distanceDeg: number | null,
+  identifier: string | null,
+  ra: number | null,
+  dec: number | null,
+  objectType: string | null,
+  ...rest: unknown[],
+];
+
+export type SimbadConeResponse = { data: SimbadConeMatchRow[] };
+
+/** A SIMBAD cone-search match, normalized from a raw SimbadConeMatchRow into named fields.
+ * ra/dec/separationArcmin stay nullable since SIMBAD can return a match without a position -
+ * such a match is still valid to display/select, just not plottable on the sky map. */
+export type SimbadMatch = {
+  identifier: string;
+  objectType: string | null;
+  ra: number | null;
+  dec: number | null;
+  separationArcmin: number | null;
+};
 
 export type SourcesFeedItem = SourceBase & {
   source_name: string;

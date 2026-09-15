@@ -42,3 +42,6 @@ export const SIMBAD_BASE_URL = 'https://simbad.cds.unistra.fr';
 /** Search/beam radius used for unassigned-source cross-matching (SIMBAD cone search, nearby
  * unassigned sources, and the sky plot's dashed beam circle). */
 export const UNASSIGNED_BEAM_RADIUS_ARCMIN = 2.0;
+
+/** HiPS survey layer shown in the unassigned-source interactive Aladin sky map. */
+export const UNASSIGNED_ALADIN_SURVEY = 'P/DSS2/color';

@@ -5,15 +5,18 @@ import {
   UnassignedFluxMeasurement,
   UnassignedSourceData,
   SimbadConeResponse,
+  SimbadMatch,
 } from '../types';
 import {
   SIMBAD_BASE_URL,
+  UNASSIGNED_ALADIN_SURVEY,
   UNASSIGNED_BEAM_RADIUS_ARCMIN,
 } from '../configs/constants';
 import './styles/cross-matcher.css';
 import { ReactNode, useState } from 'react';
 import { UnassignedLightcurvePlot } from './UnassignedLightcurvePlot';
 import { UnassignedSkyPlot } from './UnassignedSkyPlot';
+import { UnassignedAladinMap } from './UnassignedAladinMap';
 
 /** Converts our -180<ra<180 convention to SIMBAD's expected 0->360 convention. */
 function toSimbadRa(ra: number): number {
@@ -50,14 +53,14 @@ export function UnassignedSource() {
     error: simbadError,
     isLoading: isSimbadQueryActive,
   } = useQuery<{
-    data: string[];
+    data: SimbadMatch[];
     queryTimestamp: undefined | string;
   }>({
     initialData: { data: [], queryTimestamp: undefined },
     queryKey: [id, data],
     queryFn: async () => {
       if (!id || !data) return { data: [], queryTimestamp: undefined };
-      let hits = [] as string[];
+      let matches: SimbadMatch[] = [];
       const getSimbadHits = await fetch(
         SIMBAD_BASE_URL +
           '/cone' +
@@ -65,14 +68,20 @@ export function UnassignedSource() {
       );
       try {
         const hitsJson = (await getSimbadHits.json()) as SimbadConeResponse;
-        hits = hitsJson.data;
+        matches = hitsJson.data.map((row) => ({
+          identifier: row[1] ?? 'SIMBAD object',
+          objectType: row[4] ?? null,
+          ra: row[2] ?? null,
+          dec: row[3] ?? null,
+          separationArcmin: row[0] != null ? row[0] * 60 : null,
+        }));
       } catch {
         console.error(
           'An error occurred when querying for nearby SIMBAD sources.'
         );
       }
       return {
-        data: hits,
+        data: matches,
         queryTimestamp: new Date(Date.now()).toString(),
       };
     },
@@ -147,9 +156,21 @@ export function UnassignedSource() {
       </div>
       <UnassignedSourceCard
         headingLeft="Interactive sky map"
-        headingRight="Layer: P/DSS2/color"
+        headingRight={`Layer: ${UNASSIGNED_ALADIN_SURVEY}`}
       >
-        Insert Aladin with markers
+        {data ? (
+          <UnassignedAladinMap
+            sourceRa={data.source.ra}
+            sourceDec={data.source.dec}
+            survey={UNASSIGNED_ALADIN_SURVEY}
+            beamRadiusArcmin={UNASSIGNED_BEAM_RADIUS_ARCMIN}
+            measurements={data.flux}
+            nearby={data.source.in_radius}
+            simbadMatches={nearbySimbadSources.data}
+          />
+        ) : (
+          'Loading...'
+        )}
         <p className="small-txt">
           Blue markers are this source’s detections; orange markers are other
           still-unmatched candidates; the dashed orange circle is the configured
@@ -189,24 +210,34 @@ export function UnassignedSource() {
               </p>
               <div className="unassigned-list-container">
                 {nearbySimbadSources.data.length
-                  ? nearbySimbadSources.data.map((s) => (
-                      <div key={s[1]} className="possible-matches-container">
+                  ? nearbySimbadSources.data.map((match) => (
+                      <div
+                        key={match.identifier}
+                        className="possible-matches-container"
+                      >
                         <div>
                           <Link
                             className="possible-matches-link font-medium"
                             target="_blank"
-                            to={SIMBAD_BASE_URL + '/?target=' + s[1]}
+                            to={
+                              SIMBAD_BASE_URL + '/?target=' + match.identifier
+                            }
                           >
-                            {s[1]}
+                            {match.identifier}
                           </Link>
                           <p className="small-txt margin-top-sm">
-                            {s[4]} · {Number(Number(s[0]) * 60).toFixed(2)}{' '}
+                            {match.objectType ?? 'Unknown type'} ·{' '}
+                            {match.separationArcmin != null
+                              ? match.separationArcmin.toFixed(2)
+                              : '—'}{' '}
                             arcmin
                           </p>
                         </div>
                         <input
-                          onChange={() => setSelectedSimbadMatch(s[1])}
-                          checked={selectedSimbadMatch === s[1]}
+                          onChange={() =>
+                            setSelectedSimbadMatch(match.identifier)
+                          }
+                          checked={selectedSimbadMatch === match.identifier}
                           className="possible-match-input"
                           type="radio"
                         ></input>
