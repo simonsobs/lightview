@@ -6,9 +6,19 @@ import {
   UnassignedSourceData,
   SimbadConeResponse,
 } from '../types';
-import { SIMBAD_BASE_URL } from '../configs/constants';
+import {
+  SIMBAD_BASE_URL,
+  UNASSIGNED_BEAM_RADIUS_ARCMIN,
+} from '../configs/constants';
 import './styles/cross-matcher.css';
 import { ReactNode, useState } from 'react';
+import { UnassignedLightcurvePlot } from './UnassignedLightcurvePlot';
+import { UnassignedSkyPlot } from './UnassignedSkyPlot';
+
+/** Converts our -180<ra<180 convention to SIMBAD's expected 0->360 convention. */
+function toSimbadRa(ra: number): number {
+  return ((ra % 360) + 360) % 360;
+}
 
 export function UnassignedSource() {
   const { id } = useParams();
@@ -35,7 +45,11 @@ export function UnassignedSource() {
     },
   });
 
-  const { data: nearbySimbadSources, error: simbadError } = useQuery<{
+  const {
+    data: nearbySimbadSources,
+    error: simbadError,
+    isLoading: isSimbadQueryActive,
+  } = useQuery<{
     data: string[];
     queryTimestamp: undefined | string;
   }>({
@@ -43,15 +57,22 @@ export function UnassignedSource() {
     queryKey: [id, data],
     queryFn: async () => {
       if (!id || !data) return { data: [], queryTimestamp: undefined };
-      const simbadHits = (await (
-        await fetch(
-          SIMBAD_BASE_URL +
-            '/cone' +
-            `?ra=${data.source.ra}&dec=${data.source.dec}&sr=${2 / 60}&verb=2&maxrec=10&responseformat=json&order_br=nb_ref&order_dir=desc`
-        )
-      ).json()) as SimbadConeResponse;
+      let hits = [] as string[];
+      const getSimbadHits = await fetch(
+        SIMBAD_BASE_URL +
+          '/cone' +
+          `?ra=${toSimbadRa(data.source.ra)}&dec=${data.source.dec}&sr=${UNASSIGNED_BEAM_RADIUS_ARCMIN / 60}&verb=2&maxrec=10&responseformat=json&order_by=nb_ref&order_dir=desc`
+      );
+      try {
+        const hitsJson = (await getSimbadHits.json()) as SimbadConeResponse;
+        hits = hitsJson.data;
+      } catch {
+        console.error(
+          'An error occurred when querying for nearby SIMBAD sources.'
+        );
+      }
       return {
-        data: simbadHits.data ?? [],
+        data: hits,
         queryTimestamp: new Date(Date.now()).toString(),
       };
     },
@@ -93,19 +114,37 @@ export function UnassignedSource() {
           </p>
         </div>
       </header>
-      <UnassignedSourceCard
-        headingLeft="Lightcurve"
-        headingRight="Flux (mJy) versus time"
-      >
-        Insert plot
-      </UnassignedSourceCard>
-      <UnassignedSourceCard
-        headingLeft="Sky position"
-        headingRight="Colour: frequency | marker: optics tube"
-      >
-        Insert plot
-        <p className="small-txt">Dashed circle: 2.0 arcminute beam radius.</p>
-      </UnassignedSourceCard>
+      <div className="unassigned-source-cards-group">
+        <UnassignedSourceCard
+          headingLeft="Light curve"
+          headingRight="Flux (mJy) versus time"
+        >
+          {data ? (
+            <UnassignedLightcurvePlot measurements={data.flux} />
+          ) : (
+            'Loading...'
+          )}
+        </UnassignedSourceCard>
+        <UnassignedSourceCard
+          headingLeft="Sky position"
+          headingRight="Colour: frequency | marker: optics tube"
+        >
+          {data ? (
+            <UnassignedSkyPlot
+              sourceRa={data.source.ra}
+              sourceDec={data.source.dec}
+              measurements={data.flux}
+              beamRadiusArcmin={UNASSIGNED_BEAM_RADIUS_ARCMIN}
+            />
+          ) : (
+            'Loading...'
+          )}
+          <p className="small-txt">
+            Dashed circle: {UNASSIGNED_BEAM_RADIUS_ARCMIN.toFixed(1)} arcminute
+            beam radius.
+          </p>
+        </UnassignedSourceCard>
+      </div>
       <UnassignedSourceCard
         headingLeft="Interactive sky map"
         headingRight="Layer: P/DSS2/color"
@@ -141,33 +180,42 @@ export function UnassignedSource() {
           </div>
         </UnassignedSourceCard>
         <UnassignedSourceCard headingLeft="Potential SIMBAD matches">
-          <p className="small-txt">
-            Query completed at {nearbySimbadSources.queryTimestamp}
-          </p>
-          <div className="unassigned-list-container">
-            {nearbySimbadSources.data.map((s) => (
-              <div key={s[1]} className="possible-matches-container">
-                <div>
-                  <Link
-                    className="possible-matches-link font-medium"
-                    target="_blank"
-                    to={SIMBAD_BASE_URL + '/?target=' + s[1]}
-                  >
-                    {s[1]}
-                  </Link>
-                  <p className="small-txt margin-top-sm">
-                    {s[4]} · {Number(Number(s[0]) * 60).toFixed(5)} arcmin
-                  </p>
-                </div>
-                <input
-                  onChange={() => setSelectedSimbadMatch(s[1])}
-                  checked={selectedSimbadMatch === s[1]}
-                  className="possible-match-input"
-                  type="radio"
-                ></input>
+          {isSimbadQueryActive ? (
+            <p>Loading...</p>
+          ) : (
+            <>
+              <p className="small-txt">
+                Query completed at {nearbySimbadSources.queryTimestamp}
+              </p>
+              <div className="unassigned-list-container">
+                {nearbySimbadSources.data.length
+                  ? nearbySimbadSources.data.map((s) => (
+                      <div key={s[1]} className="possible-matches-container">
+                        <div>
+                          <Link
+                            className="possible-matches-link font-medium"
+                            target="_blank"
+                            to={SIMBAD_BASE_URL + '/?target=' + s[1]}
+                          >
+                            {s[1]}
+                          </Link>
+                          <p className="small-txt margin-top-sm">
+                            {s[4]} · {Number(Number(s[0]) * 60).toFixed(2)}{' '}
+                            arcmin
+                          </p>
+                        </div>
+                        <input
+                          onChange={() => setSelectedSimbadMatch(s[1])}
+                          checked={selectedSimbadMatch === s[1]}
+                          className="possible-match-input"
+                          type="radio"
+                        ></input>
+                      </div>
+                    ))
+                  : 'No nearby SIMBAD sources fall within the configured search radius.'}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </UnassignedSourceCard>
       </div>
     </div>

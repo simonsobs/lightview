@@ -38,3 +38,7 @@ export const DEFAULT_HOMEPAGE_PLOT_LAYOUT = {
 export const MIN_MAX_FLUX_VALUES = [0.001, 5];
 
 export const SIMBAD_BASE_URL = 'https://simbad.cds.unistra.fr';
+
+/** Search/beam radius used for unassigned-source cross-matching (SIMBAD cone search, nearby
+ * unassigned sources, and the sky plot's dashed beam circle). */
+export const UNASSIGNED_BEAM_RADIUS_ARCMIN = 2.0;
