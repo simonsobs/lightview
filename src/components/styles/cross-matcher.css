@@ -1,6 +1,7 @@
 p,
 h2,
-h3 {
+h3,
+h4 {
   margin: 0;
 }
 
@@ -33,11 +34,6 @@ h3 {
   text-decoration: none;
 }
 
-.uppercase-subheader {
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
 .detections-container {
   background-color: rgba(51, 187, 238, 0.15);
   border-radius: 10px;
@@ -63,7 +59,7 @@ h3 {
 .unassigned-source-cards-group {
   margin: 30px 0;
   display: flex;
-  column-gap: 30px;
+  gap: 30px;
 }
 
 .unassigned-source-cards-group:last-child {
@@ -97,10 +93,6 @@ h3 {
   margin-top: 10px;
 }
 
-.small-txt {
-  font-size: 0.9em;
-}
-
 .possible-matches-container {
   display: flex;
   justify-content: space-between;
@@ -114,7 +106,7 @@ h3 {
 }
 
 .possible-matches-link {
-  color: var(--text-so-blue);
+  color: var(--so-blue);
   text-decoration-color: #7dd3fc;
 }
 
@@ -176,4 +168,94 @@ h3 {
   border-bottom: 1px solid rgb(226 232 240);
   padding-bottom: 20px;
   margin-bottom: 10px;
+}
+
+.cross-match-btn {
+  background-color: var(--bg-so-orange);
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  color: white;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.cross-match-btn:hover {
+  background-color: var(--bg-so-orange-darker);
+}
+
+.cross-match-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.cross-match-btn:disabled:hover {
+  background-color: var(--bg-so-orange);
+}
+
+.possible-matches-link-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.review-decision-card {
+  border: 1px solid var(--border-so-orange);
+}
+
+.review-decision-container {
+  display: flex;
+  margin-top: 10px;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-decision-action {
+  border: 1px solid rgb(226 232 240);
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.selected-external-match-text {
+  height: 25px;
+}
+
+.noise-btn {
+  background-color: white;
+  color: var(--bg-so-orange-darker);
+  border: 1px solid var(--bg-so-orange-darker);
+  width: fit-content;
+}
+
+.noise-btn:hover {
+  background-color: rgb(254 242 242);
+}
+
+.noise-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.noise-btn:disabled:hover {
+  background-color: white;
+}
+
+.new-source-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+}
+
+.new-source-input {
+  padding: 5px;
+  max-width: 500px;
+}
+
+.noise-wrapper {
+  display: flex;
+  flex-direction: column;
+  row-gap: 10px;
+}
+
+.noise-confirmation-statement {
+  margin-left: 5px;
 }

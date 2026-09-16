@@ -13,11 +13,12 @@ import {
   UNASSIGNED_BEAM_RADIUS_ARCMIN,
 } from '../configs/constants';
 import './styles/cross-matcher.css';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 import { UnassignedLightcurvePlot } from './UnassignedLightcurvePlot';
 import { UnassignedSkyPlot } from './UnassignedSkyPlot';
 import { UnassignedAladinMap } from './UnassignedAladinMap';
 import { CrossMatchHeader } from './UnassignedSourcesTable';
+import { ConfirmDialog } from './ConfirmDialog';
 
 /** Converts our -180<ra<180 convention to SIMBAD's expected 0->360 convention. */
 function toSimbadRa(ra: number): number {
@@ -27,8 +28,19 @@ function toSimbadRa(ra: number): number {
 export function UnassignedSource() {
   const { id } = useParams();
   const [selectedSimbadMatch, setSelectedSimbadMatch] = useState<
-    string | undefined
+    SimbadMatch | undefined
   >(undefined);
+  const [shouldOpenConfirmDialog, setShouldOpenConfirmDialog] = useState(false);
+  const [confirmDialogState, setConfirmDialogState] = useState<
+    { title: string; description: ReactNode } | undefined
+  >(undefined);
+  const [crossmatchActionState, setCrossmatchActionState] = useState<
+    { action: string; matchedId: string } | undefined
+  >(undefined);
+  const [novelSourceName, setNovelSourceName] = useState<undefined | string>(
+    undefined
+  );
+  const [isNoiseChecked, setIsNoiseChecked] = useState(false);
 
   const { data, error } = useQuery<
     | { source: UnassignedSourceData; flux: UnassignedFluxMeasurement[] }
@@ -88,6 +100,16 @@ export function UnassignedSource() {
     },
   });
 
+  const handleCancelAction = useCallback(() => {
+    setShouldOpenConfirmDialog(false);
+    setConfirmDialogState(undefined);
+    setCrossmatchActionState(undefined);
+  }, []);
+
+  const handleConfirmAction = useCallback(() => {
+    console.log('send request');
+  }, [crossmatchActionState]);
+
   if (error) {
     throw new Error(error.message);
   }
@@ -98,6 +120,13 @@ export function UnassignedSource() {
 
   return (
     <div className="unassigned-source-page-container">
+      <ConfirmDialog
+        open={shouldOpenConfirmDialog}
+        title={confirmDialogState?.title}
+        description={confirmDialogState?.description}
+        onCancel={handleCancelAction}
+        onConfirm={handleConfirmAction}
+      />
       <CrossMatchHeader />
       <header className="unassigned-source-page-header">
         <div className="to-unassigned-sources-container">
@@ -152,7 +181,7 @@ export function UnassignedSource() {
           ) : (
             'Loading...'
           )}
-          <p className="small-txt">
+          <p className="small-text">
             Dashed circle: {UNASSIGNED_BEAM_RADIUS_ARCMIN.toFixed(1)} arcminute
             beam radius.
           </p>
@@ -175,7 +204,7 @@ export function UnassignedSource() {
         ) : (
           'Loading...'
         )}
-        <p className="small-txt">
+        <p className="small-text">
           Blue markers are this source’s detections; orange markers are other
           still-unmatched candidates; the dashed orange circle is the configured
           2.0 arcminute search radius; large red triangles are clickable SIMBAD
@@ -184,21 +213,39 @@ export function UnassignedSource() {
       </UnassignedSourceCard>
       <div className="unassigned-source-cards-group">
         <UnassignedSourceCard headingLeft="Nearby unassigned sources">
-          <p className="small-txt">
+          <p className="small-text">
             Within 2.0 arcminutes. Merge a source into the candidate under
             review when they represent the same object.
           </p>
           <div className="unassigned-list-container">
             {data?.source.in_radius.length
               ? data?.source.in_radius.map((s) => (
-                  <div key={s.source_id}>
-                    <Link
-                      className="possible-matches-link font-medium"
-                      to={`/unassigned/${s.source_id}`}
+                  <div className="possible-matches-container" key={s.source_id}>
+                    <div className="possible-matches-link-wrapper">
+                      <Link
+                        className="possible-matches-link font-medium"
+                        to={`/unassigned/${s.source_id}`}
+                      >
+                        {s.source_id}
+                      </Link>
+                    </div>
+                    <button
+                      className="cross-match-btn possible-match-input"
+                      onClick={() => {
+                        setShouldOpenConfirmDialog(true);
+                        setConfirmDialogState({
+                          title: 'Confirm Merge',
+                          description:
+                            'Merge this nearby source into the candidate under review? All of its detections will be re-parented and the action recorded.',
+                        });
+                        setCrossmatchActionState({
+                          action: 'merge',
+                          matchedId: s.source_id,
+                        });
+                      }}
                     >
-                      {s.source_id}
-                    </Link>
-                    {/* <p>{s[4]} | {Number(s[0] * 60).toFixed(5)} arcmin</p> */}
+                      Merge
+                    </button>
                   </div>
                 ))
               : 'No still-unmatched sources fall within the configured search radius.'}
@@ -209,7 +256,7 @@ export function UnassignedSource() {
             <p>Loading...</p>
           ) : (
             <>
-              <p className="small-txt">
+              <p className="small-text">
                 Query completed at {nearbySimbadSources.queryTimestamp}
               </p>
               <div className="unassigned-list-container">
@@ -229,7 +276,7 @@ export function UnassignedSource() {
                           >
                             {match.identifier}
                           </Link>
-                          <p className="small-txt margin-top-sm">
+                          <p className="small-text margin-top-sm">
                             {match.objectType ?? 'Unknown type'} ·{' '}
                             {match.separationArcmin != null
                               ? match.separationArcmin.toFixed(2)
@@ -238,10 +285,10 @@ export function UnassignedSource() {
                           </p>
                         </div>
                         <input
-                          onChange={() =>
-                            setSelectedSimbadMatch(match.identifier)
+                          onChange={() => setSelectedSimbadMatch(match)}
+                          checked={
+                            selectedSimbadMatch?.identifier === match.identifier
                           }
-                          checked={selectedSimbadMatch === match.identifier}
                           className="possible-match-input"
                           type="radio"
                         ></input>
@@ -253,6 +300,97 @@ export function UnassignedSource() {
           )}
         </UnassignedSourceCard>
       </div>
+      <UnassignedSourceCard
+        headingLeft="Review decision"
+        headingRight="Reviewer: <insert user>"
+        containerClassname="review-decision-card"
+      >
+        <p className="small-text">
+          Unmatched is the default: leave the source unchanged if more
+          detections are needed.
+        </p>
+        <div className="review-decision-container">
+          <div>
+            <h4>Terminal outcomes</h4>
+            <p className="small-text">
+              External and novel decisions register with SOCat before completing
+              the local review action.
+            </p>
+          </div>
+          <div className="review-decision-action">
+            Select a server-validated SIMBAD object above, then confirm this
+            external cross-match.
+            <p className="small-text selected-external-match-text">
+              {selectedSimbadMatch?.identifier ? (
+                <>
+                  <em>Selected SIMBAD object:</em>{' '}
+                  <strong>{selectedSimbadMatch.identifier}</strong>
+                </>
+              ) : (
+                ''
+              )}
+            </p>
+            <button
+              title={
+                selectedSimbadMatch === undefined
+                  ? 'You must first select a SIMBAD object.'
+                  : undefined
+              }
+              className="cross-match-btn"
+              disabled={selectedSimbadMatch === undefined}
+            >
+              Accept external match
+            </button>
+          </div>
+          <div className="review-decision-action">
+            <label className="new-source-input-wrapper">
+              <span className="small-text">New source name</span>
+              <input
+                onChange={(e) => setNovelSourceName(e.target.value)}
+                className="new-source-input"
+                placeholder="enter a name for this novel source..."
+                type="text"
+                value={novelSourceName}
+              />
+            </label>
+            <button
+              disabled={novelSourceName === undefined}
+              title={
+                !novelSourceName?.length
+                  ? 'You must first enter a name for the novel source.'
+                  : undefined
+              }
+              className="cross-match-btn"
+            >
+              Register novel source
+            </button>
+          </div>
+          <div className="review-decision-action noise-wrapper">
+            <label>
+              <input
+                type="checkbox"
+                checked={isNoiseChecked}
+                onChange={() => setIsNoiseChecked((prev) => !prev)}
+              />
+              <span className="noise-confirmation-statement">
+                I confirm this source is noise. Its immutable candidate
+                detections will remain available as review provenance.
+              </span>
+            </label>
+            <button
+              title={
+                !isNoiseChecked
+                  ? 'You must first check the box to confirm this source is a noise.'
+                  : undefined
+              }
+              disabled={!isNoiseChecked}
+              className="cross-match-btn noise-btn"
+            >
+              Classify as noise
+            </button>
+          </div>
+        </div>
+      </UnassignedSourceCard>
     </div>
   );
 }
@@ -261,16 +399,20 @@ function UnassignedSourceCard({
   headingLeft,
   headingRight,
   children,
+  containerClassname = '',
 }: {
   headingLeft: string;
   headingRight?: string;
   children: ReactNode;
+  containerClassname?: string;
 }) {
   return (
-    <div className="unassigned-source-card-container">
+    <div
+      className={'unassigned-source-card-container' + ' ' + containerClassname}
+    >
       <div className="unassigned-source-card-header">
         <h3>{headingLeft}</h3>
-        {headingRight && <p className="small-txt">{headingRight}</p>}
+        {headingRight && <p className="small-text">{headingRight}</p>}
       </div>
       {children}
     </div>

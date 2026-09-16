@@ -106,7 +106,7 @@ export function UnassignedLightcurvePlot({
   }, [plotData, plotLayout]);
 
   if (!measurements.length) {
-    return <p className="small-txt">No detections to plot.</p>;
+    return <p className="small-text">No detections to plot.</p>;
   }
 
   return (

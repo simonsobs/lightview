@@ -112,7 +112,7 @@ export function UnassignedSourcesTable() {
         <div className="unassigned-status-filter-container">
           <label
             htmlFor="unassigned-status-filter"
-            className="small-txt font-medium"
+            className="small-text font-medium"
           >
             Status
           </label>
@@ -129,7 +129,7 @@ export function UnassignedSourcesTable() {
           </select>
         </div>
       </div>
-      <p className="small-txt">
+      <p className="small-text">
         {tableData.length}{' '}
         {statusFilter === INCLUDE_ALL_STATUSES
           ? 'detected'
