@@ -4,13 +4,14 @@
   column-gap: 0.5em;
   padding: 0 10px;
   height: 45px;
-  border: 2px solid #c0c1c1;
+  border: 2px solid var(--bg-blue-darker);
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   border-radius: var(--search-border-radius);
-  background-color: #212529bf;
+  background-color: var(--so-blue);
   text-decoration: none;
   font-size: 0.9em;
   color: white;
+  font-weight: 500;
 }
 
 .login-link-btn:visited {
@@ -23,9 +24,9 @@
 }
 
 .login-link-btn:hover {
-  background-color: #212529de;
+  background-color: var(--so-blue-darker);
 }
 
 .login-link-btn:active {
-  background-color: #212529fb;
+  background-color: var(--so-blue-darker);
 }
