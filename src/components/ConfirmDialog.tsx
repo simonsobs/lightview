@@ -15,6 +15,9 @@ type ConfirmDialogProps = {
   description?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Shown between the description and the action buttons - set this from a caught onConfirm
+   * failure so the user sees why the dialog stayed open, rather than nothing happening. */
+  error?: ReactNode;
   /** May return a promise - the confirm button shows a busy state and both buttons are disabled
    * until it settles. Rejections propagate to the caller and leave the dialog open (so the user
    * can retry or cancel) rather than being swallowed here. */
@@ -31,6 +34,7 @@ export function ConfirmDialog({
   description,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  error,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -106,6 +110,11 @@ export function ConfirmDialog({
         {description && (
           <div id={descriptionId} className="confirm-dialog-description">
             {description}
+          </div>
+        )}
+        {error && (
+          <div className="confirm-dialog-error" role="alert">
+            {error}
           </div>
         )}
         <div className="confirm-dialog-actions">

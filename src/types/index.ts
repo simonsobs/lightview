@@ -26,6 +26,21 @@ export type SourceResponse = SourceBase & {
   };
 };
 
+/** Mirrors lightcurvedb.models.review.decision_metadata's output for a terminal decision
+ * (canonical_source_id/external_evidence), plus target_source_id for a merged-away candidate. */
+export type ReviewMetadata = {
+  target_source_id?: string;
+  canonical_source_id?: string;
+  external_evidence?: {
+    identifier: string;
+    object_type?: string | null;
+    ra?: number | null;
+    dec?: number | null;
+    separation_arcmin?: number | null;
+    queried_at?: string;
+  };
+};
+
 export type UnassignedSourceResponse = SourceBase & {
   /** times are Date strings */
   first_seen: string;
@@ -34,7 +49,7 @@ export type UnassignedSourceResponse = SourceBase & {
   status: SourceStatus;
   version: number; // should be an integer
   reviewed_by?: string;
-  review_metadata?: Record<string, unknown>;
+  review_metadata?: ReviewMetadata;
   extra?: {
     flags: string[];
     simulation_scenario?: string;
@@ -70,6 +85,48 @@ export type SimbadMatch = {
   ra: number | null;
   dec: number | null;
   separationArcmin: number | null;
+};
+
+/** Mirrors lightcurvedb.models.review's Pydantic models - the request/response shapes for the
+ * unassigned-source review actions (merge, and the three terminal decision outcomes). */
+export type ReviewOutcome = 'external_match' | 'novel' | 'noise';
+
+export type ExternalMatchEvidence = {
+  identifier: string;
+  object_type?: string | null;
+  ra?: number | null;
+  dec?: number | null;
+  separation_arcmin?: number | null;
+  /** ISO 8601 - required by the server's `datetime` field. */
+  queried_at: string;
+};
+
+export type CandidateMergeCommand = {
+  source_id: string;
+  target_source_id: string;
+  expected_version: number;
+  reviewer: string;
+  reason?: string | null;
+};
+
+export type CandidateMerge = {
+  source_id: string;
+  target_source_id: string;
+};
+
+export type CandidateDecisionCommand = {
+  source_id: string;
+  expected_version: number;
+  outcome: ReviewOutcome;
+  reviewer: string;
+  external_evidence?: ExternalMatchEvidence | null;
+  novel_name?: string | null;
+};
+
+export type CandidateReviewDecision = {
+  source_id: string;
+  outcome: ReviewOutcome;
+  canonical_source_id: string | null;
 };
 
 export type SourcesFeedItem = SourceBase & {

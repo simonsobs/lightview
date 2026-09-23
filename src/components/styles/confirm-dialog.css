@@ -42,6 +42,16 @@
   font-size: 0.95em;
 }
 
+.confirm-dialog-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background-color: #fdecea;
+  border: 1px solid #f3b4ae;
+  color: #7a1a13;
+  font-size: 0.85em;
+}
+
 .confirm-dialog-actions {
   display: flex;
   justify-content: flex-end;

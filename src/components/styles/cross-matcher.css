@@ -34,7 +34,9 @@ h4 {
   text-decoration: none;
 }
 
-.detections-container {
+.detections-container,
+.merged-container,
+.status-banner {
   background-color: rgba(51, 187, 238, 0.15);
   border-radius: 10px;
   padding: 10px 15px;
@@ -49,6 +51,18 @@ h4 {
 
 .unassigned-source-page-header-container > p {
   margin: 0;
+}
+
+.merged-container,
+.status-banner {
+  background-color: var(--bg-so-orange-lighter);
+  border: 1px solid var(--bg-so-orange-darker);
+  width: 500px;
+}
+
+.status-banner {
+  width: fit-content;
+  margin-top: 30px;
 }
 
 .source-heading-id {
@@ -227,7 +241,7 @@ h4 {
 }
 
 .noise-btn:hover {
-  background-color: rgb(254 242 242);
+  background-color: var(--bg-so-orange-lighter);
 }
 
 .noise-btn:disabled {
@@ -258,4 +272,19 @@ h4 {
 
 .noise-confirmation-statement {
   margin-left: 5px;
+}
+
+.reviewer-name-wrapper {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.reviewer-name-input {
+  margin-left: 6px;
+  padding: 4px 6px;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 5px;
+  font-size: 1em;
+  width: 160px;
 }

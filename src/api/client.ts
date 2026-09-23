@@ -1,4 +1,8 @@
 import {
+  CandidateDecisionCommand,
+  CandidateMerge,
+  CandidateMergeCommand,
+  CandidateReviewDecision,
   CutoutFileExtensions,
   DataFileExtensions,
   FrequencyLightcurveData,
@@ -86,6 +90,46 @@ export class LightcurveApiClient {
       throw new Error(`GET ${path} failed: ${res.status}`);
     }
     return res.json() as T;
+  }
+
+  /** Review-decision endpoints require an authenticated (lcs:review) session, so this sends
+   * cookies cross-origin and surfaces the server's `detail` message instead of just a status
+   * code, since that's the only place a reviewer can see e.g. a version-conflict message. */
+  private async post<T>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      throw new Error(await this.extractErrorDetail(res, path));
+    }
+    return res.json() as T;
+  }
+
+  private async extractErrorDetail(
+    res: Response,
+    path: string
+  ): Promise<string> {
+    try {
+      const body = (await res.json()) as { detail?: unknown };
+      if (typeof body.detail === 'string') {
+        return body.detail;
+      }
+      if (Array.isArray(body.detail)) {
+        return body.detail
+          .map((entry: unknown) =>
+            entry && typeof entry === 'object' && 'msg' in entry
+              ? String(entry.msg)
+              : JSON.stringify(entry)
+          )
+          .join('; ');
+      }
+    } catch {
+      // response body wasn't JSON (or had no `detail`) - fall through to the generic message
+    }
+    return `POST ${path} failed: ${res.status}`;
   }
 
   private async getSource<T>(path: string): Promise<T> {
@@ -192,6 +236,27 @@ export class LightcurveApiClient {
     return await this.cached(`unassigned_flux:${sourceId}`, () =>
       this.get<UnassignedFluxMeasurement[]>(`/unassigned/flux/${sourceId}`)
     );
+  }
+
+  async mergeUnassignedSource(command: CandidateMergeCommand) {
+    const result = await this.post<CandidateMerge>(
+      '/unassigned/merge',
+      command
+    );
+    // Both sources' status/version just changed server-side - rather than tracking down every
+    // cache key that could now be stale (the source, its in-radius search, the full list, ...),
+    // just drop the whole session cache so the next GET for any of them is fresh.
+    this.cache.clear();
+    return result;
+  }
+
+  async decideUnassignedSource(command: CandidateDecisionCommand) {
+    const result = await this.post<CandidateReviewDecision>(
+      '/unassigned/decision',
+      command
+    );
+    this.cache.clear();
+    return result;
   }
 
   async downloadCutout(
