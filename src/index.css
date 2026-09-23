@@ -56,18 +56,38 @@ main {
 
 .home-light-curve {
   position: relative;
+  /* Keep in sync with DIALOG_ANIM_DURATION_MS in Main.tsx - that value is used as a fallback
+     for when this transition's end never fires (see the 'exiting' phase effect there). */
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.home-light-curve--hidden {
+  opacity: 0;
+  transform: translateY(-50px);
+  /* Avoid the toast being clickable while it's fading out  */
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-light-curve {
+    transition: none;
+  }
 }
 
 .home-lightcurve-dialog {
   position: absolute;
   top: 225px;
+  /* left+right+margin centers this within its containing block */
   left: 0;
+  right: 0;
+  margin: 0 auto;
   z-index: 20;
   width: 100%;
   max-width: 960px;
-  padding: 0;
-  border: none;
-  background: transparent;
 }
 
 .home-source-link-container {

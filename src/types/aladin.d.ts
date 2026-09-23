@@ -41,6 +41,10 @@ interface Aladin {
         xyMouseCoords: { x: number; y: number }
       ) => void
     ): void;
+    (
+      event: 'fullScreenToggled',
+      callback: (isFullscreen: boolean) => void
+    ): void;
   };
   /** Detaches every catalog/overlay layer added via addCatalog/addOverlay. */
   removeLayers: () => void;
