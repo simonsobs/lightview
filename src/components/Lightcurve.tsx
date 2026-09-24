@@ -130,8 +130,7 @@ function populatePoint(
   data.y[idx] = lightcurve.flux[idx];
   data.error_y.array[idx] = lightcurve.flux_err[idx];
   data.measurementId[idx] = lightcurve.measurement_id[idx];
-  data.flags[idx] =
-    lightcurve.extra[idx] && 'flags' in lightcurve.extra[idx] ? 1 : 0;
+  data.flags[idx] = isFlagged ? 1 : 0;
   data.customdata[idx] = lightcurveKey;
 
   if (isFlagged) {
