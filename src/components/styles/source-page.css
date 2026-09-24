@@ -134,3 +134,17 @@
 .nearby-sources-results > h4 {
   margin: 0;
 }
+
+.source-crossmatch-ul {
+  padding-left: 1em;
+  margin-top: 5px;
+  line-height: 1.75em;
+}
+
+.source-crossmatch-li {
+  list-style: none;
+}
+
+.source-crossmatch-no-results {
+  margin: 5px 0 10px 1em;
+}
