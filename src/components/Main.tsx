@@ -295,7 +295,7 @@ export function Main() {
                 hideStrategyToggle={true}
                 hideFlaggedObsToggle={true}
                 title={lightcurveData.source.name}
-                subtitle="View the source page to learn more"
+                subtitle="Data download available on source page"
               />
               <div className="home-source-link-container">
                 <button

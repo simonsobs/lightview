@@ -43,7 +43,7 @@
   column-gap: 0.5em;
   padding: 0 10px;
   height: 45px;
-  border: 2px solid var(--bg-blue-darker);
+  border: 1px solid var(--so-blue-darker);
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   border-radius: var(--search-border-radius);
   background-color: var(--so-blue);

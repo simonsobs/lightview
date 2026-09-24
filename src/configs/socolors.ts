@@ -55,6 +55,15 @@ export const LAT_COLORS: Record<string, string> = {
   c1: '#7BAFDE',
 };
 
+const ACT_COLORS: Record<string, string> = {
+  ar1: '#F7CB45',
+  ar2: '#882E72',
+  ar3: '#F4A736',
+  ar4: '#EE8026',
+  ar5: '#5289C7',
+  ar6: '#E65518',
+};
+
 export const LAT_SYMBOLS: Record<string, string> = {
   o6: 'x',
   o5: 'triangle-right',
@@ -69,6 +78,15 @@ export const LAT_SYMBOLS: Record<string, string> = {
   i2: 'y-right',
   i5: 'y-down',
   c1: 'y-left',
+};
+
+const ACT_SYMBOLS: Record<string, string> = {
+  ar1: 'triangle-down',
+  ar2: 'y-right',
+  ar3: 'square',
+  ar4: 'circle',
+  ar5: 'y-down',
+  ar6: 'diamond',
 };
 
 /** SAT platform colors/symbols (satp1-satp3). */
@@ -102,12 +120,24 @@ function isSatModule(module: string): boolean {
   return module.startsWith('satp');
 }
 
+function isActModule(module: string): boolean {
+  return module.startsWith('ar');
+}
+
 export function moduleColor(module: string): string {
-  const colors = isSatModule(module) ? SAT_COLORS : LAT_COLORS;
+  const colors = isSatModule(module)
+    ? SAT_COLORS
+    : isActModule(module)
+      ? ACT_COLORS
+      : LAT_COLORS;
   return colors[module] ?? SO_FALLBACK_COLOR;
 }
 
 export function moduleSymbol(module: string): string {
-  const symbols = isSatModule(module) ? SAT_SYMBOLS : LAT_SYMBOLS;
+  const symbols = isSatModule(module)
+    ? SAT_SYMBOLS
+    : isActModule(module)
+      ? ACT_SYMBOLS
+      : LAT_SYMBOLS;
   return symbols[module] ?? 'circle';
 }

@@ -9,6 +9,7 @@ import {
   SimbadMatch,
 } from '../types';
 import {
+  SIMBAD_BASE_LINK_OUT_URL,
   SIMBAD_BASE_URL,
   UNASSIGNED_ALADIN_SURVEY,
   UNASSIGNED_BEAM_RADIUS_ARCMIN,
@@ -375,7 +376,7 @@ export function UnassignedSource() {
                   <div className="possible-matches-container" key={s.source_id}>
                     <div className="possible-matches-link-wrapper">
                       <Link
-                        className="possible-matches-link font-medium"
+                        className="link-outs font-medium"
                         to={`/unassigned/${s.source_id}`}
                       >
                         {s.source_id}
@@ -438,11 +439,9 @@ export function UnassignedSource() {
                       >
                         <div>
                           <Link
-                            className="possible-matches-link font-medium"
+                            className="link-outs font-medium"
                             target="_blank"
-                            to={
-                              SIMBAD_BASE_URL + '/?target=' + match.identifier
-                            }
+                            to={SIMBAD_BASE_LINK_OUT_URL + match.identifier}
                           >
                             {match.identifier}
                           </Link>
@@ -680,10 +679,7 @@ function MergedCard({
     <div className="merged-container unassigned-source-page-header-container">
       <p>
         Merged with{' '}
-        <Link
-          className="possible-matches-link"
-          to={`/unassigned/${targetSourceId}`}
-        >
+        <Link className="link-outs" to={`/unassigned/${targetSourceId}`}>
           {targetSourceId}
         </Link>{' '}
         by {reviewer} on {reviewDate}
@@ -715,7 +711,7 @@ function StatusBanner({
       <p>
         Cross-matched with{' '}
         <Link
-          className="possible-matches-link"
+          className="link-outs"
           target="_blank"
           to={
             SIMBAD_BASE_URL +

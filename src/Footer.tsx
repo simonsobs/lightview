@@ -1,9 +1,11 @@
+import { CONTACT_EMAIL } from './configs/constants';
+
 export function Footer() {
   return (
     <footer>
       <span>
         Please{' '}
-        <a className="text-so-blue" href="mailto:temp@dead.link">
+        <a className="text-so-blue" href={`mailto:${CONTACT_EMAIL}`}>
           contact us
         </a>{' '}
         for questions or support
@@ -14,7 +16,7 @@ export function Footer() {
           className="text-so-blue"
           target="_blank"
           rel="noreferrer noopener"
-          href="https://github.com/simonsobs/lightview#readme"
+          href={(import.meta.env.VITE_SERVICE_URL as string) + '/docs'}
         >
           the documentation
         </a>{' '}
