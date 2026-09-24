@@ -119,11 +119,6 @@ h4 {
   padding-bottom: 0;
 }
 
-.possible-matches-link {
-  color: var(--so-blue);
-  text-decoration-color: #7dd3fc;
-}
-
 .margin-top-sm {
   margin-top: 5px;
 }
