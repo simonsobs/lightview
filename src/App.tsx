@@ -3,6 +3,8 @@ import { Navigation } from './components/Navigation';
 import { Main } from './components/Main';
 import { PageNotFound } from './components/PageNotFound';
 import { Source } from './components/Source';
+import { UnassignedSourcesTable } from './components/UnassignedSourcesTable';
+import { UnassignedSource } from './components/UnassignedSource';
 import { SearchResults } from './components/SearchResults';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorBoundaryWrapper } from './components/ErrorBoundaryWrapper';
@@ -33,6 +35,8 @@ function App() {
           <Route index element={null} />
           <Route path="/search/*" element={<SearchResults />} />
           <Route path="/source/:id" element={<Source />} />
+          <Route path="/unassigned/" element={<UnassignedSourcesTable />} />
+          <Route path="/unassigned/:id" element={<UnassignedSource />} />
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </ErrorBoundaryWrapper>

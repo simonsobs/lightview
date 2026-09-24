@@ -35,3 +35,8 @@ export function generateBaseMarkerConfig(
   });
   return markerData;
 }
+
+export function formatSourceStatus(str: string) {
+  const s = str.split('_').join(' ');
+  return s[0].toUpperCase() + s.slice(1);
+}

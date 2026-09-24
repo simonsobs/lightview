@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import './styles/login.css';
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));

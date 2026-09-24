@@ -13,7 +13,7 @@ describe('App', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: /SO Light Curve Viewer/i })
+      screen.getByRole('link', { name: /Light Curve Viewer/i })
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /the documentation/i })

@@ -2,11 +2,21 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  box-sizing: border-box;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --so-blue: rgb(0 119 187);
+  --so-blue-darker: rgb(0 86 136);
+  --bg-so-orange: rgb(242 101 34);
+  --bg-so-orange-darker: rgb(204 51 17);
+  --bg-so-orange-lighter: rgb(254 242 242);
+  --bg-soft-blue-gray: #d9e6f0;
+  --bg-light-blue: #eaf2f8;
+  --border-so-orange: rgba(242, 101, 34, 0.4);
 }
 
 * {
@@ -20,6 +30,12 @@ body {
   margin: 0;
   padding: 0;
   background-color: rgb(248, 249, 250);
+  /* Reserves the vertical scrollbar's space on every page, whether or not that page's content
+   * is actually tall enough to scroll. Without this, a shared layout (e.g. CrossMatchHeader)
+   * visibly changes width when navigating between a short page and a tall one, purely because
+   * a classic (space-reserving) scrollbar toggles on/off - the CSS applied to it never changes,
+   * only the viewport width available underneath it. */
+  scrollbar-gutter: stable;
 }
 
 #root {
@@ -154,14 +170,14 @@ main {
 footer {
   display: flex;
   align-items: center;
-  background-color: #dee2e6;
+  background-color: var(--bg-light-blue);
   padding: 2px 10px;
   justify-content: space-between;
 }
 
 footer {
   box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.075);
-  border-top: 1px solid #c4c8cb;
+  border-top: 1px solid var(--bg-soft-blue-gray);
   height: 2em;
   margin-top: auto;
 }
@@ -226,4 +242,42 @@ footer {
 .all-sky-tooltip-name {
   font-weight: bold;
   margin-bottom: 2px;
+}
+
+.text-so-blue {
+  color: var(--so-blue);
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.font-mono {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    Liberation Mono,
+    Courier New,
+    monospace;
+}
+
+.uppercase-subheader {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.small-text {
+  font-size: 0.9em;
+}
+
+.so-header-label {
+  margin-bottom: -5px;
+  letter-spacing: 3px;
 }

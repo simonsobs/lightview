@@ -1,7 +1,7 @@
 .nav-container {
   height: 4em;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border-bottom: 1px solid #c4c8cb;
+  border-bottom: 1px solid var(--bg-soft-blue-gray);
 }
 
 .search-login-container {
@@ -34,4 +34,50 @@
   .search-container {
     margin: 8px 0;
   }
+}
+
+.login-link-btn,
+.crossmatch-link-btn {
+  display: flex;
+  align-items: center;
+  column-gap: 0.5em;
+  padding: 0 10px;
+  height: 45px;
+  border: 2px solid var(--bg-blue-darker);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: var(--search-border-radius);
+  background-color: var(--so-blue);
+  text-decoration: none;
+  font-size: 0.9em;
+  color: white;
+  font-weight: 500;
+}
+
+.crossmatch-link-btn {
+  background-color: white;
+  border: 1px solid var(--bg-so-orange-darker);
+  color: var(--bg-so-orange-darker);
+}
+
+.crossmatch-link-btn:visited {
+  color: var(--bg-so-orange-darker);
+}
+
+.login-link-btn:visited {
+  color: white;
+}
+
+.login-link-btn > img {
+  height: 1.25em;
+  width: 1.25em;
+}
+
+.login-link-btn:hover,
+.login-link-btn:active {
+  background-color: var(--so-blue-darker);
+}
+
+.crossmatch-link-btn:hover,
+.crossmatch-link-btn:active {
+  background-color: var(--bg-so-orange-lighter);
 }

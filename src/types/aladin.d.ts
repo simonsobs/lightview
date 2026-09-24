@@ -48,28 +48,53 @@ interface Aladin {
   };
   /** Detaches every catalog/overlay layer added via addCatalog/addOverlay. */
   removeLayers: () => void;
+  addOverlay: (overlay: GraphicOverlay) => void;
 }
+
+type CatalogShape =
+  | 'circle'
+  | 'square'
+  | 'plus'
+  | 'rhomb'
+  | 'cross'
+  | 'triangle'
+  | ((
+      source: { x: number; y: number },
+      canvasCtx: CanvasRenderingContext2D
+    ) => void);
 
 interface Catalog {
   addSources: (markers: object[]) => unknown;
   getSources: () => AladinSource[];
-  setShape: (
-    shape: (
-      source: { x: number; y: number },
-      canvasCtx: CanvasRenderingContext2D
-    ) => void
-  ) => void;
+  setShape: (shape: CatalogShape) => void;
 }
 
 interface CatalogOptions {
   name: string;
-  shape?: (
-    source: { x: number; y: number },
-    canvasCtx: CanvasRenderingContext2D
-  ) => void;
+  shape?: CatalogShape;
   onClick?: string;
   color?: string;
   sourceSize?: number;
+}
+
+interface GraphicOverlayOptions {
+  name?: string;
+  color?: string;
+  lineWidth?: number;
+  /** [dash length, gap length] in pixels, e.g. [5, 4] for a dashed line. */
+  lineDash?: number[];
+}
+
+interface GraphicOverlay {
+  addFootprints: (footprints: object | object[]) => void;
+}
+
+interface MarkerOptions {
+  popupTitle?: string;
+  /** Rendered as raw HTML inside Aladin's own popup DOM (not React) - escape untrusted content
+   * before passing it here. */
+  popupDesc?: string;
+  useMarkerDefaultIcon?: boolean;
 }
 
 /**
@@ -90,6 +115,9 @@ interface AladinStatic {
   ) => Aladin;
   catalog: (options: CatalogOptions) => Catalog;
   source: (ra: number, dec: number, options: unknown) => object;
+  marker: (ra: number, dec: number, options?: MarkerOptions) => object;
+  circle: (ra: number, dec: number, radiusDegrees: number) => object;
+  graphicOverlay: (options: GraphicOverlayOptions) => GraphicOverlay;
   init: Promise<void>;
 }
 
