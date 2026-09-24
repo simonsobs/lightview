@@ -106,7 +106,7 @@ export function Search() {
         )}
       </form>
       <button className="submit-search-btn" form="search-form" type="submit">
-        {<SearchIcon />}
+        {<SearchIcon className="submit-search-icon" />}
       </button>
     </div>
   );
