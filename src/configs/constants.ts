@@ -58,3 +58,6 @@ export const IS_AUTH_ENABLED: boolean =
   (import.meta.env.VITE_AUTH_ENABLED as string) === 'true';
 export const IS_CROSSMATCH_ENABLED: boolean =
   (import.meta.env.VITE_CROSSMATCH_ENABLED as string) === 'true';
+
+export const CONTACT_EMAIL =
+  (import.meta.env.VITE_CONTACT_EMAIL as string) ?? 'noop';
