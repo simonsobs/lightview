@@ -20,6 +20,7 @@ import Plotly, {
   Config,
   Data,
   Datum,
+  LegendClickEvent,
   PlotMouseEvent,
   ScatterData,
   PlotDatum,
@@ -28,13 +29,18 @@ import Plotly, {
 } from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
+import {
+  buildInstrumentLegendTraces,
+  INSTRUMENT_LEGEND_LAYOUT,
+  INSTRUMENT_LEGEND_MARGIN,
+  InstrumentLegendItem,
+  InstrumentLegendProxyTrace,
+} from '../utils/instrumentLegend';
 import { ToggleSwitch } from './ToggleSwitch';
 import { CUTOUT_EXT_OPTIONS, DEFAULT_PLOT_LAYOUT } from '../configs/constants';
 import {
   SO_BASE_COLORWAY,
   frequencyColor,
-  frequencySymbol,
-  moduleColor,
   moduleSymbol,
 } from '../configs/socolors';
 import { DownloadIcon } from './icons/DownloadIcon';
@@ -139,48 +145,6 @@ function populatePoint(
   }
 }
 
-/** Plotly's legend swatch mirrors marker.line.color[0]/width[0] for array-valued marker.line, so
- * a trace whose first point happens to be flagged (red outline) shows a red legend icon even
- * though the trace's real marker color/symbol is correct - this can happen any time the first
- * point of a trace is flagged, not just when every point is. A companion "legend-only" proxy
- * trace with a single null point and a constant, always-neutral marker.line gives the legend a
- * stable swatch, fully decoupled from the real trace's per-point flagged/clicked outline styling.
- * Pairing it via legendgroup keeps "click legend to hide/show" working for both traces together. */
-function makeLegendProxyTrace(
-  name: string,
-  legendgroup: string,
-  color: string,
-  symbol: string
-): BaseScatterData {
-  return {
-    name,
-    legendgroup,
-    showlegend: true,
-    hoverinfo: 'skip',
-    x: [null] as Datum[],
-    y: [null] as Datum[],
-    error_y: {
-      type: 'data',
-      array: [] as Datum[],
-      color: undefined,
-      thickness: 1.0,
-      width: 1.0,
-    },
-    type: 'scattergl',
-    mode: 'markers',
-    marker: {
-      size: 5,
-      color,
-      symbol,
-      line: { color: ['#000'], width: [0] },
-    },
-    hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
-    measurementId: [] as Datum[],
-    flags: [] as Datum[],
-    customdata: [] as Datum[],
-  } as BaseScatterData;
-}
-
 /** Uses Plotly to generate a source's lightcurve. Currently plots all lightcurves of a source. */
 export function Lightcurve({
   lightcurveData,
@@ -203,6 +167,36 @@ export function Lightcurve({
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [hideFlaggedData, setHideFlaggedData] = useState(false);
+
+  // Keys of the form "frequency:150" / "module:i1" currently toggled off via the legend. Driving
+  // visibility through state (recomputed into plotData below) rather than an imperative
+  // Plotly.restyle call keeps this in sync with the rest of the component, which already fully
+  // rebuilds plotData - and therefore replots - on every state change (see hideFlaggedData).
+  const [hiddenLegendGroups, setHiddenLegendGroups] = useState<Set<string>>(
+    new Set()
+  );
+
+  const handleLegendClick = useCallback((e: LegendClickEvent) => {
+    const clicked = e.data[
+      e.curveNumber
+    ] as Partial<InstrumentLegendProxyTrace>;
+    if (clicked.legendAxis === undefined || clicked.legendValue === undefined) {
+      return true;
+    }
+    const key = `${clicked.legendAxis}:${clicked.legendValue}`;
+    setHiddenLegendGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+    // Suppress Plotly's own default toggle (which would just flip the tiny, invisible
+    // null-point proxy trace)
+    return false;
+  }, []);
 
   // the data used in the marker's tooltip
   const [clickedMarkerData, setClickedMarkerData] =
@@ -232,8 +226,16 @@ export function Lightcurve({
   /** A plotly-compatible data structure derived from the lightcurveData prop */
   const plotData = useMemo(() => {
     const finalData: (FrequencyScatterData | BaseScatterData)[] = [];
+    const legendItems: InstrumentLegendItem[] = [];
     const lightcurveKeys = Object.keys(lightcurveData.lightcurves);
     const isFrequencyLightcurve = isFrequencyLightcurveData(lightcurveData);
+
+    // Color always comes from frequency and shape always comes from module/instrument,
+    // regardless of selection strategy - matching the dual (color, shape) legend below, and the
+    // same convention used by UnassignedLightcurvePlot.tsx/socolors.ts elsewhere in the app.
+    const isGroupHidden = (frequency: number, module: string) =>
+      hiddenLegendGroups.has(`frequency:${frequency}`) ||
+      hiddenLegendGroups.has(`module:${module}`);
 
     for (const lightcurveKey of lightcurveKeys) {
       const lightcurve = lightcurveData.lightcurves[lightcurveKey];
@@ -261,12 +263,13 @@ export function Lightcurve({
           let data = tracesByModule.get(module);
           if (!data) {
             data = {
-              // String used in the plot legend
+              // Used for the marker click tooltip's header (see handleMarkerClick) -
+              // showlegend is false below since the dual legend explains color/shape instead.
               name: `${module}, f${lightcurve.frequency}`,
-              // Real per-point flagged/clicked styling below; see makeLegendProxyTrace for why
-              // this trace itself is hidden from the legend.
-              legendgroup: `${lightcurveKey}:${module}`,
               showlegend: false,
+              visible: isGroupHidden(lightcurve.frequency, module)
+                ? 'legendonly'
+                : true,
               x: [] as Datum[],
               y: [] as Datum[],
               error_y: {
@@ -280,7 +283,7 @@ export function Lightcurve({
               mode: 'markers',
               marker: {
                 size: 5,
-                color: moduleColor(module),
+                color: frequencyColor(lightcurve.frequency),
                 symbol: moduleSymbol(module),
                 line: {
                   width: [] as number[],
@@ -294,31 +297,30 @@ export function Lightcurve({
               customdata: [] as Datum[],
             } as FrequencyScatterData;
             tracesByModule.set(module, data);
+            legendItems.push({ frequency: lightcurve.frequency, module });
           }
 
           data.module[idx] = module;
           populatePoint(data, lightcurve, lightcurveKey, idx, isFlagged);
         });
 
-        for (const [module, data] of tracesByModule) {
+        for (const data of tracesByModule.values()) {
           finalData.push(data);
-          finalData.push(
-            makeLegendProxyTrace(
-              data.name,
-              `${lightcurveKey}:${module}`,
-              moduleColor(module),
-              moduleSymbol(module)
-            )
-          );
         }
       } else {
+        // Scalar, not per-point (unlike the frequency-strategy branch's array-valued module):
+        // an instrument-strategy lightcurve is one fixed (frequency, module) pair.
+        const instrumentModule =
+          lightcurve.module as InstrumentLightcurveMeasurements['module'];
+
         const data = {
-          // String used in the plot legend
+          // Used for the marker click tooltip's header (see handleMarkerClick) -
+          // showlegend is false below since the dual legend explains color/shape instead.
           name: `${lightcurveKey}, f${lightcurve.frequency}`,
-          // Real per-point flagged/clicked styling below; see makeLegendProxyTrace for why
-          // this trace itself is hidden from the legend.
-          legendgroup: lightcurveKey,
           showlegend: false,
+          visible: isGroupHidden(lightcurve.frequency, instrumentModule)
+            ? 'legendonly'
+            : true,
           x: [] as Datum[],
           y: [] as Datum[],
           error_y: {
@@ -332,10 +334,8 @@ export function Lightcurve({
           mode: 'markers',
           marker: {
             size: 5,
-            // Scalar, not per-point: an instrument-strategy trace is one fixed frequency band
-            // (lightcurve.frequency), so every point in it shares the same color/symbol.
             color: frequencyColor(lightcurve.frequency),
-            symbol: frequencySymbol(lightcurve.frequency),
+            symbol: moduleSymbol(instrumentModule),
             line: {
               width: [] as number[],
               color: [] as string[],
@@ -361,51 +361,57 @@ export function Lightcurve({
         });
 
         finalData.push(data);
-        finalData.push(
-          makeLegendProxyTrace(
-            data.name,
-            lightcurveKey,
-            frequencyColor(lightcurve.frequency),
-            frequencySymbol(lightcurve.frequency)
-          )
-        );
+        legendItems.push({
+          frequency: lightcurve.frequency,
+          module: instrumentModule,
+        });
       }
     }
 
+    // Legend-only proxy traces for the two-legend (color=frequency, shape=module) key above the
+    // plot; visible reflects hiddenLegendGroups too, so a toggled-off swatch renders dimmed.
+    const legendTraces = buildInstrumentLegendTraces(legendItems).map(
+      (trace) => ({
+        ...trace,
+        visible: hiddenLegendGroups.has(
+          `${trace.legendAxis}:${trace.legendValue}`
+        )
+          ? ('legendonly' as const)
+          : true,
+      })
+    );
+    finalData.push(...(legendTraces as unknown as BaseScatterData[]));
+
     return finalData;
-  }, [lightcurveData, hideFlaggedData]);
+  }, [lightcurveData, hideFlaggedData, hiddenLegendGroups]);
 
   /**
    * Defines layout parameters for plotly and must be memoized in order for it to be stable
    * and render properly
    */
-  const plotLayoutConfig = useMemo(
-    () =>
-      ({
-        autosize: true,
-        yaxis: {
-          title: {
-            text: 'Flux Density (Jy)',
-          },
+  const plotLayoutConfig = useMemo<Partial<Layout>>(
+    () => ({
+      autosize: true,
+      margin: INSTRUMENT_LEGEND_MARGIN,
+      yaxis: {
+        title: {
+          text: 'Flux Density (Jy)',
         },
-        xaxis: {
-          title: {
-            text: 'Date',
-          },
+      },
+      xaxis: {
+        title: {
+          text: 'Date',
         },
-        showlegend: true,
-        legend: {
-          x: 0,
-          xanchor: 'left',
-          y: 1,
-        },
-        // Only reached for traces without an explicit marker.color; every trace built above
-        // has one, so this is just a sane fallback rather than something actively used.
-        colorway: SO_BASE_COLORWAY,
-        font: {
-          family: 'sans-serif',
-        },
-      }) as Layout,
+      },
+      showlegend: true,
+      ...INSTRUMENT_LEGEND_LAYOUT,
+      // Only reached for traces without an explicit marker.color; every trace built above
+      // has one, so this is just a sane fallback rather than something actively used.
+      colorway: SO_BASE_COLORWAY,
+      font: {
+        family: 'sans-serif',
+      },
+    }),
     [plotLayout]
   );
 
@@ -582,6 +588,8 @@ export function Lightcurve({
       );
 
       void stablePlotlyReference.on('plotly_click', handleMarkerClick);
+
+      void stablePlotlyReference.on('plotly_legendclick', handleLegendClick);
     });
 
     return () => {
@@ -594,6 +602,7 @@ export function Lightcurve({
     plotConfig,
     handleRelayoutOrTooltipClose,
     handleMarkerClick,
+    handleLegendClick,
     setIsDataReady,
   ]);
 
