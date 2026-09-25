@@ -215,6 +215,8 @@ type BaseLightcurveData = {
   binning_strategy: '1 day' | '7 days' | '30 days' | 'none';
 };
 
+export type BinningStrategy = BaseLightcurveData['binning_strategy'];
+
 export type SelectionStrategy = 'frequency' | 'instrument';
 
 export type FrequencyLightcurveData = BaseLightcurveData & {

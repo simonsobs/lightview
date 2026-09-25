@@ -126,6 +126,8 @@
 }
 
 .selection-strategy-container {
+  display: flex;
+  column-gap: 5px;
   margin-left: 10px;
 }
 
@@ -138,6 +140,23 @@
 
 .selection-strategy-dropdown > select {
   margin-left: 5px;
+  font-size: 0.9em;
+}
+
+.binned-params-container {
+  display: flex;
+  column-gap: 6px;
+}
+
+.binned-params-container label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  font-size: 0.7em;
+}
+
+.binned-params-container input,
+.binned-params-container select {
   font-size: 0.9em;
 }
 

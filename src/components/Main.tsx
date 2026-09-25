@@ -1,7 +1,6 @@
 import {
   FrequencyLightcurveData,
   InstrumentLightcurveData,
-  SelectionStrategy,
   SourceResponse,
 } from '../types';
 import { useQuery } from '../hooks/useQuery';
@@ -34,8 +33,6 @@ function prefersReducedMotion() {
 
 /** Renders the "home" page of the web app */
 export function Main() {
-  const [selectionStrategy, setSelectionStrategy] =
-    useState<SelectionStrategy>('instrument');
   // The animated inner wrapper (not the outer positioned container) - see dialogPhase below.
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -79,12 +76,12 @@ export function Main() {
     | undefined
   >({
     initialData: undefined,
-    queryKey: [selectedSourceId, selectionStrategy],
+    queryKey: [selectedSourceId],
     queryFn: async () => {
       if (selectedSourceId === null) return;
       const lightcurve = await lightcurveApi.getLightcurveData(
         selectedSourceId,
-        selectionStrategy
+        'frequency'
       );
       const source = await lightcurveApi.getSourceData(selectedSourceId);
       if (!lightcurve || !source) return;
@@ -290,12 +287,13 @@ export function Main() {
               <Lightcurve
                 lightcurveData={lightcurveData.lightcurve}
                 plotLayout={DEFAULT_HOMEPAGE_PLOT_LAYOUT}
-                selectionStrategy={selectionStrategy}
-                setSelectionStrategy={setSelectionStrategy}
                 hideStrategyToggle={true}
                 hideFlaggedObsToggle={true}
                 title={lightcurveData.source.name}
                 subtitle="Data download available on source page"
+                legendMarginTop={115}
+                legendTopRowYOffset={1.25}
+                legendBottomRowYOffset={1.12}
               />
               <div className="home-source-link-container">
                 <button

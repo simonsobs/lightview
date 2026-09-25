@@ -9,6 +9,7 @@ import {
 } from 'react';
 import './styles/lightcurve.css';
 import {
+  BinningStrategy,
   CutoutFileExtensions,
   FrequencyLightcurveData,
   FrequencyLightcurveMeasurements,
@@ -31,13 +32,18 @@ import { useQuery } from '../hooks/useQuery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import {
   buildInstrumentLegendTraces,
-  INSTRUMENT_LEGEND_LAYOUT,
-  INSTRUMENT_LEGEND_MARGIN,
+  DEFAULT_INSTRUMENT_LEGEND_LAYOUT,
+  DEFAULT_INSTRUMENT_LEGEND_MARGIN,
   InstrumentLegendItem,
   InstrumentLegendProxyTrace,
 } from '../utils/instrumentLegend';
 import { ToggleSwitch } from './ToggleSwitch';
-import { CUTOUT_EXT_OPTIONS, DEFAULT_PLOT_LAYOUT } from '../configs/constants';
+import {
+  BINNING_STRATEGY_OPTIONS,
+  CUTOUT_EXT_OPTIONS,
+  DEFAULT_BINNING_STRATEGY,
+  DEFAULT_PLOT_LAYOUT,
+} from '../configs/constants';
 import {
   SO_BASE_COLORWAY,
   frequencyColor,
@@ -52,8 +58,9 @@ type LightcurveProps = {
     width: number;
     height: number;
   };
-  setSelectionStrategy: (s: 'instrument' | 'frequency') => void;
-  selectionStrategy: 'instrument' | 'frequency';
+  legendMarginTop?: number;
+  legendTopRowYOffset?: number;
+  legendBottomRowYOffset?: number;
   hideStrategyToggle?: boolean;
   hideFlaggedObsToggle?: boolean;
   title?: string;
@@ -148,8 +155,9 @@ function populatePoint(
 export function Lightcurve({
   lightcurveData,
   plotLayout = DEFAULT_PLOT_LAYOUT,
-  setSelectionStrategy,
-  selectionStrategy,
+  legendMarginTop = DEFAULT_INSTRUMENT_LEGEND_MARGIN.t,
+  legendTopRowYOffset = DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend.y,
+  legendBottomRowYOffset = DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend2.y,
   hideStrategyToggle,
   hideFlaggedObsToggle,
   title,
@@ -166,6 +174,43 @@ export function Lightcurve({
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [hideFlaggedData, setHideFlaggedData] = useState(true);
+
+  const [viewMode, setViewMode] = useState<'binned' | 'unbinned'>('unbinned');
+  const [binnedStartTime, setBinnedStartTime] = useState('');
+  const [binnedEndTime, setBinnedEndTime] = useState('');
+  const [binningStrategy, setBinningStrategy] = useState(
+    DEFAULT_BINNING_STRATEGY
+  );
+
+  // Fetches the binned lightcurve once a start/end time is chosen
+  const {
+    data: binnedLightcurveData,
+    isLoading: isBinnedLightcurveLoading,
+    error: binnedLightcurveError,
+  } = useQuery<FrequencyLightcurveData | InstrumentLightcurveData | undefined>({
+    initialData: undefined,
+    queryKey: [
+      lightcurveData.source_id,
+      viewMode,
+      binnedStartTime,
+      binnedEndTime,
+      binningStrategy,
+    ],
+    queryFn: async () => {
+      if (viewMode !== 'binned' || !binnedStartTime || !binnedEndTime) {
+        return undefined;
+      }
+      return await lightcurveApi.getBinnedLightcurveData(
+        lightcurveData.source_id,
+        {
+          startTime: new Date(binnedStartTime).toISOString(),
+          endTime: new Date(binnedEndTime).toISOString(),
+          selectionStrategy: 'frequency',
+          binningStrategy,
+        }
+      );
+    },
+  });
 
   // Keys of the form "frequency:150" / "module:i1" currently toggled off via the legend. Driving
   // visibility through state (recomputed into plotData below) rather than an imperative
@@ -391,7 +436,7 @@ export function Lightcurve({
   const plotLayoutConfig = useMemo<Partial<Layout>>(
     () => ({
       autosize: true,
-      margin: INSTRUMENT_LEGEND_MARGIN,
+      margin: { t: legendMarginTop },
       yaxis: {
         title: {
           text: 'Flux Density (Jy)',
@@ -403,7 +448,14 @@ export function Lightcurve({
         },
       },
       showlegend: true,
-      ...INSTRUMENT_LEGEND_LAYOUT,
+      legend: {
+        ...DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend,
+        y: legendTopRowYOffset,
+      },
+      legend2: {
+        ...DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend2,
+        y: legendBottomRowYOffset,
+      },
       // Only reached for traces without an explicit marker.color; every trace built above
       // has one, so this is just a sane fallback rather than something actively used.
       colorway: SO_BASE_COLORWAY,
@@ -411,7 +463,7 @@ export function Lightcurve({
         family: 'sans-serif',
       },
     }),
-    [plotLayout]
+    [plotLayout, legendMarginTop]
   );
 
   /** Invokes Plotly.restyle in order to update changes to marker styles */
@@ -630,14 +682,16 @@ export function Lightcurve({
     setHideFlaggedData((prev) => !prev);
   }, []);
 
-  const onSelectionStrategyChange = useCallback(
-    (e: ChangeEvent) => {
-      e.stopPropagation();
-      setSelectionStrategy(
-        selectionStrategy === 'frequency' ? 'instrument' : 'frequency'
-      );
+  const onViewModeChange = useCallback((e: ChangeEvent) => {
+    e.stopPropagation();
+    setViewMode((prev) => (prev === 'binned' ? 'unbinned' : 'binned'));
+  }, []);
+
+  const onBinningStrategyChange = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      setBinningStrategy(e.target.value as Exclude<BinningStrategy, 'none'>);
     },
-    [setSelectionStrategy, selectionStrategy]
+    []
   );
 
   return (
@@ -667,16 +721,83 @@ export function Lightcurve({
         </div>
       )}
       {hideStrategyToggle !== true && (
-        <div className="selection-strategy-container">
-          <ToggleSwitch
-            toggleId="selection-strategy"
-            checked={selectionStrategy === 'instrument'}
-            onChange={onSelectionStrategyChange}
-            disabled={false}
-            checkedLabel="Instrument"
-            uncheckedLabel="Frequency"
-          />
-        </div>
+        <>
+          <div className="selection-strategy-container">
+            <ToggleSwitch
+              toggleId="view-mode"
+              checked={viewMode === 'binned'}
+              onChange={onViewModeChange}
+              disabled={false}
+              checkedLabel="Binned"
+              uncheckedLabel="Unbinned"
+            />
+            {viewMode === 'binned' && (
+              <div className="binned-params-container">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      width: 10,
+                      height: 15,
+                      borderTop: '1px solid black',
+                    }}
+                  ></div>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: 5,
+                      borderTop: '1px solid black',
+                      borderLeft: '1px solid black',
+                      borderBottom: '1px solid black',
+                    }}
+                  ></div>
+                </div>
+                <label htmlFor="binned-start-time">
+                  Start time
+                  <input
+                    id="binned-start-time"
+                    type="date"
+                    value={binnedStartTime}
+                    onChange={(e) => setBinnedStartTime(e.target.value)}
+                  />
+                </label>
+                <label htmlFor="binned-end-time">
+                  End time
+                  <input
+                    id="binned-end-time"
+                    type="date"
+                    value={binnedEndTime}
+                    onChange={(e) => setBinnedEndTime(e.target.value)}
+                  />
+                </label>
+                <label htmlFor="binning-strategy">
+                  Binning strategy
+                  <select
+                    id="binning-strategy"
+                    value={binningStrategy}
+                    onChange={onBinningStrategyChange}
+                  >
+                    {BINNING_STRATEGY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {isBinnedLightcurveLoading && <span>Loading binned data…</span>}
+                {binnedLightcurveError && (
+                  <span>Failed to load binned data.</span>
+                )}
+                {binnedLightcurveData && !isBinnedLightcurveLoading && (
+                  <span>
+                    Loaded{' '}
+                    {Object.keys(binnedLightcurveData.lightcurves).length}{' '}
+                    binned lightcurve(s).
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
       <div
         // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement

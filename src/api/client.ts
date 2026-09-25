@@ -1,4 +1,5 @@
 import {
+  BinningStrategy,
   CandidateDecisionCommand,
   CandidateMerge,
   CandidateMergeCommand,
@@ -173,6 +174,29 @@ export class LightcurveApiClient {
     return await this.cached(`lightcurve:${id}:${selectionStrategy}`, () =>
       this.get<FrequencyLightcurveData | InstrumentLightcurveData>(
         `/lightcurves/${id}/unbinned?selection_strategy=${selectionStrategy}`
+      )
+    );
+  }
+
+  async getBinnedLightcurveData(
+    id: string,
+    params: {
+      startTime: string;
+      endTime: string;
+      selectionStrategy: SelectionStrategy;
+      binningStrategy: Exclude<BinningStrategy, 'none'>;
+    }
+  ) {
+    const { startTime, endTime, selectionStrategy, binningStrategy } = params;
+    const query = new URLSearchParams({
+      start_time: startTime,
+      end_time: endTime,
+      selection_strategy: selectionStrategy,
+      binning_strategy: binningStrategy,
+    }).toString();
+    return await this.cached(`binned-lightcurve:${id}:${query}`, () =>
+      this.get<FrequencyLightcurveData | InstrumentLightcurveData>(
+        `/lightcurves/${id}/binned?${query}`
       )
     );
   }
