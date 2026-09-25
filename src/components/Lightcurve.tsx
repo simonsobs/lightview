@@ -165,7 +165,7 @@ export function Lightcurve({
   const plotElementId = `lightcurve-plot-${useId()}`;
   const [isDataReady, setIsDataReady] = useState(false);
 
-  const [hideFlaggedData, setHideFlaggedData] = useState(false);
+  const [hideFlaggedData, setHideFlaggedData] = useState(true);
 
   // Keys of the form "frequency:150" / "module:i1" currently toggled off via the legend. Driving
   // visibility through state (recomputed into plotData below) rather than an imperative
