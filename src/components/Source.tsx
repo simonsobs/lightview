@@ -4,7 +4,6 @@ import {
   InstrumentLightcurveData,
   FrequencyLightcurveData,
   SourceResponse,
-  SelectionStrategy,
 } from '../types';
 import { SourceHeader } from './SourceHeader';
 import { Lightcurve } from './Lightcurve';
@@ -31,8 +30,6 @@ export function Source() {
   const [nearbySourceRadius, setNearbySourceRadius] = useState(
     DEFAULT_NEARBY_SOURCE_RADIUS
   );
-  const [selectionStrategy, setSelectionStrategy] =
-    useState<SelectionStrategy>('instrument');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -53,10 +50,10 @@ export function Source() {
     InstrumentLightcurveData | FrequencyLightcurveData | undefined
   >({
     initialData: undefined,
-    queryKey: [id, selectionStrategy],
+    queryKey: [id],
     queryFn: async () => {
       if (!id) return;
-      return await lightcurveApi.getLightcurveData(id, selectionStrategy);
+      return await lightcurveApi.getLightcurveData(id, 'frequency');
     },
   });
 
@@ -97,11 +94,7 @@ export function Source() {
         />
         {lightcurveData ? (
           <div className="source-lightcurve-container">
-            <Lightcurve
-              lightcurveData={lightcurveData}
-              selectionStrategy={selectionStrategy}
-              setSelectionStrategy={setSelectionStrategy}
-            />
+            <Lightcurve lightcurveData={lightcurveData} />
           </div>
         ) : (
           <div className="source-lightcurve-placeholder" />

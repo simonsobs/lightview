@@ -215,6 +215,8 @@ type BaseLightcurveData = {
   binning_strategy: '1 day' | '7 days' | '30 days' | 'none';
 };
 
+export type BinningStrategy = BaseLightcurveData['binning_strategy'];
+
 export type SelectionStrategy = 'frequency' | 'instrument';
 
 export type FrequencyLightcurveData = BaseLightcurveData & {
@@ -225,6 +227,31 @@ export type FrequencyLightcurveData = BaseLightcurveData & {
 export type InstrumentLightcurveData = BaseLightcurveData & {
   selection_strategy: Extract<SelectionStrategy, 'instrument'>;
   lightcurves: Record<string, InstrumentLightcurveMeasurements>;
+};
+
+/** A binned lightcurve's per-key entry is an aggregate over a time window, not a raw measurement:
+ * unlike FrequencyLightcurveMeasurements/InstrumentLightcurveMeasurements, there's no
+ * measurement_id, module, cutout, or extra/flags */
+export type BinnedLightcurveMeasurements = {
+  frequency: number;
+  source_id: string;
+  time: string[];
+  ra: number[];
+  dec: number[];
+  flux: number[];
+  flux_err: number[];
+  binning_strategy: Exclude<BinningStrategy, 'none'>;
+  start_time: string;
+  end_time: string;
+};
+
+export type BinnedLightcurveData = {
+  source_id: string;
+  selection_strategy: SelectionStrategy;
+  binning_strategy: Exclude<BinningStrategy, 'none'>;
+  lightcurves: Record<string, BinnedLightcurveMeasurements>;
+  start_time: string;
+  end_time: string;
 };
 
 /** Literal type of possible cutout file extensions */

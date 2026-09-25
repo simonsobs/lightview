@@ -96,19 +96,19 @@ const SHARED_LEGEND_STYLE: Partial<Legend> = {
  * the plot. Deliberately doesn't disable itemclick/itemdoubleclick here - some callers want a
  * purely decorative key (and disable clicks themselves on top of this), others wire the clicks
  * up to something real. */
-export const INSTRUMENT_LEGEND_LAYOUT = {
+export const DEFAULT_INSTRUMENT_LEGEND_LAYOUT = {
   legend: {
     ...SHARED_LEGEND_STYLE,
-    y: 1.28,
+    y: 1.23,
     yanchor: 'bottom',
   } as Partial<Legend>,
   legend2: {
     ...SHARED_LEGEND_STYLE,
-    y: 1.16,
+    y: 1.15,
     yanchor: 'bottom',
   } as Partial<Legend>,
 };
 
 /** The margin that gives INSTRUMENT_LEGEND_LAYOUT's two legend rows (plus Plotly's mode bar)
  * enough room above the plot. */
-export const INSTRUMENT_LEGEND_MARGIN = { t: 135 };
+export const DEFAULT_INSTRUMENT_LEGEND_MARGIN = { t: 135 };

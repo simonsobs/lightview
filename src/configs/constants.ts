@@ -1,3 +1,5 @@
+import { BinningStrategy } from '../types';
+
 export const DEFAULT_NEARBY_SOURCE_RADIUS = 1.5;
 
 export const DEFAULT_NANOPLOT_LAYOUT = {
@@ -24,6 +26,15 @@ export const DEFAULT_SOURCES_PER_PAGE = Number(
 export const CUTOUT_EXT_OPTIONS = ['png', 'fits', 'hdf5'];
 
 export const DATA_EXT_OPTIONS = ['hdf5', 'csv'];
+
+export const BINNING_STRATEGY_OPTIONS: Exclude<BinningStrategy, 'none'>[] = [
+  '1 day',
+  '7 days',
+  '30 days',
+];
+
+export const DEFAULT_BINNING_STRATEGY: Exclude<BinningStrategy, 'none'> =
+  '7 days';
 
 export const DEFAULT_PLOT_LAYOUT = {
   width: 1280,
