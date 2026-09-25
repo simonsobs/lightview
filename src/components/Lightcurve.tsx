@@ -9,6 +9,8 @@ import {
 } from 'react';
 import './styles/lightcurve.css';
 import {
+  BinnedLightcurveData,
+  BinnedLightcurveMeasurements,
   BinningStrategy,
   CutoutFileExtensions,
   FrequencyLightcurveData,
@@ -151,6 +153,46 @@ function populatePoint(
   }
 }
 
+/** Builds one trace per frequency for a binned lightcurve. Unlike the raw-measurement traces
+ * above, a bin is an aggregate over a time window with no measurement_id, module, cutouts, or flags to
+ * attach, so this skips the per-module split and flag styling and just plots a color-coded
+ * (frequency) series. */
+function buildBinnedTrace(
+  lightcurveKey: string,
+  binned: BinnedLightcurveMeasurements
+): BaseScatterData {
+  const length = binned.time.length;
+  return {
+    name: `f${binned.frequency}`,
+    showlegend: true,
+    visible: true,
+    x: binned.time.map((t) => new Date(t)),
+    y: binned.flux,
+    error_y: {
+      type: 'data',
+      array: binned.flux_err,
+      color: undefined,
+      thickness: 1.0,
+      width: 1.0,
+    },
+    type: 'scattergl',
+    mode: 'markers',
+    marker: {
+      size: 5,
+      color: frequencyColor(binned.frequency),
+      symbol: 'circle',
+      line: {
+        width: new Array(length).fill(0),
+        color: new Array(length).fill('#000'),
+      },
+    },
+    hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
+    measurementId: new Array<Datum>(length).fill(''),
+    flags: new Array<Datum>(length).fill(0),
+    customdata: new Array<Datum>(length).fill(lightcurveKey),
+  } as BaseScatterData;
+}
+
 /** Uses Plotly to generate a source's lightcurve. Currently plots all lightcurves of a source. */
 export function Lightcurve({
   lightcurveData,
@@ -187,7 +229,7 @@ export function Lightcurve({
     data: binnedLightcurveData,
     isLoading: isBinnedLightcurveLoading,
     error: binnedLightcurveError,
-  } = useQuery<FrequencyLightcurveData | InstrumentLightcurveData | undefined>({
+  } = useQuery<BinnedLightcurveData | undefined>({
     initialData: undefined,
     queryKey: [
       lightcurveData.source_id,
@@ -267,8 +309,20 @@ export function Lightcurve({
     },
   });
 
-  /** A plotly-compatible data structure derived from the lightcurveData prop */
+  /** A plotly-compatible data structure derived from lightcurveData (unbinned) or
+   * binnedLightcurveData (binned), depending on viewMode. Binned traces are built separately
+   * (see buildBinnedTrace) since a bin's shape doesn't carry the per-module/flag/measurement_id
+   * data the unbinned branch below relies on. */
   const plotData = useMemo(() => {
+    if (viewMode === 'binned') {
+      if (!binnedLightcurveData) {
+        return [];
+      }
+      return Object.entries(binnedLightcurveData.lightcurves).map(
+        ([lightcurveKey, binned]) => buildBinnedTrace(lightcurveKey, binned)
+      );
+    }
+
     const finalData: (FrequencyScatterData | BaseScatterData)[] = [];
     const legendItems: InstrumentLegendItem[] = [];
     const lightcurveKeys = Object.keys(lightcurveData.lightcurves);
@@ -427,7 +481,13 @@ export function Lightcurve({
     finalData.push(...(legendTraces as unknown as BaseScatterData[]));
 
     return finalData;
-  }, [lightcurveData, hideFlaggedData, hiddenLegendGroups]);
+  }, [
+    viewMode,
+    binnedLightcurveData,
+    lightcurveData,
+    hideFlaggedData,
+    hiddenLegendGroups,
+  ]);
 
   /**
    * Defines layout parameters for plotly and must be memoized in order for it to be stable
@@ -539,17 +599,23 @@ export function Lightcurve({
    */
   const handleMarkerClick = useCallback(
     (e: PlotMouseEvent) => {
+      // A binned point is an aggregate over a time window; has no flags, measurement ids, or cutouts
+      // to show, so just make clicking a marker a no-op
+      if (viewMode === 'binned') {
+        return;
+      }
+
       e.event.preventDefault();
       e.event.stopPropagation();
 
       const { x, y, curveNumber, pointIndex, data } = e.points[0];
 
       const key = String((e.points[0] as BasePlotDatum).customdata);
+      const clickedLightcurve = lightcurveData.lightcurves[key];
 
-      const measurementId =
-        lightcurveData.lightcurves[key].measurement_id[pointIndex];
+      const measurementId = clickedLightcurve.measurement_id[pointIndex];
 
-      const extra = lightcurveData.lightcurves[key].extra[pointIndex];
+      const extra = clickedLightcurve.extra[pointIndex];
       const flags = extra != null ? extra.flags : null;
 
       const { name } = data;
@@ -565,7 +631,7 @@ export function Lightcurve({
         pageX: e.event.offsetX,
         pageY: e.event.offsetY,
         name,
-        frequency: lightcurveData.lightcurves[key].frequency,
+        frequency: clickedLightcurve.frequency,
         bandColor,
       };
 
@@ -577,7 +643,7 @@ export function Lightcurve({
       // style clicked marker
       handleRestyle(curveNumber, pointIndex, false);
     },
-    [handleRestyle, lightcurveData.lightcurves]
+    [handleRestyle, viewMode, lightcurveData.lightcurves]
   );
 
   const plotConfig: Partial<Config> = useMemo(() => {
@@ -694,6 +760,27 @@ export function Lightcurve({
     []
   );
 
+  const binnedInputsIncomplete =
+    viewMode === 'binned' && (!binnedStartTime || !binnedEndTime);
+
+  const binnedHasNoData =
+    viewMode === 'binned' &&
+    !!binnedLightcurveData &&
+    Object.values(binnedLightcurveData.lightcurves).every(
+      (lc) => lc.time.length === 0
+    );
+
+  // Replaces the empty-looking plot (an axes grid with nothing on it) with a message explaining
+  // why, for every binned-mode state that doesn't yet have points to show. The in-flight fetch
+  // itself is covered by the existing isDataReady "Loading..." below, not here.
+  const binnedStatusMessage = binnedInputsIncomplete
+    ? 'Select a start and end time above to view binned data.'
+    : binnedLightcurveError
+      ? 'Failed to load binned data.'
+      : binnedHasNoData
+        ? 'No binned data found for the selected date range and binning strategy.'
+        : null;
+
   return (
     <div className="lightcurve-container">
       {(title || subtitle) && (
@@ -787,13 +874,6 @@ export function Lightcurve({
                 {binnedLightcurveError && (
                   <span>Failed to load binned data.</span>
                 )}
-                {binnedLightcurveData && !isBinnedLightcurveLoading && (
-                  <span>
-                    Loaded{' '}
-                    {Object.keys(binnedLightcurveData.lightcurves).length}{' '}
-                    binned lightcurve(s).
-                  </span>
-                )}
               </div>
             )}
           </div>
@@ -804,7 +884,8 @@ export function Lightcurve({
         ref={plotlyRef}
         id={plotElementId}
         style={{
-          visibility: isDataReady ? 'visible' : 'hidden',
+          visibility:
+            isDataReady && !binnedStatusMessage ? 'visible' : 'hidden',
           height: plotLayout.height,
         }}
       >
@@ -882,13 +963,22 @@ export function Lightcurve({
           </div>
         )}
       </div>
-      {!isDataReady && (
+      {binnedStatusMessage ? (
         <div
           className="lightcurve-loading"
           style={{ height: plotLayout.height, width: plotLayout.width }}
         >
-          Loading...
+          {binnedStatusMessage}
         </div>
+      ) : (
+        !isDataReady && (
+          <div
+            className="lightcurve-loading"
+            style={{ height: plotLayout.height, width: plotLayout.width }}
+          >
+            Loading...
+          </div>
+        )
       )}
     </div>
   );

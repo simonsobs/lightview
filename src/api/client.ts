@@ -1,4 +1,5 @@
 import {
+  BinnedLightcurveData,
   BinningStrategy,
   CandidateDecisionCommand,
   CandidateMerge,
@@ -195,9 +196,7 @@ export class LightcurveApiClient {
       binning_strategy: binningStrategy,
     }).toString();
     return await this.cached(`binned-lightcurve:${id}:${query}`, () =>
-      this.get<FrequencyLightcurveData | InstrumentLightcurveData>(
-        `/lightcurves/${id}/binned?${query}`
-      )
+      this.get<BinnedLightcurveData>(`/lightcurves/${id}/binned?${query}`)
     );
   }
 

@@ -229,6 +229,31 @@ export type InstrumentLightcurveData = BaseLightcurveData & {
   lightcurves: Record<string, InstrumentLightcurveMeasurements>;
 };
 
+/** A binned lightcurve's per-key entry is an aggregate over a time window, not a raw measurement:
+ * unlike FrequencyLightcurveMeasurements/InstrumentLightcurveMeasurements, there's no
+ * measurement_id, module, cutout, or extra/flags */
+export type BinnedLightcurveMeasurements = {
+  frequency: number;
+  source_id: string;
+  time: string[];
+  ra: number[];
+  dec: number[];
+  flux: number[];
+  flux_err: number[];
+  binning_strategy: Exclude<BinningStrategy, 'none'>;
+  start_time: string;
+  end_time: string;
+};
+
+export type BinnedLightcurveData = {
+  source_id: string;
+  selection_strategy: SelectionStrategy;
+  binning_strategy: Exclude<BinningStrategy, 'none'>;
+  lightcurves: Record<string, BinnedLightcurveMeasurements>;
+  start_time: string;
+  end_time: string;
+};
+
 /** Literal type of possible cutout file extensions */
 export type CutoutFileExtensions = 'fits' | 'png' | 'hdf5';
 
