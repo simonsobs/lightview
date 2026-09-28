@@ -100,11 +100,13 @@ export const DEFAULT_INSTRUMENT_LEGEND_LAYOUT = {
   legend: {
     ...SHARED_LEGEND_STYLE,
     y: 1.23,
+    x: 0.25,
     yanchor: 'bottom',
   } as Partial<Legend>,
   legend2: {
     ...SHARED_LEGEND_STYLE,
     y: 1.15,
+    x: 0.25,
     yanchor: 'bottom',
   } as Partial<Legend>,
 };

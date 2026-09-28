@@ -294,6 +294,7 @@ export function Main() {
                 legendMarginTop={115}
                 legendTopRowYOffset={1.25}
                 legendBottomRowYOffset={1.12}
+                legendXOffset={0}
               />
               <div className="home-source-link-container">
                 <button
