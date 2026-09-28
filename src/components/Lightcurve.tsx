@@ -68,7 +68,6 @@ type LightcurveProps = {
   legendMarginTop?: number;
   legendTopRowYOffset?: number;
   legendBottomRowYOffset?: number;
-  legendXOffset?: number;
   hideStrategyToggle?: boolean;
   hideFlaggedObsToggle?: boolean;
   title?: string;
@@ -206,7 +205,6 @@ export function Lightcurve({
   legendMarginTop = DEFAULT_INSTRUMENT_LEGEND_MARGIN.t,
   legendTopRowYOffset = DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend.y,
   legendBottomRowYOffset = DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend2.y,
-  legendXOffset = DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend.x,
   hideStrategyToggle,
   hideFlaggedObsToggle,
   title,
@@ -533,12 +531,10 @@ export function Lightcurve({
       legend: {
         ...DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend,
         y: viewMode === 'binned' ? legendBottomRowYOffset : legendTopRowYOffset,
-        x: legendXOffset,
       },
       legend2: {
         ...DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend2,
         y: legendBottomRowYOffset,
-        x: legendXOffset,
       },
       // Only reached for traces without an explicit marker.color; every trace built above
       // has one, so this is just a sane fallback rather than something actively used.
@@ -547,13 +543,7 @@ export function Lightcurve({
         family: 'sans-serif',
       },
     }),
-    [
-      legendMarginTop,
-      viewMode,
-      legendTopRowYOffset,
-      legendBottomRowYOffset,
-      legendXOffset,
-    ]
+    [legendMarginTop, viewMode, legendTopRowYOffset, legendBottomRowYOffset]
   );
 
   /** Invokes Plotly.restyle in order to update changes to marker styles */
