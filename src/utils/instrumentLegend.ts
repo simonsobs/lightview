@@ -87,8 +87,8 @@ export function buildInstrumentLegendTraces(
 
 const SHARED_LEGEND_STYLE: Partial<Legend> = {
   orientation: 'h',
-  x: 0,
-  xanchor: 'left',
+  x: 0.5,
+  xanchor: 'center',
   traceorder: 'normal',
 };
 
@@ -100,13 +100,11 @@ export const DEFAULT_INSTRUMENT_LEGEND_LAYOUT = {
   legend: {
     ...SHARED_LEGEND_STYLE,
     y: 1.23,
-    x: 0.25,
     yanchor: 'bottom',
   } as Partial<Legend>,
   legend2: {
     ...SHARED_LEGEND_STYLE,
     y: 1.15,
-    x: 0.25,
     yanchor: 'bottom',
   } as Partial<Legend>,
 };
