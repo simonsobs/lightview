@@ -126,6 +126,8 @@
 }
 
 .selection-strategy-container {
+  display: flex;
+  column-gap: 5px;
   margin-left: 10px;
 }
 
@@ -138,6 +140,23 @@
 
 .selection-strategy-dropdown > select {
   margin-left: 5px;
+  font-size: 0.9em;
+}
+
+.binned-params-container {
+  display: flex;
+  column-gap: 6px;
+}
+
+.binned-params-container label {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  font-size: 0.7em;
+}
+
+.binned-params-container input,
+.binned-params-container select {
   font-size: 0.9em;
 }
 
@@ -181,6 +200,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  text-align: center;
+  padding: 0 2em;
 }
 
 /* The plot container it sits alongside stays in flow at visibility:hidden while not yet ready

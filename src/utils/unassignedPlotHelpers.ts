@@ -2,7 +2,7 @@ import { Data, Legend } from 'plotly.js-dist-min';
 import { UnassignedFluxMeasurement } from '../types';
 import {
   buildInstrumentLegendTraces as buildInstrumentLegendTracesForItems,
-  INSTRUMENT_LEGEND_LAYOUT as BASE_INSTRUMENT_LEGEND_LAYOUT,
+  DEFAULT_INSTRUMENT_LEGEND_LAYOUT as BASE_INSTRUMENT_LEGEND_LAYOUT,
 } from './instrumentLegend';
 
 /** Groups flux measurements by (frequency, module) so each instrument combination gets its own
@@ -72,9 +72,13 @@ const NON_INTERACTIVE: Partial<Legend> = {
 
 export const INSTRUMENT_LEGEND_LAYOUT = {
   legend: { ...BASE_INSTRUMENT_LEGEND_LAYOUT.legend, ...NON_INTERACTIVE },
-  legend2: { ...BASE_INSTRUMENT_LEGEND_LAYOUT.legend2, ...NON_INTERACTIVE },
+  legend2: {
+    ...BASE_INSTRUMENT_LEGEND_LAYOUT.legend2,
+    y: 1.12,
+    ...NON_INTERACTIVE,
+  },
 };
 
 /** The margin that gives INSTRUMENT_LEGEND_LAYOUT's two legend rows (plus Plotly's mode bar)
  * enough room above the plot */
-export const INSTRUMENT_LEGEND_MARGIN = { l: 60, r: 24, t: 130, b: 56 };
+export const INSTRUMENT_LEGEND_MARGIN = { l: 60, r: 24, t: 110, b: 56 };
