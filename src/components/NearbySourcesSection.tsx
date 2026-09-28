@@ -1,9 +1,11 @@
 import { SourceResponse } from '../types';
+import { angularSeparationDeg } from '../utils/angularSeparation';
 import { RangeInput } from './RangeInput';
-import { Table } from './Table';
 import { Link } from 'react-router';
 
 type NearbySourcesProps = {
+  sourceRa: number;
+  sourceDec: number;
   nearbySources: SourceResponse[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -13,6 +15,8 @@ type NearbySourcesProps = {
 
 /** Renders a Table of sources found within a cone search of x radius from a given source */
 export function NearbySourcesSection({
+  sourceRa,
+  sourceDec,
   nearbySources,
   isLoading,
   error,
@@ -31,40 +35,36 @@ export function NearbySourcesSection({
         label="Cone search radius:"
         units="degrees"
       />
-      <div className="nearby-sources-results">
+      <div>
         {isLoading ? (
           <h4>Loading...</h4>
         ) : error ? (
           <h4>There was an error loading nearby sources.</h4>
         ) : nearbySources && nearbySources.length ? (
-          <Table
-            data={nearbySources}
-            columns={[
-              {
-                header: 'ID',
-                // Link to individual sources from the table
-                cell: ({ row }) => (
-                  <Link to={`/source/${row.original.source_id}`}>
-                    {row.original.source_id}
-                  </Link>
-                ),
-                accessorFn: (row) => row.source_id,
-                size: 75,
-              },
-              // {
-              //   header: 'Flux (latest)',
-              //   accessorFn: () => (Math.random() * 10).toFixed(1),
-              //   // accessorFn: (row) => row.latest_flux,
-              // },
-              // {
-              //   header: 'Flux (1 mo)',
-              //   accessorFn: () => (Math.random() * 10).toFixed(1),
-              //   // accessorFn: (row) => row.month_old_flux,
-              // },
-            ]}
-          />
+          <ul className="source-crossmatch-ul">
+            {nearbySources.map((s) => (
+              <li key={s.source_id} className="source-crossmatch-li">
+                <Link
+                  target="_blank"
+                  className="link-outs"
+                  to={'/source/' + s.source_id}
+                >
+                  {s.name}
+                </Link>
+                <p className="small-text">
+                  {angularSeparationDeg(
+                    sourceRa,
+                    sourceDec,
+                    s.ra,
+                    s.dec
+                  ).toFixed(2)}{' '}
+                  arcmin
+                </p>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <h4>
+          <h4 className="source-crossmatch-no-results">
             <em>No results</em>
           </h4>
         )}

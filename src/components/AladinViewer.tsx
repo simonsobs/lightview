@@ -54,7 +54,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
           // Add markers for the source and nearby sources
           cat.addSources([
             window.A!.source(source.ra, source.dec, {
-              name: 'SO-' + source.source_id,
+              name: source.name,
               RA: source.ra.toFixed(3),
               Dec: source.dec.toFixed(3),
             }),
@@ -64,7 +64,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
             cat.addSources(
               nearbySources.map((nearbySource) =>
                 window.A!.source(nearbySource.ra, nearbySource.dec, {
-                  name: 'SO-' + nearbySource.source_id,
+                  name: nearbySource.name,
                   RA: nearbySource.ra.toFixed(3),
                   Dec: nearbySource.dec.toFixed(3),
                 })

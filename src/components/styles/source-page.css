@@ -127,14 +127,6 @@
   opacity: 0.5;
 }
 
-.nearby-sources-results {
-  margin-left: 1em;
-}
-
-.nearby-sources-results > h4 {
-  margin: 0;
-}
-
 .source-crossmatch-ul {
   padding-left: 1em;
   margin-top: 5px;

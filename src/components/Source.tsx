@@ -103,6 +103,8 @@ export function Source() {
           <div>
             <CrossMatchSection crossMatches={sourceData.extra?.cross_matches} />
             <NearbySourcesSection
+              sourceRa={sourceData.ra}
+              sourceDec={sourceData.dec}
               nearbySources={nearbySources}
               isLoading={isLoading}
               error={error}
