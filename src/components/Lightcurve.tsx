@@ -31,6 +31,7 @@ import Plotly, {
   Layout,
 } from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import {
   buildInstrumentLegendTraces,
@@ -53,6 +54,10 @@ import {
 } from '../configs/socolors';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { lightcurveApi } from '../api/client';
+
+/** How long the binned start/end date inputs wait after their last change before triggering a
+ * fetch - see debouncedBinnedStartTime/debouncedBinnedEndTime below. */
+const BINNED_DATE_DEBOUNCE_MS = 500;
 
 type LightcurveProps = {
   lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
@@ -226,6 +231,17 @@ export function Lightcurve({
     DEFAULT_BINNING_STRATEGY
   );
 
+  // Adjusting a date picker can fire onChange once per segment (month, then day, then
+  // year), so debounce before it feeds the query below
+  const debouncedBinnedStartTime = useDebouncedValue(
+    binnedStartTime,
+    BINNED_DATE_DEBOUNCE_MS
+  );
+  const debouncedBinnedEndTime = useDebouncedValue(
+    binnedEndTime,
+    BINNED_DATE_DEBOUNCE_MS
+  );
+
   // Fetches the binned lightcurve once a start/end time is chosen
   const {
     data: binnedLightcurveData,
@@ -236,19 +252,23 @@ export function Lightcurve({
     queryKey: [
       lightcurveData.source_id,
       viewMode,
-      binnedStartTime,
-      binnedEndTime,
+      debouncedBinnedStartTime,
+      debouncedBinnedEndTime,
       binningStrategy,
     ],
     queryFn: async () => {
-      if (viewMode !== 'binned' || !binnedStartTime || !binnedEndTime) {
+      if (
+        viewMode !== 'binned' ||
+        !debouncedBinnedStartTime ||
+        !debouncedBinnedEndTime
+      ) {
         return undefined;
       }
       return await lightcurveApi.getBinnedLightcurveData(
         lightcurveData.source_id,
         {
-          startTime: new Date(binnedStartTime).toISOString(),
-          endTime: new Date(binnedEndTime).toISOString(),
+          startTime: new Date(debouncedBinnedStartTime).toISOString(),
+          endTime: new Date(debouncedBinnedEndTime).toISOString(),
           selectionStrategy: 'frequency',
           binningStrategy,
         }
@@ -770,8 +790,12 @@ export function Lightcurve({
     []
   );
 
+  // Matches the debounced values the query above actually fetches with, not the raw input state,
+  // so this doesn't flip to "false" (and briefly hide the "select a date" prompt with nothing to
+  // replace it) before the debounced fetch it's describing has even started.
   const binnedInputsIncomplete =
-    viewMode === 'binned' && (!binnedStartTime || !binnedEndTime);
+    viewMode === 'binned' &&
+    (!debouncedBinnedStartTime || !debouncedBinnedEndTime);
 
   const binnedHasNoData =
     viewMode === 'binned' &&
