@@ -15,26 +15,26 @@ export const statsKeysToDisplaySpecs: Record<string, StatsDisplaySpecs> = {
   min_flux: {
     label: 'Min Flux',
     precision: numSigFigs,
-    units: 'Jy',
+    units: 'mJy',
   },
   max_flux: {
     label: 'Max Flux',
     precision: numSigFigs,
-    units: 'Jy',
+    units: 'mJy',
   },
   mean_flux: {
     label: 'Mean Flux',
     precision: numSigFigs,
-    units: 'Jy',
+    units: 'mJy',
   },
   stddev_flux: {
     label: 'Std. Dev. Flux',
     precision: numSigFigs,
-    units: 'Jy',
+    units: 'mJy',
   },
   median_flux: {
     label: 'Median Flux',
     precision: numSigFigs,
-    units: 'Jy',
+    units: 'mJy',
   },
 };
