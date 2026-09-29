@@ -70,6 +70,12 @@ type LightcurveProps = {
   legendBottomRowYOffset?: number;
   hideStrategyToggle?: boolean;
   hideFlaggedObsToggle?: boolean;
+  /** Whether flagged observations start out hidden; note that hiding the flagged obs toggle
+   * would hold the value determined by this prop. Defaults to true. */
+  defaultHideFlaggedData?: boolean;
+  /** Whether a flagged point gets the red marker outline. Defaults to true. A caller can turn it
+   * off when the styling isn't meaningful for its data, e.g. unassigned measurements */
+  showFlaggedMarkerStyling?: boolean;
   title?: string;
   subtitle?: string;
 };
@@ -207,6 +213,8 @@ export function Lightcurve({
   legendBottomRowYOffset = DEFAULT_INSTRUMENT_LEGEND_LAYOUT.legend2.y,
   hideStrategyToggle,
   hideFlaggedObsToggle,
+  defaultHideFlaggedData = true,
+  showFlaggedMarkerStyling = true,
   title,
   subtitle,
 }: LightcurveProps) {
@@ -220,7 +228,9 @@ export function Lightcurve({
   const plotElementId = `lightcurve-plot-${useId()}`;
   const [isDataReady, setIsDataReady] = useState(false);
 
-  const [hideFlaggedData, setHideFlaggedData] = useState(true);
+  const [hideFlaggedData, setHideFlaggedData] = useState(
+    defaultHideFlaggedData
+  );
 
   const [viewMode, setViewMode] = useState<'binned' | 'unbinned'>('unbinned');
   const [binnedStartTime, setBinnedStartTime] = useState('');
@@ -419,7 +429,13 @@ export function Lightcurve({
           }
 
           data.module[idx] = module;
-          populatePoint(data, lightcurve, lightcurveKey, idx, isFlagged);
+          populatePoint(
+            data,
+            lightcurve,
+            lightcurveKey,
+            idx,
+            isFlagged && showFlaggedMarkerStyling
+          );
         });
 
         for (const data of tracesByModule.values()) {
@@ -434,7 +450,7 @@ export function Lightcurve({
         const data = {
           // Used for the marker click tooltip's header (see handleMarkerClick) -
           // showlegend is false below since the dual legend explains color/shape instead.
-          name: `${lightcurveKey}, f${lightcurve.frequency}`,
+          name: `${instrumentModule}, f${lightcurve.frequency}`,
           showlegend: false,
           visible: isGroupHidden(lightcurve.frequency, instrumentModule)
             ? 'legendonly'
@@ -475,7 +491,13 @@ export function Lightcurve({
             return;
           }
 
-          populatePoint(data, lightcurve, lightcurveKey, idx, isFlagged);
+          populatePoint(
+            data,
+            lightcurve,
+            lightcurveKey,
+            idx,
+            isFlagged && showFlaggedMarkerStyling
+          );
         });
 
         finalData.push(data);
@@ -507,6 +529,7 @@ export function Lightcurve({
     lightcurveData,
     hideFlaggedData,
     hiddenLegendGroups,
+    showFlaggedMarkerStyling,
   ]);
 
   /**
@@ -519,7 +542,7 @@ export function Lightcurve({
       margin: { t: legendMarginTop },
       yaxis: {
         title: {
-          text: 'Flux Density (Jy)',
+          text: 'Flux Density (mJy)',
         },
       },
       xaxis: {
@@ -946,7 +969,7 @@ export function Lightcurve({
                   <span>Flux Density:</span>
                   {String(Number(clickedMarkerData.data.y).toFixed(3))} +/-{' '}
                   {String(Number(clickedMarkerData.data.flux_err).toFixed(3))}{' '}
-                  Jy
+                  mJy
                 </p>
                 <p>
                   <span>Flags:</span>

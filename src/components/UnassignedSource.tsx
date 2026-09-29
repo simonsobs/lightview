@@ -310,7 +310,10 @@ export function UnassignedSource() {
           showCard={data?.source.status !== 'merged'}
         >
           {data ? (
-            <UnassignedLightcurvePlot measurements={data.flux} />
+            <UnassignedLightcurvePlot
+              sourceId={data.source.source_id}
+              measurements={data.flux}
+            />
           ) : (
             'Loading...'
           )}

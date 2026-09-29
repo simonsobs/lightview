@@ -1,5 +1,9 @@
 import { Data, Legend } from 'plotly.js-dist-min';
-import { UnassignedFluxMeasurement } from '../types';
+import {
+  InstrumentLightcurveData,
+  InstrumentLightcurveMeasurements,
+  UnassignedFluxMeasurement,
+} from '../types';
 import {
   buildInstrumentLegendTraces as buildInstrumentLegendTracesForItems,
   DEFAULT_INSTRUMENT_LEGEND_LAYOUT as BASE_INSTRUMENT_LEGEND_LAYOUT,
@@ -21,6 +25,47 @@ export function groupMeasurementsByInstrument(
     }
   }
   return grouped;
+}
+
+/** Converts a flat list of unassigned flux measurements into the same InstrumentLightcurveData
+ * shape Lightcurve.tsx expects for an assigned source's instrument-strategy lightcurve, grouped
+ * by (frequency, module) via groupMeasurementsByInstrument - each unassigned measurement is
+ * already a fixed (frequency, module) pair, exactly like an instrument-strategy point, just not
+ * yet grouped into a record keyed that way. Lets UnassignedLightcurvePlot.tsx render an
+ * unassigned source's flux history through the same Lightcurve component/interactions (flagging,
+ * marker click, cutouts once those exist for unassigned measurements too) as an assigned source,
+ * rather than maintaining a second plot implementation. */
+export function toInstrumentLightcurveData(
+  sourceId: string,
+  measurements: UnassignedFluxMeasurement[]
+): InstrumentLightcurveData {
+  const lightcurves: Record<string, InstrumentLightcurveMeasurements> = {};
+
+  for (const [key, group] of groupMeasurementsByInstrument(measurements)) {
+    lightcurves[key] = {
+      frequency: group[0].frequency,
+      source_id: sourceId,
+      module: group[0].module,
+      measurement_id: group.map((m) => m.measurement_id),
+      time: group.map((m) => m.time),
+      ra: group.map((m) => m.ra),
+      ra_uncertainty: group.map((m) => m.ra_uncertainty ?? 0),
+      dec: group.map((m) => m.dec),
+      dec_uncertainty: group.map((m) => m.dec_uncertainty ?? 0),
+      flux: group.map((m) => m.flux),
+      flux_err: group.map((m) => m.flux_err),
+      extra: group.map((m) => m.extra ?? null),
+    };
+  }
+
+  return {
+    source_id: sourceId,
+    // Unassigned measurements aren't fetched through the binned/unbinned endpoints - "none" is
+    // the same convention BaseLightcurveData uses for an unbinned assigned-source response.
+    binning_strategy: 'none',
+    selection_strategy: 'instrument',
+    lightcurves,
+  };
 }
 
 /** Offsets a position from the source position onto the source's tangent plane, in arcminutes.
