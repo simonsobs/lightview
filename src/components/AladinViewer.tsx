@@ -84,7 +84,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
     return () => {
       aladinInstanceRef.current = null;
     };
-  }, [source.source_id, source.ra, source.dec, nearbySources]);
+  }, [source.name, source.ra, source.dec, nearbySources]);
 
   return <div ref={aladinContainerRef} className="aladin-viewer-container" />;
 }
