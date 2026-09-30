@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 type TablePaginationControlsProps<T> = {
   table: Table<T>;
   customPaginationState: TableProps<T>['customPaginationState'];
+  className?: string;
 };
 
 /**
@@ -18,6 +19,7 @@ type TablePaginationControlsProps<T> = {
 export function TablePaginationControls<T>({
   table,
   customPaginationState,
+  className = undefined,
 }: TablePaginationControlsProps<T>) {
   const handleGoToFirstPage = useCallback(() => {
     if (customPaginationState) {
@@ -77,7 +79,7 @@ export function TablePaginationControls<T>({
       : (pagination.pageIndex + 1) * pagination.pageSize;
 
   return (
-    <div className="pagination-container">
+    <div className={'pagination-container ' + (className ?? '')}>
       <div className="pagination-details">
         Displaying{' '}
         <span>
