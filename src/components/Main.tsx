@@ -2,6 +2,7 @@ import {
   FrequencyLightcurveData,
   InstrumentLightcurveData,
   SourceResponse,
+  SkySource,
 } from '../types';
 import { useQuery } from '../hooks/useQuery';
 import { Lightcurve } from './Lightcurve';
@@ -16,9 +17,10 @@ import {
   useState,
 } from 'react';
 import { lightcurveApi } from '../api/client';
-import AllSkyMap, { SkySource } from './AllSkyMap';
 import { LinkOutIcon } from './icons/LinkOutIcon';
 import { CloseIcon } from './icons/CloseIcon';
+import { SkyExplorer } from './SkyExplorer';
+import { prefersReducedMotion } from '../utils/prefersReducedMotion';
 
 /** Duration of the dialog's toast-like enter/exit transition; must match the CSS transition
  * duration on .home-light-curve in index.css; used as a fallback in case 'transitionend' never
@@ -26,10 +28,6 @@ import { CloseIcon } from './icons/CloseIcon';
 const DIALOG_ANIM_DURATION_MS = 220;
 
 type DialogPhase = 'closed' | 'entering' | 'open' | 'exiting';
-
-function prefersReducedMotion() {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
 
 /** Renders the "home" page of the web app */
 export function Main() {
@@ -250,10 +248,10 @@ export function Main() {
     <main>
       <div className="sources-plot-container all-sky">
         {allSkyData ? (
-          <AllSkyMap
+          <SkyExplorer
             sources={allSkyData.skySources}
             bands={allSkyData.bands}
-            setClickedSourceId={handleClickedSource}
+            onSourceClick={handleClickedSource}
           />
         ) : (
           <div className="sources-plot-placeholder"></div>

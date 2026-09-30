@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import SourceFluxFilter from './SourceFluxFilter';
 import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
 import {
@@ -6,25 +6,19 @@ import {
   SO_FALLBACK_COLOR,
   frequencyKey,
 } from '../configs/socolors';
+import { SkyExplorerProps } from './SkyExplorer';
+import { SkySource } from '../types';
 
-export interface SkySource {
-  sourceId: string;
-  ra: number;
-  dec: number;
-  name: string;
-  properties?: {
-    median_flux: Record<string, number>;
-  };
-}
-
-interface AllSkyMapProps {
-  sources: SkySource[];
-  bands: Set<string>;
-  title?: string;
-  subtitle?: string;
-  height?: number;
-  setClickedSourceId: (id: string) => void;
-}
+type AllSkyMapProps = SkyExplorerProps & {
+  appliedBand: string;
+  setAppliedBand: (band: string) => void;
+  appliedRange: number[];
+  setAppliedRange: (fluxes: number[]) => void;
+  visibleSources: SkySource[];
+  /** Called with the ids of every source (filtered or not) within the map's current field of
+   * view, once the camera settles; only called when that set actually changes. */
+  setInViewIds: (ids: Set<string>) => void;
+};
 
 interface HoveredSource {
   name: string;
@@ -49,6 +43,11 @@ const TOOLTIP_WIDTH_ESTIMATE = 180;
 // whether anchoring it below the marker would run it past the container's bottom edge.
 const TOOLTIP_HEIGHT_ESTIMATE = 70;
 
+// How long the camera has to sit still (no pan/zoom/resize events) before the in-view source
+// set is recomputed. Aladin fires positionChanged/zoomChanged on nearly every frame of a drag or
+// scroll, so recomputing (and re-rendering the parent) on each one would make panning choppy.
+const IN_VIEW_DEBOUNCE_MS = 150;
+
 // Creates a shape function for Aladin's catalogs used to update the marker color
 const getShapeFunction =
   (appliedBand: string) =>
@@ -67,22 +66,26 @@ const getShapeFunction =
 
 /**
  * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
- * Aladin Lite (loaded globally as window.A via the script tag in index.html - see
- * AladinViewer.tsx for the same pattern used on the Source page).
+ * Aladin Lite (loaded globally as window.A via the script tag in index.html);
+ * see AladinViewer.tsx for the same pattern used on the Source page
  */
-export default function AllSkyMap({
+function AllSkyMap({
   sources,
   bands,
   title = 'Sources by position',
   subtitle = "Click a source's marker to preview its light curve",
   height = 600,
-  setClickedSourceId,
+  onSourceClick,
+  appliedBand,
+  setAppliedBand,
+  appliedRange,
+  setAppliedRange,
+  visibleSources,
+  setInViewIds,
 }: AllSkyMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
   const catalogRef = useRef<Catalog | null>(null);
-  const [appliedBand, setAppliedBand] = useState('');
-  const [appliedRange, setAppliedRange] = useState(MIN_MAX_FLUX_VALUES);
 
   // setClickedSourceId isn't guaranteed to be a stable reference across every render (its
   // caller may recreate it), so keep it in a ref for the init effect below to read. Putting it
@@ -90,8 +93,8 @@ export default function AllSkyMap({
   // instance on nearly every re-render. But the catalog-rebuild effect doesn't rerun when that
   // happens bc its own deps are unchanged, so the fresh instance would be left with no markers.
   // The ref lets the init effect depend on nothing while always calling the current callback.
-  const setClickedSourceIdRef = useRef(setClickedSourceId);
-  setClickedSourceIdRef.current = setClickedSourceId;
+  const setClickedSourceIdRef = useRef(onSourceClick);
+  setClickedSourceIdRef.current = onSourceClick;
 
   const [isDataReady, setIsDataReady] = useState(false);
   const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
@@ -101,10 +104,65 @@ export default function AllSkyMap({
   // real Fullscreen API; instead, it makes the container div position:fixed and covers the whole
   // viewport via a CSS class. That means xyMouseCoords (already relative to the container's own
   // top-left) become viewport-relative too, but our tooltip's own position:absolute is anchored
-  // to all-sky-wrapper - a box that no longer corresponds to where the map is actually rendered
+  // to all-sky-wrapper, a box that no longer corresponds to where the map is actually rendered
   // once the container escapes it via position:fixed. Tracking this lets the tooltip switch to
   // position:fixed itself (see the render below) so it keeps tracking the cursor in both modes.
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Read through refs by scheduleInViewUpdate below so it can keep a permanently stable identity
+  // (it's registered once as an Aladin event handler) while still seeing the latest values.
+  const setInViewIdsRef = useRef(setInViewIds);
+  setInViewIdsRef.current = setInViewIds;
+  const sourcesRef = useRef(sources);
+  sourcesRef.current = sources;
+  const lastInViewIdsRef = useRef<Set<string> | null>(null);
+  const inViewTimeoutRef = useRef<number | undefined>(undefined);
+
+  // Debounced (see IN_VIEW_DEBOUNCE_MS): each call restarts the timer, so the recompute only runs
+  // once the camera has settled. Tests every source rather than just the filtered ones, so a
+  // filter change never needs a recompute
+  const scheduleInViewUpdate = useCallback(() => {
+    window.clearTimeout(inViewTimeoutRef.current);
+    inViewTimeoutRef.current = window.setTimeout(() => {
+      const aladin = aladinInstanceRef.current;
+      const el = containerRef.current;
+      if (!aladin || !el) return;
+
+      // Zero while the page is hidden (display:none -> see App.tsx); Aladin can still emit events
+      // then, and every source would test as out of view. The camera can't move while hidden, so
+      // the last reported set is still correct.
+      const viewWidth = el.clientWidth;
+      const viewHeight = el.clientHeight;
+      if (viewWidth === 0 || viewHeight === 0) return;
+
+      const ids = new Set<string>();
+      for (const s of sourcesRef.current) {
+        const xy = aladin.world2pix(s.ra, s.dec);
+        if (
+          xy &&
+          xy[0] >= 0 &&
+          xy[0] <= viewWidth &&
+          xy[1] >= 0 &&
+          xy[1] <= viewHeight
+        ) {
+          ids.add(s.sourceId);
+        }
+      }
+
+      // Small pans (especially zoomed out) often don't move any source in or out of view; skip
+      // re-rendering the parent entirely when that happens.
+      const prev = lastInViewIdsRef.current;
+      if (
+        prev &&
+        prev.size === ids.size &&
+        [...ids].every((id) => prev.has(id))
+      ) {
+        return;
+      }
+      lastInViewIdsRef.current = ids;
+      setInViewIdsRef.current(ids);
+    }, IN_VIEW_DEBOUNCE_MS);
+  }, []);
 
   // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
   // component (see App.tsx, which keeps Main mounted across navigation).
@@ -173,7 +231,13 @@ export default function AllSkyMap({
 
         aladin.on('fullScreenToggled', (isInFullscreen) => {
           setIsFullscreen(isInFullscreen);
+          // The view's size changes along with fullscreen, which changes what's in view.
+          scheduleInViewUpdate();
         });
+
+        aladin.on('positionChanged', scheduleInViewUpdate);
+        aladin.on('zoomChanged', scheduleInViewUpdate);
+        aladin.on('resizeChanged', scheduleInViewUpdate);
 
         setIsDataReady(true);
       })
@@ -184,9 +248,10 @@ export default function AllSkyMap({
     return () => {
       cancelled = true;
     };
-    // Intentionally empty: this must only run once for the component's whole lifetime (see
-    // setClickedSourceIdRef comment above for why setClickedSourceId itself isn't a dependency here).
-  }, []);
+    // This must only run once for the component's whole lifetime (see setClickedSourceIdRef
+    // comment above for why setClickedSourceId itself isn't a dependency here);
+    // scheduleInViewUpdate has a permanently stable identity, so listing it doesn't change that.
+  }, [scheduleInViewUpdate]);
 
   // Repopulate the sources catalog whenever the source list changes. Relies on the caller
   // (Main.tsx) memoizing `sources` so this doesn't refire on unrelated re-renders - this
@@ -213,20 +278,10 @@ export default function AllSkyMap({
       )
     );
     catalogRef.current = catalog;
-  }, [sources, isDataReady]);
-
-  // The set of sources currently shown on the map. Derived (rather than copied into its own
-  // state on "Apply") so that it automatically recomputes if `sources` itself changes (e.g. a
-  // refetch) while a filter is active - otherwise a stale filter snapshot would keep hiding
-  // markers from the old source list after the catalog below has already been rebuilt with new
-  // ones.
-  const visibleSources = useMemo(() => {
-    if (appliedBand === '') return sources;
-    return sources.filter((s) => {
-      const flux = s.properties?.median_flux[appliedBand];
-      return flux != null && flux >= appliedRange[0] && flux <= appliedRange[1];
-    });
-  }, [sources, appliedBand, appliedRange]);
+    // A new source list means a new in-view set even if the camera hasn't moved; this also
+    // produces the initial set once Aladin is ready.
+    scheduleInViewUpdate();
+  }, [sources, isDataReady, scheduleInViewUpdate]);
 
   // Applies the derived visible set to the Aladin catalog. Re-runs whenever `visibleSources`
   // changes, which includes right after the catalog-rebuild effect above runs (since that
@@ -248,16 +303,20 @@ export default function AllSkyMap({
   }, [visibleSources, appliedBand]);
 
   // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
-  // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move).
-  const handleApplyFilter = useCallback((band: string, range: number[]) => {
-    setAppliedBand(band);
-    setAppliedRange(range);
-  }, []);
+  // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move). The
+  // setters are SkyExplorer's useState setters, so they never change either.
+  const handleApplyFilter = useCallback(
+    (band: string, range: number[]) => {
+      setAppliedBand(band);
+      setAppliedRange(range);
+    },
+    [setAppliedBand, setAppliedRange]
+  );
 
   const handleClearFilter = useCallback(() => {
     setAppliedBand('');
     setAppliedRange(MIN_MAX_FLUX_VALUES);
-  }, []);
+  }, [setAppliedBand, setAppliedRange]);
 
   return (
     <div className="all-sky-wrapper">
@@ -312,3 +371,7 @@ export default function AllSkyMap({
     </div>
   );
 }
+
+// Memoized so SkyExplorer re-rendering for table-only reasons (a new in-view set, which never
+// changes any of this component's props) doesn't re-render the map.
+export default memo(AllSkyMap);

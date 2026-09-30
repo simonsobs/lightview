@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Range as ReactRange, getTrackBackground } from 'react-range';
 import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
-import type { SkySource } from './AllSkyMap';
+import type { SkySource } from '../types';
 import TooltipButton from './TooltipButton';
 
 interface FluxFilterMenuProps {
