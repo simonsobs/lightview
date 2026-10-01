@@ -89,7 +89,7 @@ export default function FluxFilterMenu({
           ))}
         </select>
       </label>
-      <label>Median flux range (Jy)</label>
+      <label>Median flux range (mJy)</label>
       <ReactRange
         values={pendingRange}
         min={MIN_MAX_FLUX_VALUES[0]}
