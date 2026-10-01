@@ -224,7 +224,7 @@ export function SkyExplorer({
         data={deferredSourcesInView}
         columns={columns}
         initialState={TABLE_INITIAL_STATE}
-        paginationControlsPosition="bottom"
+        paginationControlsPosition="both"
         className="all-sky-table-wrapper"
         paginationClassName="all-sky-pagination"
       />

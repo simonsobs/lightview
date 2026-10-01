@@ -1,18 +1,79 @@
 .all-sky-table-wrapper {
-  background-color: white;
-  margin: 10px 5px;
+  --all-sky-table-border-radius: 5px;
+  margin: 5px;
 }
 
+/* Rounded corners need separate borders (border-radius is ignored on collapsed tables), so each
+   cell only draws its right/bottom edge to avoid doubled inner borders. The background lives on
+   the table rather than the wrapper so nothing white shows outside the rounded corners. */
 .all-sky-table-wrapper table {
   border: none;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--all-sky-table-border-radius);
+  overflow: hidden;
+  background-color: white;
+}
+
+.all-sky-table-wrapper th,
+.all-sky-table-wrapper td {
+  border: none;
+  border-right: 1px solid var(--border-soft-blue-gray);
+  border-bottom: 1px solid var(--border-soft-blue-gray);
+}
+
+.all-sky-table-wrapper thead {
+  background-color: var(--bg-soft-blue-gray);
+}
+
+/* .all-sky-table-wrapper th {
+  color: var(--so-blue-darker);
+} */
+
+.all-sky-table-wrapper tbody > tr:nth-of-type(even) {
+  background-color: var(--bg-light-blue);
+}
+
+.all-sky-table-wrapper th:last-child,
+.all-sky-table-wrapper td:last-child {
+  border-right: none;
+}
+
+.all-sky-table-wrapper tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* Rounds the corner cells too, so their row/header backgrounds can't square off the corners */
+.all-sky-table-wrapper thead > tr:first-child > th:first-child {
+  border-top-left-radius: var(--all-sky-table-border-radius);
+}
+
+.all-sky-table-wrapper thead > tr:first-child > th:last-child {
+  border-top-right-radius: var(--all-sky-table-border-radius);
+}
+
+.all-sky-table-wrapper tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: var(--all-sky-table-border-radius);
+}
+
+.all-sky-table-wrapper tbody > tr:last-child > td:last-child {
+  border-bottom-right-radius: var(--all-sky-table-border-radius);
 }
 
 .all-sky-pagination {
   background-color: black;
   color: white;
   margin: 0;
-  padding-left: 5px;
-  padding-top: 10px;
+  height: fit-content;
+  padding: 5px;
+}
+
+.all-sky-pagination:first-child {
+  padding-top: 0;
+}
+
+.all-sky-pagination:last-child {
+  padding-bottom: 0;
 }
 
 .all-sky-pagination > .pagination-controls > .pagination-btn {
