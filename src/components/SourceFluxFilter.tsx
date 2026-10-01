@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import FluxFilterMenu from './FluxFilterMenu';
 import TooltipButton from './TooltipButton';
-import type { SkySource } from './AllSkyMap';
+import type { SkySource } from '../types';
 import './styles/flux-filter.css';
 
 interface SourceFluxFilterProps {

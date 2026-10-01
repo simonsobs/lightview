@@ -16,6 +16,7 @@ export type TableProps<T> = {
   initialState?: InitialTableState;
   paginationControlsPosition?: 'top' | 'bottom' | 'both';
   className?: string;
+  paginationClassName?: string;
   customPaginationState?: {
     totalItems: number;
     itemsPerPage: number;
@@ -37,6 +38,7 @@ export function Table<T>({
   initialState = undefined,
   className = undefined,
   customPaginationState,
+  paginationClassName = undefined,
   sortable = true,
   paginationControlsPosition = 'bottom',
   loading = false,
@@ -54,14 +56,15 @@ export function Table<T>({
   });
 
   return (
-    <div className="table-wrapper">
+    <div className={'table-wrapper ' + (className ?? '')}>
       {isPaginated && ['top', 'both'].includes(paginationControlsPosition) && (
         <TablePaginationControls
           table={table}
           customPaginationState={customPaginationState}
+          className={paginationClassName}
         />
       )}
-      <table className={className}>
+      <table>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -163,6 +166,7 @@ export function Table<T>({
           <TablePaginationControls
             table={table}
             customPaginationState={customPaginationState}
+            className={paginationClassName}
           />
         )}
     </div>
