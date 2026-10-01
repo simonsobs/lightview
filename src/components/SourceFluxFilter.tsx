@@ -42,7 +42,7 @@ function SourceFluxFilter({
           <div className="active-filter-subtitle-container">
             <p className="active-filter-details subtitle-text">
               Filtered on {appliedBand} from {appliedRange[0]} to{' '}
-              {appliedRange[1]} Jy
+              {appliedRange[1]} mJy
             </p>
             <TooltipButton
               buttonClassName="clear-filter-btn"
