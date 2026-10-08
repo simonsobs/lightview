@@ -295,7 +295,7 @@ export class LightcurveApiClient {
   }
 
   async downloadTableData(sourceId: string, ext: DataFileExtensions) {
-    const endpoint = `${this.baseUrl}/lightcurves/${sourceId}/all/download?format=${ext}`;
+    const endpoint = `${this.baseUrl}/lightcurves/${sourceId}.${ext}`;
     const url = await this.getUrl(endpoint, 'source-data');
     const filename = this.makeFileName('source-data', sourceId, null, ext);
     this.download(url, filename);

@@ -258,7 +258,7 @@ export type BinnedLightcurveData = {
 export type CutoutFileExtensions = 'fits' | 'png' | 'hdf5';
 
 /** Literal type of possible light curve data file extensions */
-export type DataFileExtensions = 'csv' | 'hdf5';
+export type DataFileExtensions = 'csv' | 'hdf5' | 'parquet';
 
 export function isFrequencyLightcurveData(
   obj: unknown
