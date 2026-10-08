@@ -172,7 +172,7 @@ describe('LightcurveApiClient', () => {
       await client.downloadTableData('src-1', 'csv');
 
       expect(fetchMock).toHaveBeenCalledWith(
-        `${BASE_URL}/lightcurves/src-1/all/download?format=csv`
+        `${BASE_URL}/lightcurves/src-1.csv`
       );
 
       const anchor = appendChildSpy.mock.calls

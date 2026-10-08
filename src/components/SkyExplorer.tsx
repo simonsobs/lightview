@@ -194,7 +194,6 @@ export function SkyExplorer({
                 dataDownloadExt as DataFileExtensions
               )
             }
-            disabled
           >
             <DownloadIcon width={12} height={12} />
           </button>

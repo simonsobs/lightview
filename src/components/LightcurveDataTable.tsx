@@ -151,9 +151,7 @@ export function LightcurveDataTable({
               type="button"
               className="download-data-btn"
               onClick={downloadData}
-              // title="Download light curve data"
-              title="This feature is currently unavailable."
-              disabled
+              title="Download light curve data"
             >
               <DownloadIcon width={12} height={12} />
             </button>
