@@ -271,3 +271,13 @@ export function isFrequencyLightcurveData(
     return false;
   }
 }
+
+export interface SkySource {
+  sourceId: string;
+  ra: number;
+  dec: number;
+  name: string;
+  properties?: {
+    median_flux: Record<string, number>;
+  };
+}

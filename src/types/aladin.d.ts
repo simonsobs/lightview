@@ -28,6 +28,10 @@ interface Aladin {
   setProjection: (projection: string) => void;
   setFov: (fovDegrees: number) => void;
   getFov: () => [number, number];
+  /** Projects a world position to [x, y] pixel coordinates relative to the view's top-left;
+   * null if the position can't be projected (e.g. outside the projection's domain). Positions
+   * outside the visible canvas can still project, so callers must bounds-check the result. */
+  world2pix: (ra: number, dec: number) => [number, number] | null;
   /** Only the events we actually listen for are typed here; add more as needed. */
   on: {
     (
@@ -44,6 +48,21 @@ interface Aladin {
     (
       event: 'fullScreenToggled',
       callback: (isFullscreen: boolean) => void
+    ): void;
+    /** Fires continuously while panning (dragging is true mid-drag). */
+    (
+      event: 'positionChanged',
+      callback: (position: {
+        ra: number;
+        dec: number;
+        dragging: boolean;
+      }) => void
+    ): void;
+    /** Fires continuously while zooming. */
+    (event: 'zoomChanged', callback: (fovDegrees: number) => void): void;
+    (
+      event: 'resizeChanged',
+      callback: (width: number, height: number) => void
     ): void;
   };
   /** Detaches every catalog/overlay layer added via addCatalog/addOverlay. */
