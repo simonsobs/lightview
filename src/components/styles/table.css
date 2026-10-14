@@ -29,6 +29,65 @@ tbody > tr:nth-of-type(even) {
   background-color: rgb(237 238 242);
 }
 
+/* Opt-in look shared by the main page and source page tables. Rounded corners need separate 
+   borders (border-radius is ignored on collapsed tables), so each cell only draws its 
+   right/bottom edge to avoid doubled inner borders. The background lives on the table rather 
+   than the wrapper so nothing shows outside the corners. */
+.themed-table {
+  --table-border-radius: 5px;
+}
+
+.themed-table table {
+  border: 1px solid var(--border-soft-blue-gray);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--table-border-radius);
+  overflow: hidden;
+  background-color: white;
+}
+
+.themed-table th,
+.themed-table td {
+  border: none;
+  border-right: 1px solid var(--border-soft-blue-gray);
+  border-bottom: 1px solid var(--border-soft-blue-gray);
+}
+
+.themed-table thead {
+  background-color: var(--bg-soft-blue-gray);
+}
+
+.themed-table tbody > tr:nth-of-type(even) {
+  background-color: var(--bg-light-blue);
+}
+
+.themed-table th:last-child,
+.themed-table td:last-child {
+  border-right: none;
+}
+
+.themed-table tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+/* Rounds the corner cells too, so their row/header backgrounds can't square off the corners.
+   Inset by the table's 1px border so they follow its inner edge. */
+.themed-table thead > tr:first-child > th:first-child {
+  border-top-left-radius: calc(var(--table-border-radius) - 1px);
+}
+
+.themed-table thead > tr:first-child > th:last-child {
+  border-top-right-radius: calc(var(--table-border-radius) - 1px);
+}
+
+.themed-table tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: calc(var(--table-border-radius) - 1px);
+}
+
+.themed-table tbody > tr:last-child > td:last-child {
+  border-bottom-right-radius: calc(var(--table-border-radius) - 1px);
+}
+
 .pagination-container {
   display: flex;
   margin: 0.5em 0;
@@ -43,6 +102,7 @@ tbody > tr:nth-of-type(even) {
   align-items: center;
   column-gap: 0.25em;
 }
+
 .pagination-controls > span {
   width: 95px;
   text-align: center;
@@ -50,10 +110,23 @@ tbody > tr:nth-of-type(even) {
 
 .pagination-btn {
   font-size: 0.7em;
+  border: 1px solid var(--so-blue-darker);
+  background-color: var(--so-blue);
+  color: white;
+  font-weight: bolder;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
 .pagination-btn:disabled {
   cursor: not-allowed;
+}
+
+.pagination-btn:disabled,
+.pagination-btn:hover {
+  background-color: var(--so-blue-darker);
 }
 
 .pagination-details {
@@ -67,4 +140,38 @@ tbody > tr:nth-of-type(even) {
 
 .sort-icon {
   font-size: 0.9em;
+}
+
+.table-download-btn {
+  border: 1px solid var(--bg-so-orange-darker);
+  cursor: pointer;
+  background-color: var(--bg-so-orange-darker);
+  color: white;
+  border-radius: 4px;
+}
+
+.table-download-btn:hover {
+  background-color: var(--bg-so-orange-darkest);
+  cursor: pointer;
+}
+
+.table-download-btn:disabled {
+  background-color: #eee;
+  color: #bbb;
+  border: 1px solid #bbb;
+  cursor: not-allowed;
+}
+
+.select-data-format {
+  border: 1px solid var(--bg-so-orange-darker);
+  color: var(--bg-so-orange-darker);
+  font-weight: bold;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 11px;
+  height: 20px;
+}
+
+.select-data-format:hover {
+  background-color: var(--bg-so-orange-lighter);
 }

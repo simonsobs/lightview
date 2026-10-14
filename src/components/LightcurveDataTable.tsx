@@ -149,7 +149,7 @@ export function LightcurveDataTable({
             </select>
             <button
               type="button"
-              className="download-data-btn"
+              className="table-download-btn"
               onClick={downloadData}
               title="Download light curve data"
             >
@@ -163,6 +163,7 @@ export function LightcurveDataTable({
         columns={columns}
         initialState={initialState}
         paginationControlsPosition="top"
+        className="themed-table"
       />
     </div>
   );
