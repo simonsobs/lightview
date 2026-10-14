@@ -186,7 +186,7 @@ export function SkyExplorer({
         cell: ({ row }) => (
           <button
             type="button"
-            className="main-table-download-btn"
+            className="table-download-btn main-page-table"
             aria-label={`Download ${row.original.name} data as ${dataDownloadExt}`}
             onClick={() =>
               void lightcurveApi.downloadTableData(
@@ -224,7 +224,7 @@ export function SkyExplorer({
         columns={columns}
         initialState={TABLE_INITIAL_STATE}
         paginationControlsPosition="both"
-        className="all-sky-table-wrapper"
+        className="all-sky-table-wrapper themed-table"
         paginationClassName="all-sky-pagination"
       />
     </>
