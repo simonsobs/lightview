@@ -115,6 +115,16 @@ describe('LightcurveApiClient', () => {
         'GET /sources/42 failed: 500'
       );
     });
+
+    it("throws the server's detail message when a GET request fails", async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({ detail: 'Source 42 not found' }, false, 404)
+      );
+
+      await expect(client.getSourceData('42')).rejects.toThrow(
+        'Source 42 not found'
+      );
+    });
   });
 
   describe('downloadCutout', () => {
