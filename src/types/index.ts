@@ -153,13 +153,13 @@ export type SourceStatistics = {
   start_time: string;
   end_time: string;
   measurement_count: number;
-  min_flux: number;
-  max_flux: number;
-  mean_flux: number;
-  stddev_flux: number;
-  median_flux: number;
-  weighted_mean_flux: number;
-  weighted_error_on_mean_flux: number;
+  min_flux: number | null;
+  max_flux: number | null;
+  mean_flux: number | null;
+  stddev_flux: number | null;
+  median_flux: number | null;
+  weighted_mean_flux: number | null;
+  weighted_error_on_mean_flux: number | null;
 };
 
 export type SourceSummary = Record<string, SourceStatistics>;

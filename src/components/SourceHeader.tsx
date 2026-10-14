@@ -81,8 +81,8 @@ export function SourceHeader({ sourceId, name, ra, dec }: SourceHeaderProps) {
   );
 }
 
-function format(key: string, stat: number | string) {
-  if (typeof stat === 'string') return stat;
+function format(key: string, stat: number | string | null) {
+  if (typeof stat !== 'number') return stat;
   const sigFigs = statsKeysToDisplaySpecs[key].precision;
   if (sigFigs !== null) {
     return stat.toPrecision(sigFigs);

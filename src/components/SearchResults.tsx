@@ -1,37 +1,54 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useLocation, useParams, Link } from 'react-router';
 import { SourceResponse } from '../types';
 import { ColumnDef } from '@tanstack/react-table';
 import { Table } from './Table';
 import { lightcurveApi } from '../api/client';
+import { useQuery } from '../hooks/useQuery';
+
+type SearchConfig = {
+  label: string;
+  search: (query: string) => Promise<SourceResponse[]>;
+};
+
+// Maps the `/search/<type>` route segment to its display label and fetcher; add future search
+// types here. A Map (rather than an object) so a route like `/search/constructor` can't match an
+// inherited property.
+const SEARCHES = new Map<string, SearchConfig>([
+  [
+    'cone',
+    {
+      label: 'Cone search',
+      search: (query) => lightcurveApi.getNearbySources(query),
+    },
+  ],
+]);
 
 export function SearchResults() {
   const params = useParams();
   const location = useLocation();
-  const [results, setResults] = useState<SourceResponse[] | undefined>(
-    undefined
-  );
-  const [error, setError] = useState<string | undefined>(undefined);
+  const searchType = params['*'] ?? '';
+  const searchConfig = SEARCHES.get(searchType);
 
-  useEffect(() => {
-    async function getSearchResults() {
-      if (params['*'] === 'cone' && location.search) {
-        const searchResponse = await lightcurveApi.getNearbySources(
-          location.search
-        );
-
-        if (!searchResponse) {
-          setResults(undefined);
-          return;
-        }
-
-        setResults(searchResponse);
-        setError(undefined);
+  const { data: results, error } = useQuery<SourceResponse[] | undefined>({
+    initialData: undefined,
+    queryKey: [searchType, location.search],
+    queryFn: async () => {
+      if (!searchConfig) {
+        throw new Error(`Unknown search type "${searchType}".`);
       }
-    }
+      if (!location.search) {
+        throw new Error('No search parameters were provided.');
+      }
+      return await searchConfig.search(location.search);
+    },
+  });
 
-    void getSearchResults();
-  }, [params, location]);
+  // Handled by the ErrorBoundary, which shows the error's message (the server's `detail`, when
+  // the API returns one)
+  if (error) {
+    throw error;
+  }
 
   const searchParameters = useMemo(() => {
     if (!location.search) return;
@@ -54,15 +71,13 @@ export function SearchResults() {
     return paramsString;
   }, [location.search]);
 
-  const searchType = params['*'] === 'cone' ? 'Cone search' : 'Search';
-
   return (
     <main>
       {results ? (
         <>
           {searchParameters && (
             <h3>
-              {searchType} results for{' '}
+              {searchConfig?.label} results for{' '}
               <span style={{ marginLeft: 10 }}>
                 '<code>{searchParameters}</code>'
               </span>
@@ -107,8 +122,6 @@ export function SearchResults() {
             }
           />
         </>
-      ) : error ? (
-        <h3>{error}</h3>
       ) : (
         <h3>Searching...</h3>
       )}

@@ -86,10 +86,12 @@ export class LightcurveApiClient {
     }
   }
 
+  /** Surfaces the server's `detail` message when there is one (e.g. "no source with that ID"),
+   * so pages that rethrow a failed query show it in the ErrorBoundary. */
   private async get<T>(path: string): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`);
     if (!res.ok) {
-      throw new Error(`GET ${path} failed: ${res.status}`);
+      throw new Error(await this.extractErrorDetail(res, 'GET', path));
     }
     return res.json() as T;
   }
@@ -105,13 +107,14 @@ export class LightcurveApiClient {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      throw new Error(await this.extractErrorDetail(res, path));
+      throw new Error(await this.extractErrorDetail(res, 'POST', path));
     }
     return res.json() as T;
   }
 
   private async extractErrorDetail(
     res: Response,
+    method: 'GET' | 'POST',
     path: string
   ): Promise<string> {
     try {
@@ -131,7 +134,7 @@ export class LightcurveApiClient {
     } catch {
       // response body wasn't JSON (or had no `detail`) - fall through to the generic message
     }
-    return `POST ${path} failed: ${res.status}`;
+    return `${method} ${path} failed: ${res.status}`;
   }
 
   private async getSource<T>(path: string): Promise<T> {
