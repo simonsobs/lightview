@@ -84,6 +84,7 @@ export function SearchResults() {
             </h3>
           )}
           <Table
+            className="themed-table"
             data={results}
             columns={
               [
@@ -91,7 +92,10 @@ export function SearchResults() {
                   header: 'Source ID',
                   // Link to individual sources from the table
                   cell: ({ row }) => (
-                    <Link to={`/source/${row.original.source_id}`}>
+                    <Link
+                      className="text-so-blue"
+                      to={`/source/${row.original.source_id}`}
+                    >
                       {row.original.source_id}
                     </Link>
                   ),
@@ -99,8 +103,8 @@ export function SearchResults() {
                   accessorFn: (row) => row.source_id,
                 },
                 {
-                  header: 'ra',
-                  // accessorFn: (row) => row.ra.toFixed(1),
+                  header: 'RA (deg)',
+                  accessorFn: (row) => row.ra,
                   cell: ({ row }) => (
                     <span title={String(row.original.ra)}>
                       {row.original.ra.toFixed(3)}
@@ -109,8 +113,8 @@ export function SearchResults() {
                   size: 125,
                 },
                 {
-                  header: 'dec',
-                  // accessorFn: (row) => row.dec.toFixed(1),
+                  header: 'Dec (deg)',
+                  accessorFn: (row) => row.dec,
                   cell: ({ row }) => (
                     <span title={String(row.original.dec)}>
                       {row.original.dec.toFixed(3)}
