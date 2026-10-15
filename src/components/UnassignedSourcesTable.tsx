@@ -132,12 +132,13 @@ export function UnassignedSourcesTable() {
       <p className="small-text">
         {tableData.length}{' '}
         {statusFilter === INCLUDE_ALL_STATUSES
-          ? 'detected'
-          : formatSourceStatus(statusFilter).toLowerCase()}{' '}
-        sources awaiting review
+          ? 'sources'
+          : statusFilter === 'unmatched'
+            ? 'sources awaiting review'
+            : `${formatSourceStatus(statusFilter).toLowerCase()} sources`}
       </p>
       <Table
-        className="unassigned-sources-table"
+        className="unassigned-sources-table themed-table"
         data={tableData}
         columns={columns}
       />
