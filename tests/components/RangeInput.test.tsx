@@ -100,4 +100,27 @@ describe('RangeInput', () => {
     expect(onFinalChange).toHaveBeenCalledTimes(1);
     expect(onFinalChange).toHaveBeenCalledWith(9);
   });
+
+  it('calls onFinalChange after a keyboard change', () => {
+    const onFinalChange = vi.fn();
+
+    render(
+      <RangeInput
+        min={0}
+        max={10}
+        defaultValue={5}
+        onFinalChange={onFinalChange}
+        label="Radius"
+      />
+    );
+
+    const slider = screen.getByRole('slider');
+    // The browser fires change on keydown, then keyup once the key is released
+    fireEvent.change(slider, { target: { value: '6' } });
+    fireEvent.keyUp(slider, { key: 'ArrowRight' });
+    vi.advanceTimersByTime(100);
+
+    expect(onFinalChange).toHaveBeenCalledTimes(1);
+    expect(onFinalChange).toHaveBeenCalledWith(6);
+  });
 });
