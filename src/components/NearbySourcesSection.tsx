@@ -52,11 +52,8 @@ export function NearbySourcesSection({
                   {s.name}
                 </Link>
                 <p className="small-text">
-                  {angularSeparationDeg(
-                    sourceRa,
-                    sourceDec,
-                    s.ra,
-                    s.dec
+                  {(
+                    angularSeparationDeg(sourceRa, sourceDec, s.ra, s.dec) * 60
                   ).toFixed(2)}{' '}
                   arcmin
                 </p>
