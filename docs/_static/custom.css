@@ -1,0 +1,9 @@
+h5 {
+  color: darkred;
+  font-weight: 900;
+}
+
+ul,
+ol {
+  margin-left: 1.25em;
+}

@@ -25,3 +25,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Sphinx docs
+.venv
+docs/_build
