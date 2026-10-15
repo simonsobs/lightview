@@ -111,26 +111,30 @@ export function UnassignedSource() {
         STATUS_TO_EXCLUDE_SIMBAD_SEARCH.includes(data.source.status)
       )
         return { data: [], queryTimestamp: undefined };
-      let matches: SimbadMatch[] = [];
+      // Any failure here (network error, non-2xx status, or an unexpected response shape) is
+      // surfaced in the SIMBAD card below rather than shown as an empty match list, which would
+      // read as "nothing nearby" and could lead a reviewer to wrongly rule out an external match.
       const getSimbadHits = await fetch(
         SIMBAD_BASE_URL +
           '/cone' +
           `?ra=${toSimbadRa(data.source.ra)}&dec=${data.source.dec}&sr=${UNASSIGNED_BEAM_RADIUS_ARCMIN / 60}&verb=2&maxrec=10&responseformat=json&order_by=nb_ref&order_dir=desc`
       );
-      try {
-        const hitsJson = (await getSimbadHits.json()) as SimbadConeResponse;
-        matches = hitsJson.data.map((row) => ({
-          identifier: row[1] ?? 'SIMBAD object',
-          objectType: row[4] ?? null,
-          ra: row[2] ?? null,
-          dec: row[3] ?? null,
-          separationArcmin: row[0] != null ? row[0] * 60 : null,
-        }));
-      } catch {
-        console.error(
-          'An error occurred when querying for nearby SIMBAD sources.'
+      if (!getSimbadHits.ok) {
+        throw new Error(
+          `SIMBAD returned ${getSimbadHits.status} ${getSimbadHits.statusText}`
         );
       }
+      const hitsJson = (await getSimbadHits.json()) as SimbadConeResponse;
+      if (!Array.isArray(hitsJson?.data)) {
+        throw new Error('SIMBAD returned an unexpected response.');
+      }
+      const matches: SimbadMatch[] = hitsJson.data.map((row) => ({
+        identifier: row[1] ?? 'SIMBAD object',
+        objectType: row[4] ?? null,
+        ra: row[2] ?? null,
+        dec: row[3] ?? null,
+        separationArcmin: row[0] != null ? row[0] * 60 : null,
+      }));
       return {
         // ISO 8601, not a locale-formatted string: this doubles as the `queried_at` sent to the
         // server's external_evidence.queried_at (a datetime field) if the reviewer accepts one
@@ -242,10 +246,6 @@ export function UnassignedSource() {
 
   if (error) {
     throw new Error(error.message);
-  }
-
-  if (simbadError) {
-    throw new Error(simbadError.message);
   }
 
   return (
@@ -423,6 +423,11 @@ export function UnassignedSource() {
         >
           {isSimbadQueryActive ? (
             <p>Loading...</p>
+          ) : simbadError ? (
+            <p className="small-text">
+              The SIMBAD search failed, so potential matches couldn&rsquo;t be
+              checked. Reload the page to try again.
+            </p>
           ) : (
             <>
               <p className="small-text">

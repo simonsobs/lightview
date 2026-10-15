@@ -51,6 +51,7 @@ export function RangeInput({
         onChange={handleChange}
         onMouseUp={handleCommit}
         onTouchEnd={handleCommit}
+        onKeyUp={handleCommit}
       />
     </div>
   );

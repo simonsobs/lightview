@@ -9,6 +9,7 @@ import { SearchResults } from './components/SearchResults';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorBoundaryWrapper } from './components/ErrorBoundaryWrapper';
 import { Footer } from './Footer';
+import { IS_CROSSMATCH_ENABLED } from './configs/constants';
 
 function App() {
   const location = useLocation();
@@ -35,8 +36,14 @@ function App() {
           <Route index element={null} />
           <Route path="/search/*" element={<SearchResults />} />
           <Route path="/source/:id" element={<Source />} />
-          <Route path="/unassigned/" element={<UnassignedSourcesTable />} />
-          <Route path="/unassigned/:id" element={<UnassignedSource />} />
+          {/* Gated like the Cross Matcher nav button, so a disabled deployment can't reach these
+          pages by URL either; they fall through to PageNotFound instead */}
+          {IS_CROSSMATCH_ENABLED && (
+            <>
+              <Route path="/unassigned/" element={<UnassignedSourcesTable />} />
+              <Route path="/unassigned/:id" element={<UnassignedSource />} />
+            </>
+          )}
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </ErrorBoundaryWrapper>

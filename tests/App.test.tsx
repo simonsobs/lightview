@@ -31,4 +31,17 @@ describe('App', () => {
       screen.getByRole('heading', { name: /page not found/i })
     ).toBeInTheDocument();
   });
+
+  it('renders the not-found page for cross-match routes when cross-matching is disabled', () => {
+    // VITE_CROSSMATCH_ENABLED isn't set in the test environment
+    render(
+      <MemoryRouter initialEntries={['/unassigned/some-source-id']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByRole('heading', { name: /page not found/i })
+    ).toBeInTheDocument();
+  });
 });
