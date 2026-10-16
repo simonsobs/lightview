@@ -12,6 +12,8 @@ The map plots every source by position on a full-sky Mollweide projection in equ
 
 The map loads zoomed out far enough to show the whole sky.
 
+To jump to a named object such as `M 31`, use [Search by catalog via SIMBAD](search-page.md#search-by-catalog-via-simbad) in the navigation bar. The map centers and zooms on the object and marks it with a popup.
+
 ### Inspecting a source
 
 - **Hover** over a marker to see the source's name, RA and Dec.
@@ -73,3 +75,5 @@ Click the **RA**, **Dec** or **Median Flux** column header to sort by that colum
 ### Pagination
 
 The table shows 25 sources per page. Page controls appear above and below the table and show which rows are on screen, for example _Displaying 1 - 25 of 480_. Use the buttons to go to the first (`<<`), previous (`<`), next (`>`) or last (`>>`) page.
+
+If no sources are in view, the table shows _No sources detected in the map's field of view_ and the page controls read _Displaying 0 - 0 of 0_ and _Page 1 of 1_, with every button disabled. Zoom out or pan to bring sources back into view.
