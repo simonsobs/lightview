@@ -10,20 +10,21 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorBoundaryWrapper } from './components/ErrorBoundaryWrapper';
 import { Footer } from './Footer';
 import { IS_CROSSMATCH_ENABLED } from './configs/constants';
+import { SkyTargetProvider } from './contexts/SkyTargetProvider';
 
 function App() {
   const location = useLocation();
   const isHome = location.pathname === '/';
 
   return (
-    <>
+    <SkyTargetProvider>
       <Navigation />
       {/*
         Main (and the AllSkyMap it renders) stays mounted for the whole session instead of
         unmounting on every route change: rebuilding AllSkyMap's Aladin/WebGL catalog from
         scratch on every home-page revisit gets more expensive as the source count grows, and
         there's no official Aladin Lite API to tear down and recreate that catalog cheaply.
-        It's kept outside ErrorBoundaryWrapper on purpose - that wrapper force-remounts its
+        It's kept outside ErrorBoundaryWrapper on purpose since that wrapper force-remounts its
         children on every navigation (see its key-increment effect), which would defeat this.
       */}
       <div style={{ display: isHome ? undefined : 'none' }}>
@@ -48,7 +49,7 @@ function App() {
         </Routes>
       </ErrorBoundaryWrapper>
       <Footer />
-    </>
+    </SkyTargetProvider>
   );
 }
 

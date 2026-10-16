@@ -1,6 +1,17 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import SourceFluxFilter from './SourceFluxFilter';
-import { MIN_MAX_FLUX_VALUES } from '../configs/constants';
+import {
+  CATALOG_SEARCH_CONE_RADIUS_ARCMIN,
+  CATALOG_SEARCH_FOV_DEG,
+  MIN_MAX_FLUX_VALUES,
+} from '../configs/constants';
 import {
   FREQUENCY_COLORS,
   SO_FALLBACK_COLOR,
@@ -8,6 +19,11 @@ import {
 } from '../configs/socolors';
 import { SkyExplorerProps } from './SkyExplorer';
 import { SkySource } from '../types';
+import { SkyTarget, useSkyTarget } from '../contexts/SkyTargetContext';
+import { prefersReducedMotion } from '../utils/prefersReducedMotion';
+import { buildSimbadConeSearchUrl } from '../utils/simbad';
+import { CloseIcon } from './icons/CloseIcon';
+import { LinkOutIcon } from './icons/LinkOutIcon';
 
 type AllSkyMapProps = SkyExplorerProps & {
   appliedBand: string;
@@ -47,6 +63,9 @@ const TOOLTIP_HEIGHT_ESTIMATE = 70;
 // set is recomputed. Aladin fires positionChanged/zoomChanged on nearly every frame of a drag or
 // scroll, so recomputing (and re-rendering the parent) on each one would make panning choppy.
 const IN_VIEW_DEBOUNCE_MS = 150;
+
+// Gap (px) between a marker and the tooltip/popup anchored to it; matches the hover tooltip's.
+const TOOLTIP_OFFSET = 12;
 
 // Creates a shape function for Aladin's catalogs used to update the marker color
 const getShapeFunction =
@@ -164,6 +183,66 @@ function AllSkyMap({
     }, IN_VIEW_DEBOUNCE_MS);
   }, []);
 
+  // The catalog-search target currently pinned on the map (see the skyTarget effect below); null
+  // once dismissed. Mirrored into a ref for positionTargetPopup, for the same reason as above.
+  const [pinnedTarget, setPinnedTarget] = useState<SkyTarget | null>(null);
+  const pinnedTargetRef = useRef(pinnedTarget);
+  pinnedTargetRef.current = pinnedTarget;
+  const targetMarkerRef = useRef<HTMLDivElement | null>(null);
+  const targetPopupRef = useRef<HTMLDivElement | null>(null);
+
+  // Mirrored for positionTargetPopup, which runs outside React's render cycle (see below).
+  const isFullscreenRef = useRef(isFullscreen);
+  isFullscreenRef.current = isFullscreen;
+
+  // Keeps the pinned target's marker/popup over its sky position, writing styles straight to the
+  // DOM since it runs every frame (see the loop effect below); React state would re-render this
+  // whole component per frame. The popup flips to the marker's other side near the right/bottom
+  // edges, like the hover tooltip, but measures itself rather than estimating.
+  const positionTargetPopup = useCallback(() => {
+    const aladin = aladinInstanceRef.current;
+    const el = containerRef.current;
+    const marker = targetMarkerRef.current;
+    const popup = targetPopupRef.current;
+    const target = pinnedTargetRef.current;
+    if (!aladin || !el || !marker || !popup || !target) return;
+
+    // world2pix is relative to the Aladin container, but the marker/popup are positioned within
+    // all-sky-wrapper, where the container sits below the header, so shift by the container's
+    // offset. In fullscreen both are viewport-relative (see isFullscreen above), so no shift.
+    const shiftX = isFullscreenRef.current ? 0 : el.offsetLeft;
+    const shiftY = isFullscreenRef.current ? 0 : el.offsetTop;
+    const viewWidth = el.clientWidth;
+    const viewHeight = el.clientHeight;
+    const xy = aladin.world2pix(target.ra, target.dec);
+    const isInView =
+      xy !== null &&
+      xy[0] >= 0 &&
+      xy[0] <= viewWidth &&
+      xy[1] >= 0 &&
+      xy[1] <= viewHeight;
+    // Hidden rather than unmounted while panned out of view, so it reappears on panning back.
+    const visibility = isInView ? 'visible' : 'hidden';
+    if (marker.style.visibility !== visibility) {
+      marker.style.visibility = popup.style.visibility = visibility;
+    }
+    if (!isInView) return;
+
+    const [x, y] = xy;
+    const flipLeft = x + TOOLTIP_OFFSET + popup.offsetWidth > viewWidth;
+    const flipUp = y + TOOLTIP_OFFSET + popup.offsetHeight > viewHeight;
+    const popupX = flipLeft
+      ? x - TOOLTIP_OFFSET - popup.offsetWidth
+      : x + TOOLTIP_OFFSET;
+    const popupY = flipUp
+      ? y - TOOLTIP_OFFSET - popup.offsetHeight
+      : y + TOOLTIP_OFFSET;
+    marker.style.left = `${shiftX + x}px`;
+    marker.style.top = `${shiftY + y}px`;
+    popup.style.left = `${shiftX + popupX}px`;
+    popup.style.top = `${shiftY + popupY}px`;
+  }, []);
+
   // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
   // component (see App.tsx, which keeps Main mounted across navigation).
   useEffect(() => {
@@ -235,6 +314,8 @@ function AllSkyMap({
           scheduleInViewUpdate();
         });
 
+        // Note that Aladin's on() keeps only one callback per event (a later on() for the same
+        // event replaces this one), so any other reaction to these has to go through it.
         aladin.on('positionChanged', scheduleInViewUpdate);
         aladin.on('zoomChanged', scheduleInViewUpdate);
         aladin.on('resizeChanged', scheduleInViewUpdate);
@@ -302,6 +383,63 @@ function AllSkyMap({
     });
   }, [visibleSources, appliedBand]);
 
+  // Centers and zooms on a target resolved by the navigation bar's catalog search, then pins a
+  // marker and popup (name, position, SIMBAD link-out) to it until dismissed. Keyed on
+  // requestId (tracked in a ref) so a target set before Aladin finished initializing is applied
+  // once it's ready, without re-applying a stale one later and yanking the camera back.
+  const { skyTarget } = useSkyTarget();
+  const appliedTargetIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    const aladin = aladinInstanceRef.current;
+    if (!aladin || !skyTarget) return;
+    if (appliedTargetIdRef.current === skyTarget.requestId) return;
+    appliedTargetIdRef.current = skyTarget.requestId;
+
+    // A search from another route navigates home in the same commit that sets the target, so
+    // this page was display:none until just now; waiting a frame lets Aladin pick up its real
+    // size again before moving the camera, which keeps both the zoom and the in-view check
+    // below from being computed against a zero-sized view.
+    const frame = window.requestAnimationFrame(() => {
+      aladin.gotoRaDec(skyTarget.ra, skyTarget.dec);
+      aladin.setFov(CATALOG_SEARCH_FOV_DEG);
+      // Aladin doesn't reliably emit positionChanged/zoomChanged for programmatic moves, so
+      // recompute the in-view set (and so the table) explicitly rather than relying on them.
+      scheduleInViewUpdate();
+      setPinnedTarget(skyTarget);
+      containerRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'nearest',
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      // The move never happened, so let the next run (e.g. StrictMode's re-run) apply it.
+      appliedTargetIdRef.current = null;
+    };
+  }, [skyTarget, isDataReady, scheduleInViewUpdate]);
+
+  // Places a newly pinned popup before it's first painted (so it never flashes at the container's
+  // top-left), and again when fullscreen toggles since its coordinate space changes with it.
+  useLayoutEffect(() => {
+    positionTargetPopup();
+  }, [pinnedTarget, isFullscreen, positionTargetPopup]);
+
+  // Re-positions the pinned popup every frame while one is shown, rather than on Aladin's
+  // positionChanged/zoomChanged: those are throttled to ~100ms, and zoomChanged doesn't follow
+  // the animated zoom that continues after a scroll, so positions read from them lag behind or
+  // end up stale. One world2pix call per frame is cheap, and requestAnimationFrame
+  // pauses on its own while the browser tab is in the background.
+  useEffect(() => {
+    if (!pinnedTarget) return;
+    let frame = 0;
+    const tick = () => {
+      positionTargetPopup();
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [pinnedTarget, positionTargetPopup]);
+
   // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
   // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move). The
   // setters are SkyExplorer's useState setters, so they never change either.
@@ -367,6 +505,51 @@ function AllSkyMap({
           <div>RA: {hoveredSource.ra.toFixed(3)}°</div>
           <div>Dec: {hoveredSource.dec.toFixed(3)}°</div>
         </div>
+      )}
+      {pinnedTarget && (
+        <>
+          <div
+            ref={targetMarkerRef}
+            className="all-sky-target-marker"
+            aria-hidden="true"
+            // Same fullscreen coordinate-space switch as the hover tooltip above.
+            style={{ position: isFullscreen ? 'fixed' : 'absolute' }}
+          />
+          <div
+            ref={targetPopupRef}
+            className="all-sky-tooltip all-sky-target-popup"
+            role="group"
+            aria-label={`Search result: ${pinnedTarget.name}`}
+            style={{ position: isFullscreen ? 'fixed' : 'absolute' }}
+          >
+            <div className="all-sky-target-popup-header">
+              <div className="all-sky-tooltip-name">{pinnedTarget.name}</div>
+              <button
+                type="button"
+                className="all-sky-target-popup-close"
+                aria-label="Dismiss search result"
+                onClick={() => setPinnedTarget(null)}
+              >
+                <CloseIcon width={12} height={12} />
+              </button>
+            </div>
+            <div>RA: {pinnedTarget.ra.toFixed(3)}°</div>
+            <div>Dec: {pinnedTarget.dec.toFixed(3)}°</div>
+            <a
+              className="all-sky-target-popup-link"
+              href={buildSimbadConeSearchUrl(
+                pinnedTarget.ra,
+                pinnedTarget.dec,
+                CATALOG_SEARCH_CONE_RADIUS_ARCMIN
+              )}
+              target="_blank"
+              rel="noreferrer"
+            >
+              SIMBAD cone search ({CATALOG_SEARCH_CONE_RADIUS_ARCMIN}′)
+              <LinkOutIcon width={12} height={12} />
+            </a>
+          </div>
+        </>
       )}
     </div>
   );

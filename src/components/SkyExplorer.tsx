@@ -226,6 +226,7 @@ export function SkyExplorer({
         paginationControlsPosition="both"
         className="all-sky-table-wrapper themed-table"
         paginationClassName="all-sky-pagination"
+        customNoResultsMsg="No sources detected in the map's field of view"
       />
     </>
   );
