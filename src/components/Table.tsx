@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import {
   ColumnDef,
   getCoreRowModel,
@@ -26,6 +27,7 @@ export type TableProps<T> = {
   sortable?: boolean;
   loading?: boolean;
   rowHeight?: number;
+  customNoResultsMsg?: ReactNode;
 };
 
 /**
@@ -43,6 +45,7 @@ export function Table<T>({
   paginationControlsPosition = 'bottom',
   loading = false,
   rowHeight = undefined,
+  customNoResultsMsg = 'No results',
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -155,7 +158,7 @@ export function Table<T>({
                 colSpan={table.getAllLeafColumns().length}
                 style={{ fontStyle: 'italic' }}
               >
-                No results
+                {customNoResultsMsg}
               </td>
             </tr>
           )}
