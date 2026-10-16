@@ -8,7 +8,7 @@ LightView is the Simons Observatory Light Curve Viewer: a web application for br
 
 getting-started.md
 sky-explorer.md
-search.md
+search-page.md
 source-page.md
 cross-matching.md
 configuration.md

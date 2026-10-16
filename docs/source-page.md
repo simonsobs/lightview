@@ -3,8 +3,8 @@
 Each source has its own page at `/source/<source ID>`. You can reach it by:
 
 - clicking **View source page** in the home page's light curve preview,
-- clicking a source page link in the [Sky Explorer](sky-explorer.md) table or a [search](search.md) result, or
-- entering the ID in [Search by ID](search.md#search-by-id).
+- clicking a source page link in the [Sky Explorer](sky-explorer.md) table or a [search](search-page.md) result, or
+- entering the ID in [Search by ID](search-page.md#search-by-id).
 
 From top to bottom, the page has:
 

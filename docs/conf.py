@@ -22,7 +22,7 @@ myst_enable_extensions = [
     "attrs_inline",   # enable inline {key=val} attributes for images/links/spans
 ]
 
-# Generate anchors for h1-h3 so pages can link to sections, e.g. search.md#search-by-id
+# Generate anchors for h1-h3 so pages can link to sections, e.g. search-page.md#search-by-id
 myst_heading_anchors = 3
 
 # Tell Sphinx to treat .md files as source files
