@@ -119,6 +119,8 @@
   position: relative;
   display: flex;
   column-gap: 5px;
+  /* The clear-filter button's height, so the row is the same height without it */
+  min-height: 21px;
 }
 
 .active-filter-count,
