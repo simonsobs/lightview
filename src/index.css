@@ -332,6 +332,7 @@ footer {
 }
 
 .so-header-label {
+  text-wrap: nowrap;
   margin-bottom: -5px;
   letter-spacing: 3px;
 }
@@ -339,4 +340,8 @@ footer {
 .link-outs {
   color: var(--so-blue);
   text-decoration-color: #7dd3fc;
+}
+
+.left-align {
+  align-self: self-start;
 }

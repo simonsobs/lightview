@@ -28,6 +28,10 @@ export type TableProps<T> = {
   loading?: boolean;
   rowHeight?: number;
   customNoResultsMsg?: ReactNode;
+  /** Sizes every column to its content without wrapping, and the table to the sum of its
+   * columns, instead of stretching to fill the container at the columns' fixed sizes. Column
+   * `size`s are ignored in this mode. */
+  fitContent?: boolean;
 };
 
 /**
@@ -46,6 +50,7 @@ export function Table<T>({
   loading = false,
   rowHeight = undefined,
   customNoResultsMsg = 'No results',
+  fitContent = false,
 }: TableProps<T>) {
   const isPaginated = initialState && 'pagination' in initialState;
 
@@ -67,16 +72,16 @@ export function Table<T>({
           className={paginationClassName}
         />
       )}
-      <table>
+      <table className={fitContent ? 'fit-content-table' : undefined}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <th
                   key={header.id}
-                  style={{
-                    width: `${header.getSize()}px`,
-                  }}
+                  style={
+                    fitContent ? undefined : { width: `${header.getSize()}px` }
+                  }
                 >
                   {header.isPlaceholder ? null : (
                     <div
@@ -145,7 +150,11 @@ export function Table<T>({
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    style={{ width: `${cell.column.getSize()}px` }}
+                    style={
+                      fitContent
+                        ? undefined
+                        : { width: `${cell.column.getSize()}px` }
+                    }
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

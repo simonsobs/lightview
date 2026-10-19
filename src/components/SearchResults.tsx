@@ -72,7 +72,7 @@ export function SearchResults() {
   }, [location.search]);
 
   return (
-    <main>
+    <main className="left-align">
       {results ? (
         <>
           {searchParameters && (
@@ -85,6 +85,7 @@ export function SearchResults() {
           )}
           <Table
             className="themed-table"
+            fitContent
             data={results}
             columns={
               [
@@ -99,7 +100,6 @@ export function SearchResults() {
                       {row.original.source_id}
                     </Link>
                   ),
-                  size: 50,
                   accessorFn: (row) => row.source_id,
                 },
                 {
@@ -110,7 +110,6 @@ export function SearchResults() {
                       {row.original.ra.toFixed(3)}
                     </span>
                   ),
-                  size: 125,
                 },
                 {
                   header: 'Dec (deg)',
@@ -120,7 +119,6 @@ export function SearchResults() {
                       {row.original.dec.toFixed(3)}
                     </span>
                   ),
-                  size: 125,
                 },
               ] as ColumnDef<SourceResponse>[]
             }
