@@ -1,18 +1,21 @@
 import { createContext, use } from 'react';
 
-/** A position the all-sky map should center on, e.g. the result of a SIMBAD catalog search. */
-export type SkyTarget = {
-  name: string;
-  ra: number;
-  dec: number;
-  /** Unique per request, so searching the same object twice (after panning away) still
-   * re-centers the map even though name/ra/dec are unchanged. */
+/** A position the all-sky map should center on, from one of the navigation bar's searches:
+ * - 'object': a named object resolved by SIMBAD; the map zooms to a fixed field of view.
+ * - 'cone': a cone search; the map zooms to fit the whole cone, which is also drawn as a circle. */
+export type SkyTargetRequest =
+  | { kind: 'object'; name: string; ra: number; dec: number }
+  | { kind: 'cone'; ra: number; dec: number; radiusDeg: number };
+
+export type SkyTarget = SkyTargetRequest & {
+  /** Unique per request, so repeating a search (after panning away) still re-centers the map
+   * even though its position is unchanged. */
   requestId: number;
 };
 
 type SkyTargetContextValue = {
   skyTarget: SkyTarget | null;
-  goToSkyTarget: (target: Omit<SkyTarget, 'requestId'>) => void;
+  goToSkyTarget: (target: SkyTargetRequest) => void;
 };
 
 /** Bridges the navigation bar's Search (which resolves a target) and the home page's AllSkyMap

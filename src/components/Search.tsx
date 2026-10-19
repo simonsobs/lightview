@@ -4,9 +4,10 @@ import './styles/search-form.css';
 import { SearchIcon } from './icons/SearchIcon';
 import { useSkyTarget } from '../contexts/SkyTargetContext';
 import { resolveSimbadObject, SimbadResolveError } from '../utils/simbad';
+import { parseConeSearch } from '../utils/coneSearch';
 import { CloseIcon } from './icons/CloseIcon';
 
-type CatalogSearchError = { message: string; detail?: string };
+type SearchError = { title: string; message: string; detail?: string };
 
 export function Search() {
   const navigation = useNavigate();
@@ -14,11 +15,9 @@ export function Search() {
   const { goToSkyTarget } = useSkyTarget();
   const [value, setValue] = useState<string>('cone-search');
   const [isResolving, setIsResolving] = useState(false);
-  // Successful catalog searches are reported on the map itself (see AllSkyMap's pinned target
-  // popup); failures have no position to show there, so they're shown under the search bar.
-  const [catalogError, setCatalogError] = useState<CatalogSearchError | null>(
-    null
-  );
+  // Successful catalog and cone searches are reported on the map itself (see AllSkyMap's pinned
+  // target popup); failures have no position to show there, so they're shown under the search bar.
+  const [searchError, setSearchError] = useState<SearchError | null>(null);
   // Lets a new catalog search (or unmounting) cancel one still in flight, so a slow earlier
   // response can never land after, and overwrite, a newer one.
   const resolveControllerRef = useRef<AbortController | null>(null);
@@ -31,12 +30,13 @@ export function Search() {
       const controller = new AbortController();
       resolveControllerRef.current = controller;
       setIsResolving(true);
-      setCatalogError(null);
+      setSearchError(null);
 
       try {
         const object = await resolveSimbadObject(query, controller.signal);
         if (controller.signal.aborted) return;
         goToSkyTarget({
+          kind: 'object',
           name: object.identifier,
           ra: object.ra,
           dec: object.dec,
@@ -47,10 +47,15 @@ export function Search() {
       } catch (e) {
         if (controller.signal.aborted) return;
         // Left in the input on failure so a typo can be fixed rather than retyped
-        setCatalogError(
+        setSearchError(
           e instanceof SimbadResolveError
-            ? { message: e.message, detail: e.detail }
+            ? {
+                title: 'Catalog search failed',
+                message: e.message,
+                detail: e.detail,
+              }
             : {
+                title: 'Catalog search failed',
                 message:
                   'Something went wrong while searching SIMBAD. Please try again.',
               }
@@ -78,17 +83,25 @@ export function Search() {
       }
 
       if (value === 'cone-search') {
-        const queryParams = new URLSearchParams({
-          ra: formData.get('ra') as string,
-          dec: formData.get('dec') as string,
-          radius: formData.get('radius') as string,
-        });
-
-        const redirectUrl = new URL(
-          window.location.origin + '/search/cone?' + queryParams.toString()
+        const result = parseConeSearch(
+          (formData.get('ra') as string) ?? '',
+          (formData.get('dec') as string) ?? '',
+          (formData.get('radius') as string) ?? ''
         );
-
-        void navigation(redirectUrl.pathname + redirectUrl.search);
+        if (!result.ok) {
+          // Left in the inputs so the bad value can be corrected
+          setSearchError({
+            title: 'Invalid cone search',
+            message: result.message,
+          });
+          return;
+        }
+        // Otherwise a catalog search still in flight could land afterwards and move the map away
+        resolveControllerRef.current?.abort();
+        setSearchError(null);
+        goToSkyTarget({ kind: 'cone', ...result.cone });
+        // The all-sky map only lives on the home page
+        if (pathname !== '/') void navigation('/');
       } else {
         const sourceID = formData.get('source-id') as string;
 
@@ -101,25 +114,25 @@ export function Search() {
 
       formElement.reset();
     },
-    [navigation, value, runCatalogSearch]
+    [navigation, value, runCatalogSearch, goToSkyTarget, pathname]
   );
 
   // Escape dismisses the error, like the app's other popups; only listening while it's shown.
   useEffect(() => {
-    if (!catalogError) return;
+    if (!searchError) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setCatalogError(null);
+      if (e.key === 'Escape') setSearchError(null);
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [catalogError]);
+  }, [searchError]);
 
   return (
     <div className="search-container">
       <select
         onChange={(e) => {
           setValue(e.target.value);
-          setCatalogError(null);
+          setSearchError(null);
         }}
         id="search-type"
         value={value}
@@ -207,23 +220,23 @@ export function Search() {
           <SearchIcon className="submit-search-icon" />
         )}
       </button>
-      {catalogError && (
+      {searchError && (
         <div className="search-error-popover" role="alert">
           <div className="search-error-popover-header">
-            <strong>Catalog search failed</strong>
+            <strong>{searchError.title}</strong>
             <button
               type="button"
               className="search-error-popover-close"
               aria-label="Dismiss error"
-              onClick={() => setCatalogError(null)}
+              onClick={() => setSearchError(null)}
             >
               <CloseIcon width={12} height={12} />
             </button>
           </div>
-          <p>{catalogError.message}</p>
-          {catalogError.detail && (
+          <p>{searchError.message}</p>
+          {searchError.detail && (
             <p className="search-error-popover-detail">
-              SIMBAD: {catalogError.detail}
+              SIMBAD: {searchError.detail}
             </p>
           )}
         </div>

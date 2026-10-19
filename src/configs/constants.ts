@@ -55,8 +55,12 @@ export const SIMBAD_BASE_LINK_OUT_URL =
 /** Horizontal FOV (degrees) the all-sky map zooms to after a "Search by catalog via SIMBAD" lookup */
 export const CATALOG_SEARCH_FOV_DEG = 10;
 
-/** Radius of the SIMBAD cone search linked out to from the catalog-search result dialog. */
+/** Radius of the SIMBAD cone search linked out to from a catalog-search result's map popup. */
 export const CATALOG_SEARCH_CONE_RADIUS_ARCMIN = 5;
+
+/** How much wider than the cone's diameter the all-sky map's shorter side is zoomed to after a
+ * cone search, so the drawn cone has some breathing room inside the view. */
+export const CONE_SEARCH_FOV_MARGIN = 1.25;
 
 /** How long to wait on SIMBAD's name resolver before giving up and reporting a timeout. */
 export const SIMBAD_RESOLVE_TIMEOUT_MS = 15000;

@@ -193,6 +193,14 @@ export async function resolveSimbadObject(
   return resolveOnce(name, signal);
 }
 
+/** Converts RA in either the -180 -> 180 or 0 -> 360 convention to 0 -> 360. */
+export function normalizeRa(ra: number): number {
+  // Only shifts negative values, rather than the usual ((ra % 360) + 360) % 360, which adds
+  // floating-point noise to positive ones (10.68 -> 10.680000000000007)
+  const wrapped = ra % 360;
+  return wrapped < 0 ? wrapped + 360 : wrapped;
+}
+
 /** Link to SIMBAD's own coordinate (cone) search around a position. */
 export function buildSimbadConeSearchUrl(
   ra: number,
@@ -200,7 +208,7 @@ export function buildSimbadConeSearchUrl(
   radiusArcmin: number
 ): string {
   const params = new URLSearchParams({
-    Coord: `${ra} ${dec}`,
+    Coord: `${normalizeRa(ra)} ${dec}`,
     CooFrame: 'ICRS',
     Radius: String(radiusArcmin),
     'Radius.unit': 'arcmin',

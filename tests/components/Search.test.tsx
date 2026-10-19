@@ -61,6 +61,7 @@ describe('Search - catalog search via SIMBAD', () => {
 
     await waitFor(() =>
       expect(goToSkyTarget).toHaveBeenCalledWith({
+        kind: 'object',
         name: 'M 31',
         ra: 10.684708,
         dec: 41.26875,
@@ -109,5 +110,47 @@ describe('Search - catalog search via SIMBAD', () => {
     await screen.findByRole('alert');
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
+describe('Search - cone search', () => {
+  async function coneSearch(ra: string, dec: string, radius: string) {
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/^ra \(/), ra);
+    await user.type(screen.getByLabelText(/^dec \(/), dec);
+    await user.type(screen.getByLabelText(/^radius \(/), radius);
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+    return user;
+  }
+
+  it('moves the map to the cone and goes home instead of opening a results page', async () => {
+    const goToSkyTarget = vi.fn();
+    renderSearch(goToSkyTarget);
+
+    await coneSearch('83.633', '22.014', '0.5');
+
+    expect(goToSkyTarget).toHaveBeenCalledWith({
+      kind: 'cone',
+      ra: 83.633,
+      dec: 22.014,
+      radiusDeg: 0.5,
+    });
+    expect(screen.getByText('home page')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('reports invalid input without moving the map, keeping the values', async () => {
+    const goToSkyTarget = vi.fn();
+    renderSearch(goToSkyTarget);
+
+    await coneSearch('83.633', '95', '0.5');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid cone search');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Dec must be between -90° and 90°.'
+    );
+    expect(goToSkyTarget).not.toHaveBeenCalled();
+    expect(screen.getByText('source page')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^dec \(/)).toHaveValue('95');
   });
 });

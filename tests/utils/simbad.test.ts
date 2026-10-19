@@ -192,4 +192,9 @@ describe('buildSimbadConeSearchUrl', () => {
     expect(url.searchParams.get('Radius')).toBe('5');
     expect(url.searchParams.get('Radius.unit')).toBe('arcmin');
   });
+
+  it("converts a negative RA to SIMBAD's 0 -> 360 convention", () => {
+    const url = new URL(buildSimbadConeSearchUrl(-10, 5, 5));
+    expect(url.searchParams.get('Coord')).toBe('350 5');
+  });
 });

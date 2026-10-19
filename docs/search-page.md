@@ -13,21 +13,46 @@ Search types marked "Coming soon" appear in the dropdown but can't be selected y
 
 ## Cone search
 
-A cone search finds every source within a given radius of a position on the sky. All three fields are required and are in degrees:
+A cone search shows the part of the sky within a given radius of a position, on the [all-sky map](sky-explorer.md). All three fields are required and are in degrees:
 
-| Field      | Description                          |
-| ---------- | ------------------------------------ |
-| **ra**     | Right ascension of the cone's center |
-| **dec**    | Declination of the cone's center     |
-| **radius** | Radius of the cone                   |
+| Field      | Description                                                                    |
+| ---------- | ------------------------------------------------------------------------------ |
+| **ra**     | Right ascension of the cone's center, from -180 to 360 (both conventions work) |
+| **dec**    | Declination of the cone's center, from -90 to 90                               |
+| **radius** | Radius of the cone, greater than 0 and at most 180                             |
+
+If you search from another page, LightView returns to the home page.
 
 ### Results
 
-Results open on their own page. The heading repeats the search parameters, for example:
+The map:
+
+1. Centers on the cone's position.
+2. Zooms so the whole cone fits in view, with a little room around it. Very large cones zoom out no further than the whole sky.
+3. Draws the cone as an orange circle and opens a popup next to its center. Aladin's crosshair marks the center itself.
+
+The sources table below the map narrows to the sources in the new field of view, as it does when you pan or zoom yourself. The view is a rectangle around the cone, so the table can include sources just outside the circle, near the view's corners. See [Sources table](sky-explorer.md#sources-table). For a table of only the sources inside the cone, use the popup's **Open results table** link.
+
+The popup shows:
+
+| Item                   | Description                                                             |
+| ---------------------- | ----------------------------------------------------------------------- |
+| **RA**                 | The cone's right ascension in degrees, rounded to three decimal places. |
+| **Dec**                | The cone's declination in degrees, rounded to three decimal places.     |
+| **Radius**             | The cone's radius in degrees, rounded to three decimal places.          |
+| **Open results table** | Opens the cone's [results page](#results-page) in a new tab.            |
+
+The circle and popup stay attached to the cone as you pan and zoom. Close the popup with its close button (✕), which also removes the circle. A new search replaces them.
+
+### Errors
+
+If a field is missing a number or is out of range, a red message appears below the search bar explaining which field is wrong, and the map doesn't move. Your values are kept so you can correct them. Close the message with its close button (✕) or the `Escape` key.
+
+### Results page
+
+The results page lists only the sources inside the cone, without the map. The heading repeats the search parameters, for example:
 
 > Cone search results for '`{ {ra: 83.633}, {dec: 22.014}, {radius: 0.5} }`'
-
-The results table lists each matching source:
 
 | Column        | Description                                                  |
 | ------------- | ------------------------------------------------------------ |
@@ -39,15 +64,7 @@ The results table lists each matching source:
 - Click a column header to sort by that column. Click it again to change the sort direction.
 - If nothing falls within the cone, the table shows _No results_.
 
-### Linking to results
-
-Every cone search has its own URL, so you can bookmark results or share them:
-
-```text
-/search/cone?ra=83.633&dec=22.014&radius=0.5
-```
-
-Opening that URL runs the search again.
+The page has its own URL, so you can bookmark it or share it, for example `/search/cone?ra=83.633&dec=22.014&radius=0.5`. Opening that URL runs the search again.
 
 ## Search by ID
 

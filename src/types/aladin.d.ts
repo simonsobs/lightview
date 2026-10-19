@@ -28,6 +28,14 @@ interface Aladin {
   setProjection: (projection: string) => void;
   setFov: (fovDegrees: number) => void;
   getFov: () => [number, number];
+  /** The view's center as [ra, dec] in degrees. */
+  getRaDec: () => [number, number];
+  /** Aladin's internal zoom level; unlike getFov, it keeps changing once the FOV reaches its
+   * 360° cap (zooming out further shrinks the sky ellipse within the view). */
+  getZoomFactor: () => number;
+  /** The view's size in px as Aladin last measured it, which lags the container's real size
+   * until Aladin's own resize handling runs. */
+  getSize: () => [number, number];
   /** Projects a world position to [x, y] pixel coordinates relative to the view's top-left;
    * null if the position can't be projected (e.g. outside the projection's domain). Positions
    * outside the visible canvas can still project, so callers must bounds-check the result. */
@@ -68,6 +76,8 @@ interface Aladin {
   /** Detaches every catalog/overlay layer added via addCatalog/addOverlay. */
   removeLayers: () => void;
   addOverlay: (overlay: GraphicOverlay) => void;
+  /** Detaches a single layer previously added via addCatalog/addOverlay. */
+  removeOverlay: (overlay: GraphicOverlay) => void;
 }
 
 type CatalogShape =
