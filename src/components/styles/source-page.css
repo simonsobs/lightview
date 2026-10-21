@@ -88,6 +88,10 @@
   z-index: 5;
 }
 
+.aladin-viewer-host {
+  width: fit-content;
+}
+
 .aladin-viewer-container {
   width: 400px;
   height: 400px;

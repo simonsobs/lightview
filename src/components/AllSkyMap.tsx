@@ -8,6 +8,8 @@ import {
 } from '../configs/socolors';
 import { SkyExplorerProps } from './SkyExplorer';
 import { SkySource } from '../types';
+import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
+import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 
 type AllSkyMapProps = SkyExplorerProps & {
   appliedBand: string;
@@ -97,6 +99,15 @@ function AllSkyMap({
   setClickedSourceIdRef.current = onSourceClick;
 
   const [isDataReady, setIsDataReady] = useState(false);
+  // Bumped each time a viewer is (re)created, so the catalog effects below re-apply to it
+  const [viewerGeneration, setViewerGeneration] = useState(0);
+  // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
+  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
+  const {
+    isContextLost,
+    recoveryCount: contextRecoveryCount,
+    recover,
+  } = useWebGLContextRecovery(containerRef, { autoRecover: false });
   const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
     null
   );
@@ -165,7 +176,9 @@ function AllSkyMap({
   }, []);
 
   // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
-  // component (see App.tsx, which keeps Main mounted across navigation).
+  // component (see App.tsx, which keeps Main mounted across navigation). The one exception is
+  // when the user reloads it after the browser killed its WebGL context, in which case this
+  // reruns to build a fresh viewer in its place.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -180,6 +193,11 @@ function AllSkyMap({
     window.A.init
       .then(() => {
         if (cancelled || !window.A) return;
+        // Clear out the previous viewer's DOM and any state tied to it when rebuilding after a
+        // lost context. Aladin Lite has no teardown API, so the old instance itself can't be freed.
+        el.replaceChildren();
+        setHoveredSource(null);
+        setIsFullscreen(false);
         // calculate a FOV based on user's viewport width to enforce full [360,180] on load
         const fov =
           window.innerWidth < height
@@ -240,6 +258,7 @@ function AllSkyMap({
         aladin.on('resizeChanged', scheduleInViewUpdate);
 
         setIsDataReady(true);
+        setViewerGeneration((generation) => generation + 1);
       })
       .catch(() => {
         console.error('Aladin API failed to initialize.');
@@ -248,10 +267,11 @@ function AllSkyMap({
     return () => {
       cancelled = true;
     };
-    // This must only run once for the component's whole lifetime (see setClickedSourceIdRef
-    // comment above for why setClickedSourceId itself isn't a dependency here);
-    // scheduleInViewUpdate has a permanently stable identity, so listing it doesn't change that.
-  }, [scheduleInViewUpdate]);
+    // This must only run once for the component's whole lifetime, aside from a reload
+    // (see setClickedSourceIdRef comment above for why setClickedSourceId itself isn't a
+    // dependency here); scheduleInViewUpdate has a permanently stable identity, so listing it
+    // doesn't change that.
+  }, [scheduleInViewUpdate, contextRecoveryCount]);
 
   // Repopulate the sources catalog whenever the source list changes. Relies on the caller
   // (Main.tsx) memoizing `sources` so this doesn't refire on unrelated re-renders - this
@@ -281,12 +301,12 @@ function AllSkyMap({
     // A new source list means a new in-view set even if the camera hasn't moved; this also
     // produces the initial set once Aladin is ready.
     scheduleInViewUpdate();
-  }, [sources, isDataReady, scheduleInViewUpdate]);
+  }, [sources, viewerGeneration, scheduleInViewUpdate]);
 
   // Applies the derived visible set to the Aladin catalog. Re-runs whenever `visibleSources`
   // changes, which includes right after the catalog-rebuild effect above runs (since that
-  // effect shares the `sources` dependency), so a newly rebuilt catalog picks the active filter
-  // back up instead of momentarily showing every source.
+  // effect shares the `sources` and `viewerGeneration` dependencies), so a newly rebuilt catalog
+  // picks the active filter back up instead of momentarily showing every source.
   useEffect(() => {
     const catalog = catalogRef.current;
     if (!catalog) return;
@@ -300,7 +320,7 @@ function AllSkyMap({
         s.hide();
       }
     });
-  }, [visibleSources, appliedBand]);
+  }, [visibleSources, appliedBand, viewerGeneration]);
 
   // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
   // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move). The
@@ -335,14 +355,17 @@ function AllSkyMap({
           onClear={handleClearFilter}
         />
       </div>
-      <div
-        ref={containerRef}
-        style={{
-          width: '100%',
-          height,
-          visibility: isDataReady ? 'visible' : 'hidden',
-        }}
-      />
+      <div className="webgl-context-lost-host">
+        <div
+          ref={containerRef}
+          style={{
+            width: '100%',
+            height,
+            visibility: isDataReady ? 'visible' : 'hidden',
+          }}
+        />
+        {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
+      </div>
       {!isDataReady && (
         <div className="lightcurve-loading" style={{ height, width: '100%' }}>
           Loading...

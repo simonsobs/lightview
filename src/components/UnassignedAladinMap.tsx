@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { SimbadMatch } from '../types';
+import {
+  releaseAladinWebGLContext,
+  useWebGLContextRecovery,
+} from '../hooks/useWebGLContextRecovery';
+import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 
 type SkyPoint = { ra: number; dec: number };
 
@@ -55,7 +60,24 @@ export function UnassignedAladinMap({
 }: UnassignedAladinMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  // Bumped each time a viewer is (re)created, so the catalog-rebuild effect re-applies to it
+  const [viewerGeneration, setViewerGeneration] = useState(0);
+  // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
+  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
+  const {
+    isContextLost,
+    recoveryCount: contextRecoveryCount,
+    recover,
+  } = useWebGLContextRecovery(containerRef, { autoRecover: false });
+
+  // Free the viewer's WebGL context on unmount (this page remounts per source id), since the
+  // viewer itself is never garbage collected
+  useEffect(() => {
+    const el = containerRef.current;
+    return () => {
+      if (el) releaseAladinWebGLContext(el);
+    };
+  }, []);
   const [unavailableMessage, setUnavailableMessage] = useState<
     string | undefined
   >(undefined);
@@ -64,7 +86,8 @@ export function UnassignedAladinMap({
   // the lifetime of one mount (this page remounts fresh per source id); measurements/nearby/
   // simbadMatches stream in asynchronously afterwards and are applied by the catalog-rebuild
   // effect below instead, so re-running this on every data update isn't needed and would
-  // flicker or duplicate the viewer inside the same container.
+  // flicker or duplicate the viewer inside the same container. The one exception is when the
+  // user reloads it after the browser killed its WebGL context, which builds a fresh viewer.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -80,11 +103,14 @@ export function UnassignedAladinMap({
     window.A.init
       .then(() => {
         if (cancelled || !window.A) return;
+        // Clear out the previous viewer's DOM when rebuilding after a lost context; Aladin Lite
+        // has no teardown API, so the old instance itself can't be freed
+        el.replaceChildren();
         const fov = Math.max((beamRadiusArcmin * 8) / 60, MIN_FOV_DEGREES);
         const aladin = window.A.aladin(el, { survey, fov });
         aladin.gotoRaDec(sourceRa, sourceDec);
         aladinInstanceRef.current = aladin;
-        setIsReady(true);
+        setViewerGeneration((generation) => generation + 1);
       })
       .catch((error: unknown) => {
         console.error('Aladin map could not be initialized', error);
@@ -96,13 +122,13 @@ export function UnassignedAladinMap({
       aladinInstanceRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [contextRecoveryCount]);
 
   // Rebuilds every overlay/catalog whenever the underlying data changes, e.g. once the
   // asynchronous SIMBAD lookup resolves after the initial render.
   useEffect(() => {
     const aladin = aladinInstanceRef.current;
-    if (!aladin || !window.A || !isReady) return;
+    if (!aladin || !window.A) return;
 
     try {
       aladin.removeLayers();
@@ -168,7 +194,7 @@ export function UnassignedAladinMap({
       setUnavailableMessage(UNAVAILABLE_MESSAGE);
     }
   }, [
-    isReady,
+    viewerGeneration,
     sourceRa,
     sourceDec,
     beamRadiusArcmin,
@@ -189,11 +215,14 @@ export function UnassignedAladinMap({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="unassigned-aladin-container"
-      style={{ height }}
-      aria-label="Aladin-Lite sky map"
-    />
+    <div className="webgl-context-lost-host">
+      <div
+        ref={containerRef}
+        className="unassigned-aladin-container"
+        style={{ height }}
+        aria-label="Aladin-Lite sky map"
+      />
+      {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
+    </div>
   );
 }

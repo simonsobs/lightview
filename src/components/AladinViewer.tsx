@@ -1,5 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SourceResponse } from '../types';
+import {
+  releaseAladinWebGLContext,
+  useWebGLContextRecovery,
+} from '../hooks/useWebGLContextRecovery';
+import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 
 type AladinViewerProps = {
   source: SourceResponse;
@@ -9,7 +14,29 @@ type AladinViewerProps = {
 export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   const aladinContainerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
+  // Bumped each time a viewer is (re)created, so the effects below re-apply to the new instance
+  const [viewerGeneration, setViewerGeneration] = useState(0);
+  // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
+  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
+  const {
+    isContextLost,
+    recoveryCount: contextRecoveryCount,
+    recover,
+  } = useWebGLContextRecovery(aladinContainerRef, { autoRecover: false });
 
+  // Free the viewer's WebGL context on unmount (e.g. navigating to another source), since the
+  // viewer itself is never garbage collected
+  useEffect(() => {
+    const el = aladinContainerRef.current;
+    return () => {
+      if (el) releaseAladinWebGLContext(el);
+    };
+  }, []);
+
+  // Creates the viewer once per mount, plus again when the user reloads it after the browser
+  // killed its WebGL context. Aladin Lite has no teardown API and its redraw loop never
+  // stops, so a replaced viewer is never freed, which is why changing data (e.g. the nearby
+  // sources radius) must update the existing viewer below rather than create a new one here.
   useEffect(() => {
     // Script is loaded in index.html, so the Aladin API should have loaded; return early if it hasn't
     if (!window.A) {
@@ -17,64 +44,25 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
       return;
     }
 
+    let cancelled = false;
+
     // Initialize the Aladin plugin
     window.A.init
       .then(() => {
-        if (aladinContainerRef.current) {
-          // We know window.A exists, so instantiate Aladin viewer with given options
-          aladinInstanceRef.current = window.A!.aladin(
-            aladinContainerRef.current,
-            {
-              survey: 'P/2MASS/color',
-              fov: 5 / 60,
-              cooFrame: 'ICRSd',
-              projection: 'ZEA',
-            }
-          );
+        const el = aladinContainerRef.current;
+        if (cancelled || !el || !window.A) return;
 
-          // Create catalog for source and nearby sources
-          const cat = window.A!.catalog({
-            name: 'Source and nearby sources',
-            shape: function (
-              source: { x: number; y: number },
-              canvasCtx: CanvasRenderingContext2D
-            ) {
-              canvasCtx.beginPath();
-              canvasCtx.arc(source.x, source.y, 8, 0, 2 * Math.PI, false);
-              canvasCtx.closePath();
-              canvasCtx.strokeStyle = '#c38';
-              canvasCtx.lineWidth = 3;
-              canvasCtx.globalAlpha = 0.7;
-              canvasCtx.stroke();
-            },
-            onClick: 'showPopup',
-          });
-          aladinInstanceRef.current.addCatalog(cat);
+        // Clear out the previous viewer's DOM when rebuilding after a lost context
+        el.replaceChildren();
 
-          // Add markers for the source and nearby sources
-          cat.addSources([
-            window.A!.source(source.ra, source.dec, {
-              name: source.name,
-              RA: source.ra.toFixed(3),
-              Dec: source.dec.toFixed(3),
-            }),
-          ]);
-
-          if (nearbySources.length) {
-            cat.addSources(
-              nearbySources.map((nearbySource) =>
-                window.A!.source(nearbySource.ra, nearbySource.dec, {
-                  name: nearbySource.name,
-                  RA: nearbySource.ra.toFixed(3),
-                  Dec: nearbySource.dec.toFixed(3),
-                })
-              )
-            );
-          }
-
-          // Center Aladin's cursor on the source's location
-          aladinInstanceRef.current.gotoRaDec(source.ra, source.dec);
-        }
+        // We know window.A exists, so instantiate Aladin viewer with given options
+        aladinInstanceRef.current = window.A.aladin(el, {
+          survey: 'P/2MASS/color',
+          fov: 5 / 60,
+          cooFrame: 'ICRSd',
+          projection: 'ZEA',
+        });
+        setViewerGeneration((generation) => generation + 1);
       })
       .catch(() => {
         console.error('Aladin API failed to initialize.');
@@ -82,9 +70,68 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
 
     // Clean up function
     return () => {
+      cancelled = true;
       aladinInstanceRef.current = null;
     };
-  }, [source.name, source.ra, source.dec, nearbySources]);
+  }, [contextRecoveryCount]);
 
-  return <div ref={aladinContainerRef} className="aladin-viewer-container" />;
+  // Center Aladin's cursor on the source's location
+  useEffect(() => {
+    aladinInstanceRef.current?.gotoRaDec(source.ra, source.dec);
+  }, [viewerGeneration, source.ra, source.dec]);
+
+  // Replaces the source/nearby sources catalog whenever they change
+  useEffect(() => {
+    const aladin = aladinInstanceRef.current;
+    if (!aladin || !window.A) return;
+
+    aladin.removeLayers();
+
+    // Create catalog for source and nearby sources
+    const cat = window.A.catalog({
+      name: 'Source and nearby sources',
+      shape: function (
+        source: { x: number; y: number },
+        canvasCtx: CanvasRenderingContext2D
+      ) {
+        canvasCtx.beginPath();
+        canvasCtx.arc(source.x, source.y, 8, 0, 2 * Math.PI, false);
+        canvasCtx.closePath();
+        canvasCtx.strokeStyle = '#c38';
+        canvasCtx.lineWidth = 3;
+        canvasCtx.globalAlpha = 0.7;
+        canvasCtx.stroke();
+      },
+      onClick: 'showPopup',
+    });
+    aladin.addCatalog(cat);
+
+    // Add markers for the source and nearby sources
+    cat.addSources([
+      window.A.source(source.ra, source.dec, {
+        name: source.name,
+        RA: source.ra.toFixed(3),
+        Dec: source.dec.toFixed(3),
+      }),
+    ]);
+
+    if (nearbySources.length) {
+      cat.addSources(
+        nearbySources.map((nearbySource) =>
+          window.A!.source(nearbySource.ra, nearbySource.dec, {
+            name: nearbySource.name,
+            RA: nearbySource.ra.toFixed(3),
+            Dec: nearbySource.dec.toFixed(3),
+          })
+        )
+      );
+    }
+  }, [viewerGeneration, source.name, source.ra, source.dec, nearbySources]);
+
+  return (
+    <div className="webgl-context-lost-host aladin-viewer-host">
+      <div ref={aladinContainerRef} className="aladin-viewer-container" />
+      {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
+    </div>
+  );
 }
