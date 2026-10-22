@@ -32,6 +32,7 @@ import Plotly, {
 } from 'plotly.js-dist-min';
 import { useQuery } from '../hooks/useQuery';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
 import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
 import {
   buildInstrumentLegendTraces,
@@ -717,54 +718,103 @@ export function Lightcurve({
     [clickedMarkerData, handleRelayoutOrTooltipClose]
   );
 
-  /** Creates the Plotly plot and attaches our handlers to the plot */
+  // The scattergl traces each draw into a WebGL context. Browsers cap how many can be live at
+  // once, so the plot is created once and updated in place with Plotly.react, which reuses its
+  // context. A lost context triggers a full redraw when tab re-loads via useWebGLContextRecovery.
+
+  // Latest handlers, read by the listeners attached in the plot effect. Going through a ref lets
+  // those listeners be attached once per plot instance rather than re-bound on every replot.
+  const plotHandlersRef = useRef({
+    handleRelayoutOrTooltipClose,
+    handleMarkerClick,
+    handleLegendClick,
+  });
+  useEffect(() => {
+    plotHandlersRef.current = {
+      handleRelayoutOrTooltipClose,
+      handleMarkerClick,
+      handleLegendClick,
+    };
+  }, [handleRelayoutOrTooltipClose, handleMarkerClick, handleLegendClick]);
+
+  // Whether our listeners are attached to the current plot instance; Plotly.purge drops them.
+  const areListenersAttachedRef = useRef(false);
+  // Bumps after one of this plot's WebGL contexts is lost once the plot is back on screen
+  const { recoveryCount: contextRecoveryCount } =
+    useWebGLContextRecovery(plotlyRef);
+  // The recovery count the current plot instance was built for; when they differ, the plot effect
+  // purges and rebuilds from scratch, since Plotly.react with unchanged data/layout would skip
+  // redrawing the dead canvas.
+  const plottedRecoveryCountRef = useRef(contextRecoveryCount);
+
+  /** Creates the Plotly plot on first run, then updates it in place */
   useEffect(() => {
     const stablePlotlyReference = plotlyRef.current;
     if (!stablePlotlyReference) return;
 
     setIsDataReady(false);
 
-    // Plotly.newPlot is a synchronous, potentially expensive call for a lightcurve with many
+    // Plotting is a synchronous, potentially expensive call for a lightcurve with many
     // traces/points; since React flushes every effect for a commit in one synchronous
     // pass, running it directly here would block any other component's effects in that same
     // commit (e.g. Main.tsx's dialog-open transition-kickoff effect) until it finishes. Deferring
     // it to the next animation frame lets those effects run first, so this Lightcurve mounting
     // with already-cached (near-instant) data doesn't stall an in-progress UI transition.
     const raf = requestAnimationFrame(() => {
-      void Plotly.newPlot(
+      if (plottedRecoveryCountRef.current !== contextRecoveryCount) {
+        plottedRecoveryCountRef.current = contextRecoveryCount;
+        Plotly.purge(stablePlotlyReference);
+        areListenersAttachedRef.current = false;
+        // The rebuilt plot won't carry the clicked marker's highlight, so close its tooltip too
+        setClickedMarkerData(undefined);
+      }
+
+      // On an empty element Plotly.react behaves like Plotly.newPlot
+      void Plotly.react(
         stablePlotlyReference,
         plotData,
         plotLayoutConfig,
         plotConfig
       );
 
-      void stablePlotlyReference.on(
-        'plotly_relayout',
-        handleRelayoutOrTooltipClose
+      if (areListenersAttachedRef.current) return;
+      areListenersAttachedRef.current = true;
+
+      void stablePlotlyReference.on('plotly_relayout', () =>
+        plotHandlersRef.current.handleRelayoutOrTooltipClose()
       );
 
       void stablePlotlyReference.on('plotly_afterplot', () =>
         setIsDataReady(true)
       );
 
-      void stablePlotlyReference.on('plotly_click', handleMarkerClick);
+      void stablePlotlyReference.on('plotly_click', (e) =>
+        plotHandlersRef.current.handleMarkerClick(e)
+      );
 
-      void stablePlotlyReference.on('plotly_legendclick', handleLegendClick);
+      void stablePlotlyReference.on('plotly_legendclick', (e) =>
+        plotHandlersRef.current.handleLegendClick(e)
+      );
     });
 
-    return () => {
-      cancelAnimationFrame(raf);
-      Plotly.purge(stablePlotlyReference);
-    };
+    return () => cancelAnimationFrame(raf);
   }, [
     plotData,
     plotLayoutConfig,
     plotConfig,
-    handleRelayoutOrTooltipClose,
-    handleMarkerClick,
-    handleLegendClick,
+    contextRecoveryCount,
     setIsDataReady,
   ]);
+
+  /** Tears the plot down (freeing its WebGL context) only on unmount */
+  useEffect(() => {
+    const stablePlotlyReference = plotlyRef.current;
+    if (!stablePlotlyReference) return;
+    return () => {
+      Plotly.purge(stablePlotlyReference);
+      areListenersAttachedRef.current = false;
+    };
+  }, []);
 
   /** Attaches keyboard listeners to the window so we can close marker tooltips with "Esc" key */
   useEffect(() => {

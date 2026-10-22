@@ -21,6 +21,8 @@ import {
 } from '../configs/socolors';
 import { SkyExplorerProps } from './SkyExplorer';
 import { SkySource } from '../types';
+import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
+import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 import { SkyTarget, useSkyTarget } from '../contexts/SkyTargetContext';
 import { prefersReducedMotion } from '../utils/prefersReducedMotion';
 import { buildSimbadConeSearchUrl, normalizeRa } from '../utils/simbad';
@@ -143,6 +145,15 @@ function AllSkyMap({
   setClickedSourceIdRef.current = onSourceClick;
 
   const [isDataReady, setIsDataReady] = useState(false);
+  // Bumped each time a viewer is (re)created, so the catalog effects below re-apply to it
+  const [viewerGeneration, setViewerGeneration] = useState(0);
+  // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
+  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
+  const {
+    isContextLost,
+    recoveryCount: contextRecoveryCount,
+    recover,
+  } = useWebGLContextRecovery(containerRef, { autoRecover: false });
   const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
     null
   );
@@ -238,8 +249,18 @@ function AllSkyMap({
     // world2pix is relative to the Aladin container, but the marker/popup are positioned within
     // all-sky-wrapper, where the container sits below the header, so shift by the container's
     // offset. In fullscreen both are viewport-relative (see isFullscreen above), so no shift.
-    const shiftX = isFullscreenRef.current ? 0 : el.offsetLeft;
-    const shiftY = isFullscreenRef.current ? 0 : el.offsetTop;
+    // Measured against the popup's containing block rather than via el.offsetLeft/offsetTop,
+    // since the container's offsetParent is its (positioned) webgl-context-lost-host wrapper, not
+    // all-sky-wrapper.
+    let shiftX = 0;
+    let shiftY = 0;
+    const containingBlock = popup.offsetParent;
+    if (!isFullscreenRef.current && containingBlock) {
+      const elRect = el.getBoundingClientRect();
+      const blockRect = containingBlock.getBoundingClientRect();
+      shiftX = elRect.left - blockRect.left - containingBlock.clientLeft;
+      shiftY = elRect.top - blockRect.top - containingBlock.clientTop;
+    }
     const viewWidth = el.clientWidth;
     const viewHeight = el.clientHeight;
     const xy = aladin.world2pix(target.ra, target.dec);
@@ -275,7 +296,9 @@ function AllSkyMap({
   }, []);
 
   // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
-  // component (see App.tsx, which keeps Main mounted across navigation).
+  // component (see App.tsx, which keeps Main mounted across navigation). The one exception is
+  // when the user reloads it after the browser killed its WebGL context, in which case this
+  // reruns to build a fresh viewer in its place.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -290,6 +313,11 @@ function AllSkyMap({
     window.A.init
       .then(() => {
         if (cancelled || !window.A) return;
+        // Clear out the previous viewer's DOM and any state tied to it when rebuilding after a
+        // lost context. Aladin Lite has no teardown API, so the old instance itself can't be freed.
+        el.replaceChildren();
+        setHoveredSource(null);
+        setIsFullscreen(false);
         // calculate a FOV based on user's viewport width to enforce full [360,180] on load
         const fov =
           window.innerWidth < height
@@ -344,6 +372,7 @@ function AllSkyMap({
         aladin.on('fullScreenToggled', setIsFullscreen);
 
         setIsDataReady(true);
+        setViewerGeneration((generation) => generation + 1);
       })
       .catch(() => {
         console.error('Aladin API failed to initialize.');
@@ -351,10 +380,14 @@ function AllSkyMap({
 
     return () => {
       cancelled = true;
+      // On a reload, stop every other effect (which read this ref) from acting on the dead viewer
+      // while the new one is still being created; they re-run once it's ready (viewerGeneration).
+      aladinInstanceRef.current = null;
     };
-    // This must only run once for the component's whole lifetime (see setClickedSourceIdRef
-    // comment above for why setClickedSourceId itself isn't a dependency here).
-  }, []);
+    // This must only run once for the component's whole lifetime, aside from a reload (see
+    // setClickedSourceIdRef comment above for why setClickedSourceId itself isn't a dependency
+    // here).
+  }, [contextRecoveryCount]);
 
   // Recomputes the in-view set whenever the view actually changes, by checking its center, zoom
   // and size every frame, rather than relying on Aladin's positionChanged/zoomChanged events.
@@ -372,6 +405,7 @@ function AllSkyMap({
   // view's edge has moved by at least VIEW_CHANGE_THRESHOLD_PX since then (comparing with the last
   // recompute rather than the previous frame means a slow, steady pan still adds up and
   // triggers). The final in-view set is therefore always within a pixel of the settled view.
+  // Keyed on viewerGeneration so it switches over to the new viewer after a reload.
   useEffect(() => {
     const aladin = aladinInstanceRef.current;
     if (!aladin) return;
@@ -415,7 +449,7 @@ function AllSkyMap({
     };
     frame = window.requestAnimationFrame(watchView);
     return () => window.cancelAnimationFrame(frame);
-  }, [isDataReady, scheduleInViewUpdate]);
+  }, [viewerGeneration, scheduleInViewUpdate]);
 
   // Repopulate the sources catalog whenever the source list changes. Relies on the caller
   // (Main.tsx) memoizing `sources` so this doesn't refire on unrelated re-renders - this
@@ -445,12 +479,12 @@ function AllSkyMap({
     // A new source list means a new in-view set even if the camera hasn't moved; this also
     // produces the initial set once Aladin is ready.
     scheduleInViewUpdate();
-  }, [sources, isDataReady, scheduleInViewUpdate]);
+  }, [sources, viewerGeneration, scheduleInViewUpdate]);
 
   // Applies the derived visible set to the Aladin catalog. Re-runs whenever `visibleSources`
   // changes, which includes right after the catalog-rebuild effect above runs (since that
-  // effect shares the `sources` dependency), so a newly rebuilt catalog picks the active filter
-  // back up instead of momentarily showing every source.
+  // effect shares the `sources` and `viewerGeneration` dependencies), so a newly rebuilt catalog
+  // picks the active filter back up instead of momentarily showing every source.
   useEffect(() => {
     const catalog = catalogRef.current;
     if (!catalog) return;
@@ -464,19 +498,27 @@ function AllSkyMap({
         s.hide();
       }
     });
-  }, [visibleSources, appliedBand]);
+  }, [visibleSources, appliedBand, viewerGeneration]);
 
   // Centers and zooms on a target from the navigation bar's catalog or cone search, then pins a
   // popup (position and a link-out) to it until dismissed. A named object gets a
   // fixed zoom; a cone is zoomed to fit inside the view (see fovForCone). Keyed on
   // requestId (tracked in a ref) so a target set before Aladin finished initializing is applied
-  // once it's ready, without re-applying a stale one later and yanking the camera back.
+  // once it's ready, without re-applying a stale one later and yanking the camera back. A new
+  // target arriving while the viewer's WebGL context is lost (e.g. searched from another page
+  // while this one was hidden) reloads the viewer, since the search is the user asking to see the
+  // map; it's then applied to the new viewer once that's ready (viewerGeneration).
   const { skyTarget } = useSkyTarget();
   const appliedTargetIdRef = useRef<number | null>(null);
   useEffect(() => {
-    const aladin = aladinInstanceRef.current;
-    if (!aladin || !skyTarget) return;
+    if (!skyTarget) return;
     if (appliedTargetIdRef.current === skyTarget.requestId) return;
+    if (isContextLost) {
+      recover();
+      return;
+    }
+    const aladin = aladinInstanceRef.current;
+    if (!aladin) return;
     appliedTargetIdRef.current = skyTarget.requestId;
 
     let applied = false;
@@ -546,11 +588,18 @@ function AllSkyMap({
       // The move never happened, so let the next run (e.g. StrictMode's re-run) apply it.
       if (!applied) appliedTargetIdRef.current = null;
     };
-  }, [skyTarget, isDataReady, scheduleInViewUpdate]);
+  }, [
+    skyTarget,
+    viewerGeneration,
+    isContextLost,
+    recover,
+    scheduleInViewUpdate,
+  ]);
 
   // Draws a pinned cone search's cone as a circle on the map, removed again once the result is
   // dismissed or replaced. Also re-runs after the catalog-rebuild effect above (shared `sources`
-  // dependency), since that effect's removeLayers() detaches every overlay, this one included.
+  // and `viewerGeneration` dependencies), since that effect's removeLayers() detaches every
+  // overlay, this one included, and a reloaded viewer starts out without it.
   useEffect(() => {
     const aladin = aladinInstanceRef.current;
     if (!aladin || !window.A || pinnedTarget?.kind !== 'cone') return;
@@ -564,7 +613,7 @@ function AllSkyMap({
       window.A.circle(pinnedTarget.ra, pinnedTarget.dec, pinnedTarget.radiusDeg)
     );
     return () => aladin.removeOverlay(overlay);
-  }, [pinnedTarget, sources, isDataReady]);
+  }, [pinnedTarget, sources, viewerGeneration]);
 
   // Places a newly pinned popup before it's first painted (so it never flashes at the container's
   // top-left), and again when fullscreen toggles since its coordinate space changes with it.
@@ -587,6 +636,14 @@ function AllSkyMap({
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
   }, [pinnedTarget, positionTargetPopup]);
+
+  // A reloaded viewer starts back at the whole sky; if a search result is still pinned, clear the
+  // applied marker so the skyTarget effect moves the new viewer back to it (a pinned target is
+  // always the latest skyTarget, so this can't resurrect a dismissed or replaced one).
+  const handleReload = useCallback(() => {
+    if (pinnedTargetRef.current) appliedTargetIdRef.current = null;
+    recover();
+  }, [recover]);
 
   // Stable identities so the memoized SourceFluxFilter doesn't re-render just because AllSkyMap
   // re-rendered for an unrelated reason (e.g. hoveredSource changing on every mouse move). The
@@ -621,14 +678,17 @@ function AllSkyMap({
           onClear={handleClearFilter}
         />
       </div>
-      <div
-        ref={containerRef}
-        style={{
-          width: '100%',
-          height,
-          visibility: isDataReady ? 'visible' : 'hidden',
-        }}
-      />
+      <div className="webgl-context-lost-host">
+        <div
+          ref={containerRef}
+          style={{
+            width: '100%',
+            height,
+            visibility: isDataReady ? 'visible' : 'hidden',
+          }}
+        />
+        {isContextLost && <WebGLContextLostOverlay onReload={handleReload} />}
+      </div>
       {!isDataReady && (
         <div className="lightcurve-loading" style={{ height, width: '100%' }}>
           Loading...
