@@ -52,6 +52,19 @@ export const SIMBAD_BASE_URL = 'https://simbad.cds.unistra.fr';
 export const SIMBAD_BASE_LINK_OUT_URL =
   'https://portal.cds.unistra.fr/?target=';
 
+/** Horizontal FOV (degrees) the all-sky map zooms to after a "Search by catalog via SIMBAD" lookup */
+export const CATALOG_SEARCH_FOV_DEG = 10;
+
+/** Radius of the SIMBAD cone search linked out to from a catalog-search result's map popup. */
+export const CATALOG_SEARCH_CONE_RADIUS_ARCMIN = 5;
+
+/** How much wider than the cone's diameter the all-sky map's shorter side is zoomed to after a
+ * cone search, so the drawn cone has some breathing room inside the view. */
+export const CONE_SEARCH_FOV_MARGIN = 1.25;
+
+/** How long to wait on SIMBAD's name resolver before giving up and reporting a timeout. */
+export const SIMBAD_RESOLVE_TIMEOUT_MS = 15000;
+
 /** Search/beam radius used for unassigned-source cross-matching (SIMBAD cone search, nearby
  * unassigned sources, and the sky plot's dashed beam circle). */
 export const UNASSIGNED_BEAM_RADIUS_ARCMIN = 2.0;

@@ -1,3 +1,17 @@
+.all-sky-table-caption {
+  margin: 0;
+  padding: 6px 10px 2px;
+  color: white;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.all-sky-table-caption-note {
+  font-weight: normal;
+  font-style: italic;
+  color: #bbb;
+}
+
 .all-sky-table-wrapper {
   margin: 5px;
 }

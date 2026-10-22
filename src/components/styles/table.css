@@ -11,6 +11,18 @@ table {
   width: 100%;
 }
 
+/* See Table's fitContent prop */
+table.fit-content-table {
+  table-layout: auto;
+  width: auto;
+}
+
+.fit-content-table th,
+.fit-content-table td {
+  white-space: nowrap;
+  padding: 4px 12px;
+}
+
 thead {
   background-color: rgb(228 240 245);
 }

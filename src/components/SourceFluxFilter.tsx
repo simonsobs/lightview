@@ -16,7 +16,7 @@ interface SourceFluxFilterProps {
 
 /**
  * Header controls for filtering the all-sky map's sources by frequency band + median flux
- * range: the "N of M sources" / active-filter summary, the button that opens the filter menu,
+ * range: the source count and filter status, the button that opens the filter menu,
  * and the menu itself. Memoized because AllSkyMap re-renders on every hovered-marker change
  * (mousemove over the sky map), which has nothing to do with this filter UI.
  */
@@ -35,26 +35,37 @@ function SourceFluxFilter({
   return (
     <>
       <div className="filter-details-container">
+        {/* Counts sources across the whole sky. The number depends only on the filter, unlike the table's 
+          count below the map, which follows the map's view */}
         <p className="active-filter-count">
-          Showing {visibleCount} of {sources.length} sources
+          {hasActiveFilter
+            ? `${visibleCount.toLocaleString()} of ${sources.length.toLocaleString()} sources match`
+            : `${sources.length.toLocaleString()} sources`}
         </p>
-        {hasActiveFilter && (
-          <div className="active-filter-subtitle-container">
+        {/* Always rendered, so the header keeps its height when a filter is applied or cleared */}
+        <div className="active-filter-subtitle-container">
+          {hasActiveFilter ? (
+            <>
+              <p className="active-filter-details subtitle-text">
+                Filtered on {appliedBand} from {appliedRange[0]} to{' '}
+                {appliedRange[1]} mJy
+              </p>
+              <TooltipButton
+                buttonClassName="clear-filter-btn"
+                tooltipClassName="clear-filter-btn-tooltip"
+                tooltipText="Clear filter"
+                ariaLabel="Clear filter"
+                onClick={onClear}
+              >
+                ❌
+              </TooltipButton>
+            </>
+          ) : (
             <p className="active-filter-details subtitle-text">
-              Filtered on {appliedBand} from {appliedRange[0]} to{' '}
-              {appliedRange[1]} mJy
+              No filter applied
             </p>
-            <TooltipButton
-              buttonClassName="clear-filter-btn"
-              tooltipClassName="clear-filter-btn-tooltip"
-              tooltipText="Clear filter"
-              ariaLabel="Clear filter"
-              onClick={onClear}
-            >
-              ❌
-            </TooltipButton>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <div className="flux-filter-controls">
         <div className="flux-filter-btn-container">
