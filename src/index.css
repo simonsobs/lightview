@@ -246,6 +246,58 @@ footer {
   margin-bottom: 2px;
 }
 
+/* Pinned catalog-search result: the hover tooltip's look, but interactive, and drawn just under
+   the hover tooltip so hovering a nearby source still shows that source's details on top. */
+.all-sky-target-popup {
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.all-sky-target-popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.all-sky-target-popup-close {
+  display: flex;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: -2px -4px 0 0;
+  color: rgb(203 213 225);
+  cursor: pointer;
+}
+
+.all-sky-target-popup-close:hover {
+  color: white;
+}
+
+/* --so-blue is too dark to read on the tooltip's near-black background */
+.all-sky-target-popup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: #7cc4f0;
+}
+
+.all-sky-target-popup-link:hover {
+  color: #a9d9f7;
+}
+
+/* Ring marking the target's exact position, centered on it via the translate */
+.all-sky-target-marker {
+  z-index: 5;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--bg-so-orange);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
 .text-so-blue {
   color: var(--so-blue);
 }
@@ -280,6 +332,7 @@ footer {
 }
 
 .so-header-label {
+  text-wrap: nowrap;
   margin-bottom: -5px;
   letter-spacing: 3px;
 }
@@ -287,4 +340,8 @@ footer {
 .link-outs {
   color: var(--so-blue);
   text-decoration-color: #7dd3fc;
+}
+
+.left-align {
+  align-self: self-start;
 }

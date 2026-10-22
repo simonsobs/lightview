@@ -112,6 +112,22 @@ describe('TablePaginationControls', () => {
       await user.click(screen.getByTitle('Go to first page'));
       expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
     });
+
+    it('shows an empty table as 0 - 0 of 0 on page 1 of 1, with navigation disabled', () => {
+      render(<TableModeHarness data={[]} pageSize={2} />);
+
+      expect(screen.getByText('0 - 0')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getByText(/Page 1 of 1/)).toBeInTheDocument();
+      for (const title of [
+        'Go to first page',
+        'Go to previous page',
+        'Go to next page',
+        'Go to last page',
+      ]) {
+        expect(screen.getByTitle(title)).toBeDisabled();
+      }
+    });
   });
 
   describe('custom pagination state', () => {
@@ -147,6 +163,26 @@ describe('TablePaginationControls', () => {
 
       await user.click(screen.getByTitle('Go to previous page'));
       expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
+    });
+    it('disables all navigation when there are no items', () => {
+      render(<CustomModeHarness totalItems={0} itemsPerPage={10} />);
+
+      expect(screen.getByText('0 - 0')).toBeInTheDocument();
+      expect(screen.getByText(/Page 1 of 1/)).toBeInTheDocument();
+      expect(screen.getByTitle('Go to next page')).toBeDisabled();
+      expect(screen.getByTitle('Go to last page')).toBeDisabled();
+    });
+
+    it('treats the last page as the last page when items divide evenly into pages', async () => {
+      const user = userEvent.setup();
+      render(<CustomModeHarness totalItems={20} itemsPerPage={10} />);
+
+      await user.click(screen.getByTitle('Go to last page'));
+
+      expect(screen.getByText(/Page 2 of 2/)).toBeInTheDocument();
+      expect(screen.getByText('11 - 20')).toBeInTheDocument();
+      expect(screen.getByTitle('Go to next page')).toBeDisabled();
+      expect(screen.getByTitle('Go to last page')).toBeDisabled();
     });
   });
 });

@@ -219,13 +219,21 @@ export function SkyExplorer({
           setInViewIds={setInViewIds}
         />
       </div>
+      {/* Helps differentiate the table's count vs the map's filtered count */}
+      <p className="all-sky-table-caption">
+        Sources in view: {deferredSourcesInView.length.toLocaleString()}
+        {appliedBand !== '' && (
+          <span className="all-sky-table-caption-note"> (matching filter)</span>
+        )}
+      </p>
       <Table
         data={deferredSourcesInView}
         columns={columns}
         initialState={TABLE_INITIAL_STATE}
-        paginationControlsPosition="both"
+        paginationControlsPosition="bottom"
         className="all-sky-table-wrapper themed-table"
         paginationClassName="all-sky-pagination"
+        customNoResultsMsg="No sources detected in the map's field of view"
       />
     </>
   );
