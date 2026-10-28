@@ -349,7 +349,6 @@ footer {
 }
 
 .error-boundary-title {
-  margin: 0.5em 0;
   font-size: 1.25em;
 }
 
@@ -357,4 +356,6 @@ footer {
 .error-boundary-action {
   display: inline-flex;
   cursor: pointer;
+  width: fit-content;
+  margin-top: 0.5em;
 }
