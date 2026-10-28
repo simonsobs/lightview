@@ -5,6 +5,8 @@ import {
   useWebGLContextRecovery,
 } from '../hooks/useWebGLContextRecovery';
 import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
+import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
+import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 
 type AladinViewerProps = {
   source: SourceResponse;
@@ -16,6 +18,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   const aladinInstanceRef = useRef<Aladin | null>(null);
   // Bumped each time a viewer is (re)created, so the effects below re-apply to the new instance
   const [viewerGeneration, setViewerGeneration] = useState(0);
+  const [loadStatus, setLoadStatus] = useState<AladinLoadStatus>('loading');
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
   // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
   const {
@@ -38,39 +41,28 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   // stops, so a replaced viewer is never freed, which is why changing data (e.g. the nearby
   // sources radius) must update the existing viewer below rather than create a new one here.
   useEffect(() => {
-    // Script is loaded in index.html, so the Aladin API should have loaded; return early if it hasn't
-    if (!window.A) {
-      console.error('Aladin API is not loaded.');
-      return;
-    }
+    const el = aladinContainerRef.current;
+    if (!el) return;
 
-    let cancelled = false;
-
-    // Initialize the Aladin plugin
-    window.A.init
-      .then(() => {
-        const el = aladinContainerRef.current;
-        if (cancelled || !el || !window.A) return;
-
+    const stopInit = initAladin(
+      (A) => {
         // Clear out the previous viewer's DOM when rebuilding after a lost context
         el.replaceChildren();
 
-        // We know window.A exists, so instantiate Aladin viewer with given options
-        aladinInstanceRef.current = window.A.aladin(el, {
+        aladinInstanceRef.current = A.aladin(el, {
           survey: 'P/2MASS/color',
           fov: 5 / 60,
           cooFrame: 'ICRSd',
           projection: 'ZEA',
         });
+        setLoadStatus('ready');
         setViewerGeneration((generation) => generation + 1);
-      })
-      .catch(() => {
-        console.error('Aladin API failed to initialize.');
-      });
+      },
+      () => setLoadStatus('failed')
+    );
 
-    // Clean up function
     return () => {
-      cancelled = true;
+      stopInit();
       aladinInstanceRef.current = null;
     };
   }, [contextRecoveryCount]);
@@ -131,6 +123,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   return (
     <div className="webgl-context-lost-host aladin-viewer-host">
       <div ref={aladinContainerRef} className="aladin-viewer-container" />
+      <SkyMapStatusOverlay status={loadStatus} />
       {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
     </div>
   );
