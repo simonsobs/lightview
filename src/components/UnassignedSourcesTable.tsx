@@ -34,7 +34,7 @@ export function UnassignedSourcesTable() {
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw error;
   }
 
   const tableData = useMemo(() => {

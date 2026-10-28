@@ -23,6 +23,8 @@ import { SkyExplorerProps } from './SkyExplorer';
 import { SkySource } from '../types';
 import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
 import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
+import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
+import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 import { SkyTarget, useSkyTarget } from '../contexts/SkyTargetContext';
 import { prefersReducedMotion } from '../utils/prefersReducedMotion';
 import { buildSimbadConeSearchUrl, normalizeRa } from '../utils/simbad';
@@ -112,7 +114,7 @@ const getShapeFunction =
 
 /**
  * Renders every source's (RA, Dec) position on an all-sky Mollweide projection using
- * Aladin Lite (loaded globally as window.A via the script tag in index.html);
+ * Aladin Lite (loaded globally as window.A by loadAladinScript in utils/initAladin.ts);
  * see AladinViewer.tsx for the same pattern used on the Source page
  */
 function AllSkyMap({
@@ -144,7 +146,7 @@ function AllSkyMap({
   const setClickedSourceIdRef = useRef(onSourceClick);
   setClickedSourceIdRef.current = onSourceClick;
 
-  const [isDataReady, setIsDataReady] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<AladinLoadStatus>('loading');
   // Bumped each time a viewer is (re)created, so the catalog effects below re-apply to it
   const [viewerGeneration, setViewerGeneration] = useState(0);
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
@@ -303,16 +305,8 @@ function AllSkyMap({
     const el = containerRef.current;
     if (!el) return;
 
-    if (!window.A) {
-      console.error('Aladin API is not loaded.');
-      return;
-    }
-
-    let cancelled = false;
-
-    window.A.init
-      .then(() => {
-        if (cancelled || !window.A) return;
+    const stopInit = initAladin(
+      (A) => {
         // Clear out the previous viewer's DOM and any state tied to it when rebuilding after a
         // lost context. Aladin Lite has no teardown API, so the old instance itself can't be freed.
         el.replaceChildren();
@@ -323,7 +317,7 @@ function AllSkyMap({
           window.innerWidth < height
             ? 360 / (window.innerWidth / height)
             : 360 * (window.innerWidth / height);
-        const aladin = window.A.aladin(el, {
+        const aladin = A.aladin(el, {
           fov,
           cooFrame: 'equatorial',
           projection: 'MOL',
@@ -371,15 +365,14 @@ function AllSkyMap({
         // The resulting size change is picked up by the view watcher below.
         aladin.on('fullScreenToggled', setIsFullscreen);
 
-        setIsDataReady(true);
+        setLoadStatus('ready');
         setViewerGeneration((generation) => generation + 1);
-      })
-      .catch(() => {
-        console.error('Aladin API failed to initialize.');
-      });
+      },
+      () => setLoadStatus('failed')
+    );
 
     return () => {
-      cancelled = true;
+      stopInit();
       // On a reload, stop every other effect (which read this ref) from acting on the dead viewer
       // while the new one is still being created; they re-run once it's ready (viewerGeneration).
       aladinInstanceRef.current = null;
@@ -684,16 +677,12 @@ function AllSkyMap({
           style={{
             width: '100%',
             height,
-            visibility: isDataReady ? 'visible' : 'hidden',
+            visibility: loadStatus === 'ready' ? 'visible' : 'hidden',
           }}
         />
+        <SkyMapStatusOverlay status={loadStatus} />
         {isContextLost && <WebGLContextLostOverlay onReload={handleReload} />}
       </div>
-      {!isDataReady && (
-        <div className="lightcurve-loading" style={{ height, width: '100%' }}>
-          Loading...
-        </div>
-      )}
       {hoveredSource && (
         <div
           className="all-sky-tooltip"

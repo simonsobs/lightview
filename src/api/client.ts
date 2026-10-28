@@ -18,6 +18,18 @@ import {
   UnassignedSourceResponse,
 } from '../types';
 
+/** A failed API request, keeping the HTTP status alongside the message so the UI can tell e.g. an
+ * auth failure (401/403) apart from other errors (see ErrorBoundary). */
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 export class LightcurveApiClient {
   private baseUrl: string;
   private fluxUrlStub: string;
@@ -64,7 +76,7 @@ export class LightcurveApiClient {
   private async getUrl(endpoint: string, object: string) {
     const res = await fetch(endpoint);
     if (!res.ok) {
-      throw new Error(`Failed to get ${object}: ` + res.status);
+      throw new ApiError(`Failed to get ${object}: ` + res.status, res.status);
     }
     const blob = await res.blob();
     return URL.createObjectURL(blob);
@@ -91,7 +103,10 @@ export class LightcurveApiClient {
   private async get<T>(path: string): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`);
     if (!res.ok) {
-      throw new Error(await this.extractErrorDetail(res, 'GET', path));
+      throw new ApiError(
+        await this.extractErrorDetail(res, 'GET', path),
+        res.status
+      );
     }
     return res.json() as T;
   }
@@ -107,7 +122,10 @@ export class LightcurveApiClient {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      throw new Error(await this.extractErrorDetail(res, 'POST', path));
+      throw new ApiError(
+        await this.extractErrorDetail(res, 'POST', path),
+        res.status
+      );
     }
     return res.json() as T;
   }

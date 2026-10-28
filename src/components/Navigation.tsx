@@ -16,7 +16,7 @@ export function Navigation() {
         <Link className="home-link" to="/">
           {APP_TITLE_CONFIG.orgName && (
             <p className="text-so-blue font-bold uppercase-subheader small-text so-header-label">
-              Simons Observatory
+              {APP_TITLE_CONFIG.orgName}
             </p>
           )}
           <span>{APP_TITLE_CONFIG.appName}</span>

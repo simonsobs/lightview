@@ -103,7 +103,9 @@ main {
   left: 0;
   right: 0;
   margin: 0 auto;
-  z-index: 20;
+  /* Above the sky map's status/context-lost overlays (z-index 100 in webgl-context-lost.css), so
+     a preview opened from the table still shows when the map failed to load */
+  z-index: 110;
   width: 100%;
   max-width: 960px;
 }
@@ -344,4 +346,16 @@ footer {
 
 .left-align {
   align-self: self-start;
+}
+
+.error-boundary-title {
+  font-size: 1.25em;
+}
+
+/* Reuses the nav's .login-link-btn look for the error screen's Log In / Try again buttons */
+.error-boundary-action {
+  display: inline-flex;
+  cursor: pointer;
+  width: fit-content;
+  margin-top: 0.5em;
 }

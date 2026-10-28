@@ -245,7 +245,7 @@ export function UnassignedSource() {
   ]);
 
   if (error) {
-    throw new Error(error.message);
+    throw error;
   }
 
   return (

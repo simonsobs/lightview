@@ -5,6 +5,8 @@ import {
   useWebGLContextRecovery,
 } from '../hooks/useWebGLContextRecovery';
 import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
+import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
+import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 
 type SkyPoint = { ra: number; dec: number };
 
@@ -32,7 +34,6 @@ const BEAM_COLOR = '#F26522';
 const SIMBAD_COLOR = '#CC3311';
 const SIMBAD_SOURCE_SIZE = 18;
 const MIN_FOV_DEGREES = 0.05;
-const UNAVAILABLE_MESSAGE = 'Interactive sky map is unavailable.';
 
 /** Escapes untrusted text before handing it to Aladin's popupTitle/popupDesc, which render as
  * raw HTML inside Aladin's own (non-React) popup DOM rather than being escaped by JSX. */
@@ -78,9 +79,7 @@ export function UnassignedAladinMap({
       if (el) releaseAladinWebGLContext(el);
     };
   }, []);
-  const [unavailableMessage, setUnavailableMessage] = useState<
-    string | undefined
-  >(undefined);
+  const [loadStatus, setLoadStatus] = useState<AladinLoadStatus>('loading');
 
   // Initializes Aladin once per mount. sourceRa/sourceDec/survey/beamRadiusArcmin are stable for
   // the lifetime of one mount (this page remounts fresh per source id); measurements/nearby/
@@ -92,33 +91,23 @@ export function UnassignedAladinMap({
     const el = containerRef.current;
     if (!el) return;
 
-    if (!window.A) {
-      console.error('Aladin API is not loaded.');
-      setUnavailableMessage(UNAVAILABLE_MESSAGE);
-      return;
-    }
-
-    let cancelled = false;
-
-    window.A.init
-      .then(() => {
-        if (cancelled || !window.A) return;
+    const stopInit = initAladin(
+      (A) => {
         // Clear out the previous viewer's DOM when rebuilding after a lost context; Aladin Lite
         // has no teardown API, so the old instance itself can't be freed
         el.replaceChildren();
         const fov = Math.max((beamRadiusArcmin * 8) / 60, MIN_FOV_DEGREES);
-        const aladin = window.A.aladin(el, { survey, fov });
+        const aladin = A.aladin(el, { survey, fov });
         aladin.gotoRaDec(sourceRa, sourceDec);
         aladinInstanceRef.current = aladin;
+        setLoadStatus('ready');
         setViewerGeneration((generation) => generation + 1);
-      })
-      .catch((error: unknown) => {
-        console.error('Aladin map could not be initialized', error);
-        setUnavailableMessage(UNAVAILABLE_MESSAGE);
-      });
+      },
+      () => setLoadStatus('failed')
+    );
 
     return () => {
-      cancelled = true;
+      stopInit();
       aladinInstanceRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,8 +179,8 @@ export function UnassignedAladinMap({
         aladin.addCatalog(simbadCatalog);
       }
     } catch (error) {
-      console.error('Aladin map could not be initialized', error);
-      setUnavailableMessage(UNAVAILABLE_MESSAGE);
+      console.error('Aladin map overlays could not be added', error);
+      setLoadStatus('failed');
     }
   }, [
     viewerGeneration,
@@ -203,17 +192,6 @@ export function UnassignedAladinMap({
     simbadMatches,
   ]);
 
-  if (unavailableMessage) {
-    return (
-      <div
-        className="unassigned-aladin-container unassigned-aladin-unavailable"
-        style={{ height }}
-      >
-        {unavailableMessage}
-      </div>
-    );
-  }
-
   return (
     <div className="webgl-context-lost-host">
       <div
@@ -222,6 +200,7 @@ export function UnassignedAladinMap({
         style={{ height }}
         aria-label="Aladin-Lite sky map"
       />
+      <SkyMapStatusOverlay status={loadStatus} />
       {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
     </div>
   );

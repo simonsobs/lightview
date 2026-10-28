@@ -5,7 +5,8 @@
 .webgl-context-lost-overlay {
   position: absolute;
   inset: 0;
-  /* Above Aladin's own canvases and controls */
+  /* Above Aladin's own canvases and controls, but below the home page's lightcurve preview
+     dialog (.home-lightcurve-dialog in index.css) */
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -17,6 +18,18 @@
   color: rgb(15 23 42);
   background-color: rgba(241, 245, 249, 0.92);
   border-radius: 10px;
+}
+
+/* Loading placeholder from SkyMapStatusOverlay; inherits the surrounding text color so it reads
+   on both the black all-sky map and the light source-page cards */
+.sky-map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 2em;
 }
 
 .webgl-context-lost-overlay p {

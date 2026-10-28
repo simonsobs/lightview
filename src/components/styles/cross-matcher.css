@@ -152,13 +152,6 @@ h4 {
   background-color: rgb(241 245 249);
 }
 
-.unassigned-aladin-unavailable {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: rgb(100 116 139);
-}
-
 .unassigned-status-filter-container {
   display: flex;
   flex-direction: column;
