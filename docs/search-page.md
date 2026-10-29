@@ -44,6 +44,23 @@ The popup shows:
 
 The circle and popup stay attached to the cone as you pan and zoom. Close the popup with its close button (✕), which also removes the circle. A new search replaces them.
 
+### If the sky map is unavailable
+
+If the [all-sky map couldn't load](sky-explorer.md#when-the-map-is-unavailable), a cone search filters the sources table below it instead. The table lists only the sources inside the cone. Unlike the map's field of view, this is the exact circle, so it doesn't include sources near the corners. An active [median flux filter](sky-explorer.md#filtering-by-median-flux) still applies on top.
+
+A notice above the table says what it's filtered to, for example:
+
+> The sky map is unavailable, so this table is filtered to sources within 0.5° of RA 83.633°, Dec 22.014°.
+
+| Item                   | Description                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| **Open results table** | Opens the cone's [results page](#results-page) in a new tab. It doesn't need the map. |
+| **Show all sources**   | Removes the cone filter, so the table lists every source again.                       |
+
+While the filter is on, the line above the table reads _Sources in cone_ instead of _Sources in view_. If nothing falls within the cone, the table shows _No sources within the cone search_.
+
+A new cone search replaces the filter. A search that fails, such as one with an invalid field, leaves it in place. If the map finishes loading later, it takes over the search: it centers on the cone and draws it as usual, the notice disappears, and the table goes back to listing the sources in view.
+
 ### Errors
 
 If a field is missing a number or is out of range, a red message appears below the search bar explaining which field is wrong, and the map doesn't move. Your values are kept so you can correct them. Close the message with its close button (✕) or the `Escape` key.
@@ -96,6 +113,8 @@ The popup shows:
 | **SIMBAD cone search (5′)** | Opens SIMBAD in a new tab, listing every object within 5 arcminutes of the position.           |
 
 The ring and popup stay attached to the object as you pan and zoom. They're hidden while the object is out of view and reappear when you pan back. Close the popup with its close button (✕). A new search replaces it.
+
+If the [all-sky map couldn't load](sky-explorer.md#when-the-map-is-unavailable), a successful search has nothing to show the object on, so nothing visible happens. Instead, run a [cone search](#if-the-sky-map-is-unavailable) on the object's coordinates. SIMBAD runs on the same CDS servers as the map, so it may be unavailable at the same time.
 
 ### Errors
 

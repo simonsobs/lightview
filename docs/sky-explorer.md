@@ -14,6 +14,23 @@ The map loads zoomed out far enough to show the whole sky.
 
 To jump to a named object such as `M 31`, use [Search by catalog via SIMBAD](search-page.md#search-by-catalog-via-simbad) in the navigation bar. To jump to a position, use a [Cone search](search-page.md#cone-search), which also draws the cone on the map. Either way, the map centers and zooms on the result and marks it with a popup.
 
+### When the map is unavailable
+
+Aladin Lite is loaded from the CDS servers, so the map depends on them being up. While it loads, the map area shows _Loading sky map..._. If it hasn't loaded after 15 seconds, or fails to load, the map area shrinks to a short message:
+
+> The sky map couldn't be loaded. The Aladin sky atlas service may be temporarily unavailable.
+
+Click **Reload page** to try again.
+
+The rest of the home page still works without the map:
+
+- The [sources table](#sources-table) lists every source.
+- The [median flux filter](#filtering-by-median-flux) still filters the table.
+- Clicking a source's name in the table opens its [light curve preview](#light-curve-preview).
+- A [cone search](search-page.md#if-the-sky-map-is-unavailable) filters the table to the sources inside the cone, since the map can't show it.
+
+If the map finishes loading later, it appears without a reload.
+
 ### Inspecting a source
 
 - **Hover** over a marker to see the source's name, RA and Dec.
@@ -57,6 +74,8 @@ When the map is fully zoomed out, the table lists every source. As you zoom in o
 
 The line above the table shows how many sources it lists, for example _Sources in view: 10_. While a flux filter is applied, it adds _(matching filter)_.
 
+If the [map is unavailable](#when-the-map-is-unavailable), there's no field of view, so the table lists every source that isn't hidden by a flux filter. After a cone search, it lists only the sources inside the cone, and the line above it reads _Sources in cone_ instead. See [Cone search: If the sky map is unavailable](search-page.md#if-the-sky-map-is-unavailable).
+
 ### Columns
 
 | Column          | Description                                                                                                                                  |
@@ -78,4 +97,4 @@ Click the **RA**, **Dec** or **Median Flux** column header to sort by that colum
 
 The table shows 25 sources per page. Page controls appear above and below the table and show which rows are on screen, for example _Displaying 1 - 25 of 480_. Use the buttons to go to the first (`<<`), previous (`<`), next (`>`) or last (`>>`) page.
 
-If no sources are in view, the table shows _No sources detected in the map's field of view_ and the page controls read _Displaying 0 - 0 of 0_ and _Page 1 of 1_, with every button disabled. Zoom out or pan to bring sources back into view.
+If no sources are in view, the table shows _No sources detected in the map's field of view_ and the page controls read _Displaying 0 - 0 of 0_ and _Page 1 of 1_, with every button disabled. Zoom out or pan to bring sources back into view. If the table is filtered to a cone search because the map is unavailable, the message reads _No sources within the cone search_ instead.
