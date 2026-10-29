@@ -1,3 +1,5 @@
+import { angularSeparationDeg } from './angularSeparation';
+
 export type ConeSearch = { ra: number; dec: number; radiusDeg: number };
 
 export type ConeSearchParseResult =
@@ -41,4 +43,28 @@ export function parseConeSearch(
   if (errors.length) return { ok: false, message: errors.join(' ') };
   const [raDeg, decDeg, radiusDeg] = parsed as number[];
   return { ok: true, cone: { ra: raDeg, dec: decDeg, radiusDeg } };
+}
+
+/** The search results page's URL for a cone search, which lists the matching sources from the
+ * API and so works even when the sky map can't load. */
+export function coneSearchResultsPath(cone: ConeSearch): string {
+  return (
+    '/search/cone?' +
+    new URLSearchParams({
+      ra: String(cone.ra),
+      dec: String(cone.dec),
+      radius: String(cone.radiusDeg),
+    }).toString()
+  );
+}
+
+/** Whether a position lies within a cone (inclusive of its edge). */
+export function isWithinCone(
+  point: { ra: number; dec: number },
+  cone: ConeSearch
+): boolean {
+  return (
+    angularSeparationDeg(point.ra, point.dec, cone.ra, cone.dec) <=
+    cone.radiusDeg
+  );
 }

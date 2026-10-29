@@ -65,3 +65,54 @@
   background-color: var(--bg-so-orange-darkest);
   color: white;
 }
+
+/* Shown above the table when a cone search filters it because the sky map couldn't load */
+.all-sky-cone-fallback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 8px 5px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bg-so-orange);
+  border-left-width: 4px;
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+}
+
+.all-sky-cone-fallback p {
+  margin: 0;
+}
+
+.all-sky-cone-fallback-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.all-sky-cone-fallback-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #7cc4f0;
+}
+
+.all-sky-cone-fallback-link:hover {
+  color: #a9d9f7;
+}
+
+.all-sky-cone-fallback-clear {
+  padding: 4px 10px;
+  border: 1px solid white;
+  border-radius: 5px;
+  background: none;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.all-sky-cone-fallback-clear:hover {
+  background-color: rgb(255 255 255 / 0.15);
+}
