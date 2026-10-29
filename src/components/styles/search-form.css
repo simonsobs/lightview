@@ -121,7 +121,7 @@ form {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: 20;
+  z-index: 110;
   width: 320px;
   max-width: calc(100vw - 32px);
   padding: 10px 12px;

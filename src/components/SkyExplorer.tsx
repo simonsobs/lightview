@@ -15,6 +15,9 @@ import { DownloadIcon } from './icons/DownloadIcon';
 import { LinkOutIcon } from './icons/LinkOutIcon';
 import { prefersReducedMotion } from '../utils/prefersReducedMotion';
 import { lightcurveApi } from '../api/client';
+import { useSkyTarget } from '../contexts/SkyTargetContext';
+import { AladinLoadStatus } from '../utils/initAladin';
+import { coneSearchResultsPath, isWithinCone } from '../utils/coneSearch';
 import './styles/sky-explorer.css';
 
 export interface SkyExplorerProps {
@@ -85,13 +88,30 @@ export function SkyExplorer({
   const [inViewIds, setInViewIds] = useState<Set<string> | null>(null);
   const [dataDownloadExt, setDataDownloadExt] = useState(DATA_EXT_OPTIONS[0]);
 
-  const sourcesInView = useMemo(
-    () =>
-      inViewIds
-        ? visibleSources.filter((s) => inViewIds.has(s.sourceId))
-        : visibleSources,
-    [visibleSources, inViewIds]
-  );
+  // A cone search normally moves the map, which then filters the table by its field of view.
+  // When the map couldn't load, nothing would visibly happen, so the table is filtered by the
+  // cone itself instead, until the user clears it. If Aladin finishes loading late, the map takes
+  // the search over again (see AllSkyMap's skyTarget effect) and this switches itself off.
+  const [mapStatus, setMapStatus] = useState<AladinLoadStatus>('loading');
+  const { skyTarget } = useSkyTarget();
+  const [clearedConeRequestId, setClearedConeRequestId] = useState<
+    number | null
+  >(null);
+  const fallbackCone =
+    mapStatus === 'failed' &&
+    skyTarget?.kind === 'cone' &&
+    skyTarget.requestId !== clearedConeRequestId
+      ? skyTarget
+      : null;
+
+  const sourcesInView = useMemo(() => {
+    if (fallbackCone) {
+      return visibleSources.filter((s) => isWithinCone(s, fallbackCone));
+    }
+    return inViewIds
+      ? visibleSources.filter((s) => inViewIds.has(s.sourceId))
+      : visibleSources;
+  }, [visibleSources, inViewIds, fallbackCone]);
 
   // Lets React render the (possibly large) table update at a lower priority than the map, so
   // re-sorting/re-rendering rows never blocks interacting with Aladin.
@@ -217,11 +237,39 @@ export function SkyExplorer({
           setAppliedRange={setAppliedRange}
           visibleSources={visibleSources}
           setInViewIds={setInViewIds}
+          onLoadStatusChange={setMapStatus}
         />
       </div>
+      {fallbackCone && (
+        <div className="all-sky-cone-fallback" role="status">
+          <p>
+            The sky map is unavailable, so this table is filtered to sources
+            within {fallbackCone.radiusDeg}° of RA {fallbackCone.ra}°, Dec{' '}
+            {fallbackCone.dec}°.
+          </p>
+          <div className="all-sky-cone-fallback-actions">
+            <Link
+              className="all-sky-cone-fallback-link"
+              to={coneSearchResultsPath(fallbackCone)}
+              target="_blank"
+            >
+              Open results table
+              <LinkOutIcon width={12} height={12} />
+            </Link>
+            <button
+              type="button"
+              className="all-sky-cone-fallback-clear"
+              onClick={() => setClearedConeRequestId(fallbackCone.requestId)}
+            >
+              Show all sources
+            </button>
+          </div>
+        </div>
+      )}
       {/* Helps differentiate the table's count vs the map's filtered count */}
       <p className="all-sky-table-caption">
-        Sources in view: {deferredSourcesInView.length.toLocaleString()}
+        {fallbackCone ? 'Sources in cone' : 'Sources in view'}:{' '}
+        {deferredSourcesInView.length.toLocaleString()}
         {appliedBand !== '' && (
           <span className="all-sky-table-caption-note"> (matching filter)</span>
         )}
@@ -233,7 +281,11 @@ export function SkyExplorer({
         paginationControlsPosition="bottom"
         className="all-sky-table-wrapper themed-table"
         paginationClassName="all-sky-pagination"
-        customNoResultsMsg="No sources detected in the map's field of view"
+        customNoResultsMsg={
+          fallbackCone
+            ? 'No sources within the cone search'
+            : "No sources detected in the map's field of view"
+        }
       />
     </>
   );

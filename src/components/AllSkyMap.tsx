@@ -28,6 +28,7 @@ import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 import { SkyTarget, useSkyTarget } from '../contexts/SkyTargetContext';
 import { prefersReducedMotion } from '../utils/prefersReducedMotion';
 import { buildSimbadConeSearchUrl, normalizeRa } from '../utils/simbad';
+import { coneSearchResultsPath } from '../utils/coneSearch';
 import { CloseIcon } from './icons/CloseIcon';
 import { LinkOutIcon } from './icons/LinkOutIcon';
 
@@ -40,7 +41,16 @@ type AllSkyMapProps = SkyExplorerProps & {
   /** Called with the ids of every source (filtered or not) within the map's current field of
    * view, once the camera settles; only called when that set actually changes. */
   setInViewIds: (ids: Set<string>) => void;
+  /** Called whenever the map's load status changes, so SkyExplorer can fall back to filtering
+   * the table itself when the map can't load (see SkyExplorer's fallbackCone). */
+  onLoadStatusChange: (status: AladinLoadStatus) => void;
 };
+
+// Height of the map's area when it's failed to load. Provides enough space for its error message
+// and the filter menu, so the table (which SkyExplorer then filters by cone search itself) isn't
+// pushed so far below an empty map. The Aladin container itself keeps its full size, just taken
+// out of the layout (see the render below), so a late-loading Aladin still measures a full-size map.
+const FAILED_MAP_HEIGHT = 200;
 
 interface HoveredSource {
   name: string;
@@ -130,6 +140,7 @@ function AllSkyMap({
   setAppliedRange,
   visibleSources,
   setInViewIds,
+  onLoadStatusChange,
 }: AllSkyMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const aladinInstanceRef = useRef<Aladin | null>(null);
@@ -147,6 +158,9 @@ function AllSkyMap({
   setClickedSourceIdRef.current = onSourceClick;
 
   const [loadStatus, setLoadStatus] = useState<AladinLoadStatus>('loading');
+  useEffect(() => {
+    onLoadStatusChange(loadStatus);
+  }, [loadStatus, onLoadStatusChange]);
   // Bumped each time a viewer is (re)created, so the catalog effects below re-apply to it
   const [viewerGeneration, setViewerGeneration] = useState(0);
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
@@ -671,13 +685,23 @@ function AllSkyMap({
           onClear={handleClearFilter}
         />
       </div>
-      <div className="webgl-context-lost-host">
+      <div
+        className="webgl-context-lost-host"
+        style={
+          loadStatus === 'failed' ? { height: FAILED_MAP_HEIGHT } : undefined
+        }
+      >
         <div
           ref={containerRef}
           style={{
             width: '100%',
             height,
             visibility: loadStatus === 'ready' ? 'visible' : 'hidden',
+            ...(loadStatus === 'failed' && {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+            }),
           }}
         />
         <SkyMapStatusOverlay status={loadStatus} />
@@ -750,14 +774,7 @@ function AllSkyMap({
               // sources in the cone (the table below the map includes the view's corners too)
               <Link
                 className="all-sky-target-popup-link"
-                to={
-                  '/search/cone?' +
-                  new URLSearchParams({
-                    ra: String(pinnedTarget.ra),
-                    dec: String(pinnedTarget.dec),
-                    radius: String(pinnedTarget.radiusDeg),
-                  }).toString()
-                }
+                to={coneSearchResultsPath(pinnedTarget)}
                 target="_blank"
               >
                 Open results table
