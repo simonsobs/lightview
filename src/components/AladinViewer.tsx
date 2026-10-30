@@ -6,6 +6,8 @@ import {
 } from '../hooks/useWebGLContextRecovery';
 import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
+import { SurveyStatusNotice } from './SurveyStatusNotice';
+import { useSurveyStatus } from '../hooks/useSurveyStatus';
 import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 
 type AladinViewerProps = {
@@ -18,6 +20,11 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   const aladinInstanceRef = useRef<Aladin | null>(null);
   // Bumped each time a viewer is (re)created, so the effects below re-apply to the new instance
   const [viewerGeneration, setViewerGeneration] = useState(0);
+  const surveyStatus = useSurveyStatus(
+    aladinContainerRef,
+    aladinInstanceRef,
+    viewerGeneration
+  );
   const [loadStatus, setLoadStatus] = useState<AladinLoadStatus>('loading');
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
   // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
@@ -124,6 +131,7 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
     <div className="webgl-context-lost-host aladin-viewer-host">
       <div ref={aladinContainerRef} className="aladin-viewer-container" />
       <SkyMapStatusOverlay status={loadStatus} />
+      {loadStatus === 'ready' && <SurveyStatusNotice status={surveyStatus} />}
       {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
     </div>
   );

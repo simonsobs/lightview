@@ -24,6 +24,8 @@ import { SkySource } from '../types';
 import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
 import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
+import { SurveyStatusNotice } from './SurveyStatusNotice';
+import { useSurveyStatus } from '../hooks/useSurveyStatus';
 import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 import { SkyTarget, useSkyTarget } from '../contexts/SkyTargetContext';
 import { prefersReducedMotion } from '../utils/prefersReducedMotion';
@@ -163,6 +165,11 @@ function AllSkyMap({
   }, [loadStatus, onLoadStatusChange]);
   // Bumped each time a viewer is (re)created, so the catalog effects below re-apply to it
   const [viewerGeneration, setViewerGeneration] = useState(0);
+  const surveyStatus = useSurveyStatus(
+    containerRef,
+    aladinInstanceRef,
+    viewerGeneration
+  );
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
   // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
   const {
@@ -705,6 +712,7 @@ function AllSkyMap({
           }}
         />
         <SkyMapStatusOverlay status={loadStatus} />
+        {loadStatus === 'ready' && <SurveyStatusNotice status={surveyStatus} />}
         {isContextLost && <WebGLContextLostOverlay onReload={handleReload} />}
       </div>
       {hoveredSource && (
