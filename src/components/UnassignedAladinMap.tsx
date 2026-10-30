@@ -6,6 +6,8 @@ import {
 } from '../hooks/useWebGLContextRecovery';
 import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
+import { SurveyStatusNotice } from './SurveyStatusNotice';
+import { useSurveyStatus } from '../hooks/useSurveyStatus';
 import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 
 type SkyPoint = { ra: number; dec: number };
@@ -63,6 +65,11 @@ export function UnassignedAladinMap({
   const aladinInstanceRef = useRef<Aladin | null>(null);
   // Bumped each time a viewer is (re)created, so the catalog-rebuild effect re-applies to it
   const [viewerGeneration, setViewerGeneration] = useState(0);
+  const surveyStatus = useSurveyStatus(
+    containerRef,
+    aladinInstanceRef,
+    viewerGeneration
+  );
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
   // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
   const {
@@ -201,6 +208,7 @@ export function UnassignedAladinMap({
         aria-label="Aladin-Lite sky map"
       />
       <SkyMapStatusOverlay status={loadStatus} />
+      {loadStatus === 'ready' && <SurveyStatusNotice status={surveyStatus} />}
       {isContextLost && <WebGLContextLostOverlay onReload={recover} />}
     </div>
   );

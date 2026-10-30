@@ -22,8 +22,8 @@ export function SkyMapStatusOverlay({ status }: SkyMapStatusOverlayProps) {
     return (
       <div className="webgl-context-lost-overlay" role="alert">
         <p>
-          The sky map couldn't be loaded. The Aladin sky atlas service may be
-          temporarily unavailable.
+          The sky map couldn't be loaded. Check your connection, and that your
+          browser supports WebGL2.
         </p>
         <button
           type="button"

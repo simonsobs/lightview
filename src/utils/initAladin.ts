@@ -1,30 +1,30 @@
-const ALADIN_SCRIPT_URL =
-  'https://aladin.cds.unistra.fr/AladinLite/api/v3/3.9.0-beta/aladin.js';
-const ALADIN_SCRIPT_INTEGRITY =
-  'sha384-XWfkW1W6wZGYih5GE4EK4Q4VTFWo1V/XrcARg9w7q7csI051Z53g4h26xNTJdOWr';
-
-/** How long to wait for Aladin (script download plus its init promise) before showing the sky
- * map as unavailable. When Aladin's servers are down, either step can hang indefinitely instead
- * of failing. */
+/** How long to wait for Aladin (chunk download plus its init promise) before showing the sky map
+ * as unavailable, so a slow connection or a stalled init can't leave the map loading forever. */
 export const ALADIN_INIT_TIMEOUT_MS = 15_000;
 
 export type AladinLoadStatus = 'loading' | 'ready' | 'failed';
 
 let aladinScriptPromise: Promise<AladinStatic> | null = null;
 
-/** Loads aladin.js once, asynchronously, so that a slow or unreachable Aladin server never blocks
- * the rest of the app from rendering (as a plain <script> tag in index.html would). Every caller
- * shares the same promise, so it doesn't matter whether the script finishes before or after a
- * viewer mounts. A failed load is forgotten, so the next viewer to mount tries again.
+/** Loads the bundled aladin-lite package once, as its own lazily imported chunk (~2.4 MB with
+ * its WASM inlined), and exposes it as window.A for the viewers. It's served with the app rather
+ * than from CDS, so the sky maps and our catalogs don't depend on Aladin's servers being up (the
+ * HiPS image tiles themselves still come from survey servers). Every caller shares the same
+ * promise, so it doesn't matter whether the chunk finishes before or after a viewer mounts. A
+ * failed load is forgotten, so the next viewer to mount tries again.
  *
- * The script isn't inserted until the window's load event: a pending script delays that event
- * even when added dynamically with async, so a hanging Aladin server would otherwise leave the
- * browser's tab spinner and status bar ("Connecting to aladin...") stuck until it times out. */
+ * The import doesn't start until the window's load event, so this large chunk doesn't compete
+ * with the app's own first-load assets. */
 export function loadAladinScript(): Promise<AladinStatic> {
   if (window.A) return Promise.resolve(window.A);
   if (aladinScriptPromise) return aladinScriptPromise;
 
-  aladinScriptPromise = whenWindowLoaded().then(insertAladinScript);
+  aladinScriptPromise = whenWindowLoaded()
+    .then(() => import('aladin-lite'))
+    .then(({ default: A }) => {
+      window.A = A;
+      return A;
+    });
   aladinScriptPromise.catch(() => {
     aladinScriptPromise = null;
   });
@@ -35,25 +35,6 @@ function whenWindowLoaded(): Promise<void> {
   if (document.readyState === 'complete') return Promise.resolve();
   return new Promise((resolve) => {
     window.addEventListener('load', () => resolve(), { once: true });
-  });
-}
-
-function insertAladinScript(): Promise<AladinStatic> {
-  return new Promise<AladinStatic>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = ALADIN_SCRIPT_URL;
-    script.integrity = ALADIN_SCRIPT_INTEGRITY;
-    script.crossOrigin = 'anonymous';
-    script.async = true;
-    script.onload = () => {
-      if (window.A) resolve(window.A);
-      else reject(new Error('Aladin script loaded but window.A is missing.'));
-    };
-    script.onerror = () => {
-      script.remove();
-      reject(new Error('Aladin script failed to load.'));
-    };
-    document.head.appendChild(script);
   });
 }
 
