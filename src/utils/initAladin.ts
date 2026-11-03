@@ -1,10 +1,47 @@
+import { AladinSurvey } from '../configs/cds';
+
 /** How long to wait for Aladin (chunk download plus its init promise) before showing the sky map
  * as unavailable, so a slow connection or a stalled init can't leave the map loading forever. */
 export const ALADIN_INIT_TIMEOUT_MS = 15_000;
 
+/** How long a survey server gets to answer before moving on to the next one. This holds up
+ * creating the viewer, so it's kept short. */
+export const SURVEY_PROBE_TIMEOUT_MS = 3_000;
+
 export type AladinLoadStatus = 'loading' | 'ready' | 'failed';
 
 let aladinScriptPromise: Promise<AladinStatic> | null = null;
+
+/** Each survey's chosen URL, keyed by its first URL */
+const chosenSurveyUrls = new Map<string, Promise<string>>();
+
+/** Picks the first of a survey's URLs whose server answers, or the first URL if none do. This has
+ * to happen before the viewer is created, because Aladin queues any change of survey behind a
+ * lookup still in progress, and a lookup on a server that's down can hang for over a minute. The
+ * choice lasts until the page reloads, so only the first viewer has to wait on a server that's
+ * down. */
+export function chooseSurveyUrl({ urls }: AladinSurvey): Promise<string> {
+  let chosen = chosenSurveyUrls.get(urls[0]);
+  if (!chosen) {
+    chosen = findReachableUrl(urls);
+    chosenSurveyUrls.set(urls[0], chosen);
+  }
+  return chosen;
+}
+
+async function findReachableUrl(urls: string[]): Promise<string> {
+  for (const url of urls) {
+    try {
+      const response = await fetch(`${url}/properties`, {
+        signal: AbortSignal.timeout(SURVEY_PROBE_TIMEOUT_MS),
+      });
+      if (response.ok) return url;
+    } catch {
+      // Unreachable or timed out, so move on to the next one
+    }
+  }
+  return urls[0];
+}
 
 /** Loads the bundled aladin-lite package once, as its own lazily imported chunk (~2.4 MB with
  * its WASM inlined), and exposes it as window.A for the viewers. It's served with the app rather
@@ -38,13 +75,14 @@ function whenWindowLoaded(): Promise<void> {
   });
 }
 
-/** Waits for the Aladin API (see loadAladinScript) and then calls onReady to build a viewer.
- * Calls onFailed if the script fails to load, init rejects, onReady throws (e.g. A.aladin()
+/** Waits for the Aladin API (see loadAladinScript) and for a URL to load the survey from (see
+ * chooseSurveyUrl), and then calls onReady to build a viewer. Calls onFailed if the script fails to load, init rejects, onReady throws (e.g. A.aladin()
  * itself failing), or the whole thing hasn't settled within timeoutMs. A timeout doesn't give up:
  * if Aladin finishes loading late, onReady still runs, so callers should treat onReady as
  * clearing a failure. Returns a cleanup that stops both callbacks from firing. */
 export function initAladin(
-  onReady: (A: AladinStatic) => void,
+  survey: AladinSurvey,
+  onReady: (A: AladinStatic, surveyUrl: string) => void,
   onFailed: () => void,
   timeoutMs = ALADIN_INIT_TIMEOUT_MS
 ): () => void {
@@ -55,12 +93,14 @@ export function initAladin(
     onFailed();
   }, timeoutMs);
 
-  loadAladinScript()
-    .then((A) => A.init.then(() => A))
-    .then((A) => {
+  Promise.all([
+    loadAladinScript().then((A) => A.init.then(() => A)),
+    chooseSurveyUrl(survey),
+  ])
+    .then(([A, surveyUrl]) => {
       if (cancelled) return;
       window.clearTimeout(timeout);
-      onReady(A);
+      onReady(A, surveyUrl);
     })
     .catch((error: unknown) => {
       if (cancelled) return;

@@ -43,7 +43,9 @@ export function useSurveyStatus(
 
     const onFetchStarted = (event: Event) => {
       const taskId = getTaskId(event);
-      if (!taskId) return;
+      // Aladin fires this for all of its requests, and not all of them are for surveys. Its usage
+      // logging request to CDS, for one, hangs when CDS is down even if the survey loaded fine.
+      if (!taskId || !isSurveyTask(event)) return;
       slowTimers.set(
         taskId,
         window.setTimeout(() => {
@@ -150,6 +152,14 @@ export function useSurveyStatus(
   return { kind: hasSlowTask ? 'slow' : 'ok' };
 }
 
+type TaskEvent = CustomEvent<{ task?: { id?: string; message?: string } }>;
+
 function getTaskId(event: Event): string | undefined {
-  return (event as CustomEvent<{ task?: { id?: string } }>).detail?.task?.id;
+  return (event as TaskEvent).detail?.task?.id;
+}
+
+function isSurveyTask(event: Event): boolean {
+  return (
+    (event as TaskEvent).detail?.task?.message?.endsWith(' loading...') ?? false
+  );
 }

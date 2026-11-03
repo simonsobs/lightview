@@ -48,10 +48,6 @@ export const DEFAULT_HOMEPAGE_PLOT_LAYOUT = {
 
 export const MIN_MAX_FLUX_VALUES = [0.001, 5];
 
-export const SIMBAD_BASE_URL = 'https://simbad.cds.unistra.fr';
-export const SIMBAD_BASE_LINK_OUT_URL =
-  'https://portal.cds.unistra.fr/?target=';
-
 /** Horizontal FOV (degrees) the all-sky map zooms to after a "Search by catalog via SIMBAD" lookup */
 export const CATALOG_SEARCH_FOV_DEG = 10;
 
@@ -62,15 +58,13 @@ export const CATALOG_SEARCH_CONE_RADIUS_ARCMIN = 5;
  * cone search, so the drawn cone has some breathing room inside the view. */
 export const CONE_SEARCH_FOV_MARGIN = 1.25;
 
-/** How long to wait on SIMBAD's name resolver before giving up and reporting a timeout. */
-export const SIMBAD_RESOLVE_TIMEOUT_MS = 15000;
+/** How long to wait on each SIMBAD host before moving on to the next one. Kept short because a
+ * host that's down tends to hang rather than refuse the connection. */
+export const SIMBAD_HOST_TIMEOUT_MS = 8000;
 
 /** Search/beam radius used for unassigned-source cross-matching (SIMBAD cone search, nearby
  * unassigned sources, and the sky plot's dashed beam circle). */
 export const UNASSIGNED_BEAM_RADIUS_ARCMIN = 2.0;
-
-/** HiPS survey layer shown in the unassigned-source interactive Aladin sky map. */
-export const UNASSIGNED_ALADIN_SURVEY = 'P/DSS2/color';
 
 export const APP_TITLE_CONFIG: {
   orgName: string | undefined;

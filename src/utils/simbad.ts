@@ -1,7 +1,6 @@
-import {
-  SIMBAD_BASE_URL,
-  SIMBAD_RESOLVE_TIMEOUT_MS,
-} from '../configs/constants';
+import { SESAME_URL, SIMBAD_HOSTS, SimbadHost } from '../configs/cds';
+import { SIMBAD_HOST_TIMEOUT_MS } from '../configs/constants';
+import { SimbadConeResponse, SimbadMatch } from '../types';
 
 /** An object SIMBAD resolved from a user-entered name; ra/dec are ICRS degrees, ra in 0->360. */
 export type SimbadResolvedObject = {
@@ -33,9 +32,52 @@ export class SimbadResolveError extends Error {
   }
 }
 
-/** Server-side failures that are worth one automatic retry before being reported. */
-const TRANSIENT_ERROR_KINDS: SimbadResolveErrorKind[] = ['http', 'unavailable'];
-const RETRY_DELAY_MS = 500;
+/** Failures that say something about the host rather than the name, so another host may do better.
+ * A miss isn't one of them, since the hosts share the same data. */
+const FAILOVER_ERROR_KINDS: SimbadResolveErrorKind[] = [
+  'network',
+  'timeout',
+  'http',
+  'unavailable',
+  'unexpected',
+];
+
+/** The host that last gave an answer, tried first so that while a host is down only the first
+ * request has to wait for it to time out. Links out to SIMBAD go to it too, since a link can't
+ * fail over once it's clicked. */
+let preferredHost: SimbadHost = SIMBAD_HOSTS[0];
+
+export function resetPreferredSimbadHost() {
+  preferredHost = SIMBAD_HOSTS[0];
+}
+
+/** Runs attempt against each host in turn until one succeeds or fails in a way another host
+ * wouldn't fix (per canFailOver). If they all fail, rejects with the last host's error. */
+async function tryEachHost<T>(
+  attempt: (host: SimbadHost) => Promise<T>,
+  canFailOver: (error: unknown) => boolean
+): Promise<T> {
+  const hosts = [
+    preferredHost,
+    ...SIMBAD_HOSTS.filter((host) => host !== preferredHost),
+  ];
+
+  let lastError: unknown;
+  for (const host of hosts) {
+    try {
+      const result = await attempt(host);
+      preferredHost = host;
+      return result;
+    } catch (e) {
+      if (!canFailOver(e)) {
+        preferredHost = host;
+        throw e;
+      }
+      lastError = e;
+    }
+  }
+  throw lastError;
+}
 
 /** Longest resolver-provided detail shown to the user; anything longer is a server dump. */
 const MAX_DETAIL_LENGTH = 200;
@@ -51,15 +93,41 @@ function summarizeDetail(text: string | null | undefined): string | undefined {
     : firstLine;
 }
 
-/** Names are resolved through CDS's Sesame service restricted to SIMBAD (the trailing "S"), with
- * XML output ("-ox"). SIMBAD's own sim-script endpoint was used originally, but it intermittently
- * fails even for well-known names. Sesame answers from SIMBAD's data through a cache and
- * does not appear to fail anywhere near the same rate. */
+/** Names are resolved through CDS's Sesame service. SIMBAD's own sim-script endpoint was used
+ * originally, but it intermittently fails even for well-known names. Sesame answers from SIMBAD's
+ * data through a cache and does not appear to fail anywhere near the same rate. */
 export function buildSesameUrl(name: string): string {
-  return (
-    'https://cds.unistra.fr/cgi-bin/nph-sesame/-ox/S?' +
-    encodeURIComponent(name.replace(/\s+/g, ' ').trim())
+  return SESAME_URL + encodeURIComponent(normalizeName(name));
+}
+
+function normalizeName(name: string): string {
+  return name.replace(/\s+/g, ' ').trim();
+}
+
+function notFoundError(name: string): SimbadResolveError {
+  return new SimbadResolveError(
+    'not-found',
+    `SIMBAD couldn't find an object named "${name}". Check the spelling or try another identifier.`
   );
+}
+
+function noPositionError(identifier: string): SimbadResolveError {
+  return new SimbadResolveError(
+    'no-coordinates',
+    `SIMBAD found ${identifier}, but it has no recorded position to go to.`
+  );
+}
+
+function unreadableResponseError(): SimbadResolveError {
+  return new SimbadResolveError(
+    'unexpected',
+    'SIMBAD returned a response that could not be read.'
+  );
+}
+
+/** SIMBAD pads identifiers for alignment (e.g. "M  31"); collapse that for display. */
+function collapseIdentifier(identifier: string): string {
+  return identifier.replace(/\s+/g, ' ').trim();
 }
 
 /** Parses a Sesame XML response from buildSesameUrl. A hit has a <Resolver> with <oname> (SIMBAD's
@@ -72,10 +140,7 @@ export function parseSesameResponse(
   const doc = new DOMParser().parseFromString(text, 'application/xml');
   const target = doc.querySelector('Sesame > Target');
   if (!target || doc.querySelector('parsererror')) {
-    throw new SimbadResolveError(
-      'unexpected',
-      'SIMBAD returned a response that could not be read.'
-    );
+    throw unreadableResponseError();
   }
 
   const resolver = target.querySelector('Resolver');
@@ -88,38 +153,77 @@ export function parseSesameResponse(
         summarizeDetail(error.textContent)
       );
     }
-    throw new SimbadResolveError(
-      'not-found',
-      `SIMBAD couldn't find an object named "${name}". Check the spelling or try another identifier.`
-    );
+    throw notFoundError(name);
   }
 
-  // SIMBAD pads identifiers for alignment (e.g. "M  31"); collapse that for display.
   const identifier =
-    resolver.querySelector('oname')?.textContent?.replace(/\s+/g, ' ').trim() ||
+    collapseIdentifier(resolver.querySelector('oname')?.textContent ?? '') ||
     name;
   const raText = resolver.querySelector('jradeg')?.textContent;
   const decText = resolver.querySelector('jdedeg')?.textContent;
   const ra = raText ? Number(raText) : NaN;
   const dec = decText ? Number(decText) : NaN;
   if (!Number.isFinite(ra) || !Number.isFinite(dec)) {
-    throw new SimbadResolveError(
-      'no-coordinates',
-      `SIMBAD found ${identifier}, but it has no recorded position to go to.`
-    );
+    throw noPositionError(identifier);
   }
 
   return { identifier, ra, dec };
 }
 
-async function resolveOnce(
+function buildTapUrl(host: SimbadHost, query: string): string {
+  const params = new URLSearchParams({
+    request: 'doQuery',
+    lang: 'adql',
+    format: 'json',
+    query,
+  });
+  return `${host.tapUrl}?${params.toString()}`;
+}
+
+/** Looks a name up in SIMBAD's table of identifiers, for hosts without a working Sesame. Spacing
+ * and capitalization are flexible, as with Sesame, except in "NAME" identifiers such as Sgr A*. */
+export function buildTapNameQueryUrl(name: string, host: SimbadHost): string {
+  const identifier = normalizeName(name).replace(/'/g, "''");
+  return buildTapUrl(
+    host,
+    `SELECT basic.main_id, ra, dec FROM ident JOIN basic ON oidref = oid WHERE id = '${identifier}'`
+  );
+}
+
+/** Parses a TAP JSON response from buildTapNameQueryUrl, whose rows are [main_id, ra, dec]. */
+export function parseTapNameResponse(
+  text: string,
+  name: string
+): SimbadResolvedObject {
+  let rows: unknown;
+  try {
+    rows = (JSON.parse(text) as { data?: unknown }).data;
+  } catch {
+    throw unreadableResponseError();
+  }
+  if (!Array.isArray(rows)) throw unreadableResponseError();
+
+  const row = rows[0] as
+    | [string | null, number | null, number | null]
+    | undefined;
+  if (!row) throw notFoundError(name);
+
+  const [mainId, ra, dec] = row;
+  const identifier = collapseIdentifier(mainId ?? '') || name;
+  if (ra == null || dec == null) throw noPositionError(identifier);
+  return { identifier, ra, dec };
+}
+
+async function resolveOnHost(
   name: string,
+  host: SimbadHost,
   signal?: AbortSignal
 ): Promise<SimbadResolvedObject> {
+  const usesSesame = host.nameResolver === 'sesame';
   const timeoutController = new AbortController();
   const timeout = window.setTimeout(
     () => timeoutController.abort(),
-    SIMBAD_RESOLVE_TIMEOUT_MS
+    SIMBAD_HOST_TIMEOUT_MS
   );
   const onCallerAbort = () => timeoutController.abort();
   signal?.addEventListener('abort', onCallerAbort);
@@ -128,9 +232,10 @@ async function resolveOnce(
   try {
     let response: Response;
     try {
-      response = await fetch(buildSesameUrl(name), {
-        signal: timeoutController.signal,
-      });
+      response = await fetch(
+        usesSesame ? buildSesameUrl(name) : buildTapNameQueryUrl(name, host),
+        { signal: timeoutController.signal }
+      );
     } catch (e) {
       if (signal?.aborted) throw e;
       if (timeoutController.signal.aborted) {
@@ -157,40 +262,82 @@ async function resolveOnce(
     signal?.removeEventListener('abort', onCallerAbort);
   }
 
-  return parseSesameResponse(text, name);
+  return usesSesame
+    ? parseSesameResponse(text, name)
+    : parseTapNameResponse(text, name);
 }
 
-/** Resolves an object name (e.g. "M31", "3C 273", "Sgr A*") to its SIMBAD position, retrying
- * once after a server-side failure. Always rejects with a SimbadResolveError, so callers can show
- * error.message directly. Aborting `signal` rejects with the signal's own reason instead, so a
- * superseded request can be ignored. */
-export async function resolveSimbadObject(
+/** Resolves an object name (e.g. "M31", "3C 273", "Sgr A*") to its SIMBAD position, moving on to
+ * the next host after a host-side failure. Always rejects with a SimbadResolveError, so callers
+ * can show error.message directly. Aborting `signal` rejects with the signal's own reason instead,
+ * so a superseded request can be ignored. */
+export function resolveSimbadObject(
   name: string,
   signal?: AbortSignal
 ): Promise<SimbadResolvedObject> {
-  try {
-    return await resolveOnce(name, signal);
-  } catch (e) {
-    if (
-      !(e instanceof SimbadResolveError) ||
-      !TRANSIENT_ERROR_KINDS.includes(e.kind)
-    ) {
-      throw e;
-    }
-  }
+  return tryEachHost(
+    (host) => resolveOnHost(name, host, signal),
+    (e) =>
+      e instanceof SimbadResolveError && FAILOVER_ERROR_KINDS.includes(e.kind)
+  );
+}
 
-  await new Promise<void>((resolve, reject) => {
-    const retryTimeout = window.setTimeout(resolve, RETRY_DELAY_MS);
-    signal?.addEventListener(
-      'abort',
-      () => {
-        window.clearTimeout(retryTimeout);
-        reject(new DOMException('Aborted', 'AbortError'));
-      },
-      { once: true }
+/** Builds a TAP query for the 10 most-cited objects within radiusArcmin of a position, selecting
+ * the columns of a SimbadConeMatchRow. */
+export function buildSimbadConeQueryUrl(
+  ra: number,
+  dec: number,
+  radiusArcmin: number,
+  host: SimbadHost = SIMBAD_HOSTS[0]
+): string {
+  const position = `'ICRS', ${normalizeRa(ra)}, ${dec}`;
+  return buildTapUrl(
+    host,
+    `SELECT TOP 10 DISTANCE(POINT('ICRS', ra, dec), POINT(${position})) AS dist, ` +
+      'main_id, ra, dec, otype FROM basic ' +
+      `WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE(${position}, ${radiusArcmin / 60})) = 1 ` +
+      'ORDER BY nbref DESC'
+  );
+}
+
+async function searchConeOnHost(
+  ra: number,
+  dec: number,
+  radiusArcmin: number,
+  host: SimbadHost
+): Promise<SimbadMatch[]> {
+  const response = await fetch(
+    buildSimbadConeQueryUrl(ra, dec, radiusArcmin, host),
+    { signal: AbortSignal.timeout(SIMBAD_HOST_TIMEOUT_MS) }
+  );
+  if (!response.ok) {
+    throw new Error(
+      `SIMBAD returned ${response.status} ${response.statusText}`
     );
-  });
-  return resolveOnce(name, signal);
+  }
+  const json = (await response.json()) as SimbadConeResponse;
+  if (!Array.isArray(json?.data)) {
+    throw new Error('SIMBAD returned an unexpected response.');
+  }
+  return json.data.map((row) => ({
+    identifier: row[1] ?? 'SIMBAD object',
+    objectType: row[4] ?? null,
+    ra: row[2] ?? null,
+    dec: row[3] ?? null,
+    separationArcmin: row[0] != null ? row[0] * 60 : null,
+  }));
+}
+
+/** Finds the SIMBAD objects near a position, moving on to the next host after any failure. */
+export function searchSimbadCone(
+  ra: number,
+  dec: number,
+  radiusArcmin: number
+): Promise<SimbadMatch[]> {
+  return tryEachHost(
+    (host) => searchConeOnHost(ra, dec, radiusArcmin, host),
+    () => true
+  );
 }
 
 /** Converts RA in either the -180 -> 180 or 0 -> 360 convention to 0 -> 360. */
@@ -201,7 +348,8 @@ export function normalizeRa(ra: number): number {
   return wrapped < 0 ? wrapped + 360 : wrapped;
 }
 
-/** Link to SIMBAD's own coordinate (cone) search around a position. */
+/** Link to SIMBAD's own coordinate (cone) search around a position, on the host that last answered
+ * (see preferredHost). */
 export function buildSimbadConeSearchUrl(
   ra: number,
   dec: number,
@@ -213,5 +361,11 @@ export function buildSimbadConeSearchUrl(
     Radius: String(radiusArcmin),
     'Radius.unit': 'arcmin',
   });
-  return `${SIMBAD_BASE_URL}/simbad/sim-coo?${params.toString()}`;
+  return `${preferredHost.pagesUrl}/sim-coo?${params.toString()}`;
+}
+
+/** Link to SIMBAD's page for an object, on the host that last answered (see preferredHost). */
+export function buildSimbadObjectUrl(identifier: string): string {
+  const params = new URLSearchParams({ Ident: identifier });
+  return `${preferredHost.pagesUrl}/sim-id?${params.toString()}`;
 }

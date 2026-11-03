@@ -21,9 +21,13 @@ function setup(url: string | undefined = SURVEY_URL) {
   return { container, aladin, hook };
 }
 
-function dispatchTask(name: 'AL:fetch' | 'AL:Resource.fetched', id: string) {
+function dispatchTask(
+  name: 'AL:fetch' | 'AL:Resource.fetched',
+  id: string,
+  message = 'x loading...'
+) {
   document.dispatchEvent(
-    new CustomEvent(name, { detail: { task: { id, message: 'x loading...' } } })
+    new CustomEvent(name, { detail: { task: { id, message } } })
   );
 }
 
@@ -100,6 +104,23 @@ describe('useSurveyStatus', () => {
       vi.advanceTimersByTime(10_000);
     });
     expect(hook.result.current).toEqual({ kind: 'slow' });
+  });
+
+  it('ignores slow requests that are not survey loads', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {}))
+    );
+    const { hook } = setup();
+
+    act(() =>
+      dispatchTask('AL:fetch', 'task-1', 'fetching: https://alasky/log.py')
+    );
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(hook.result.current).toEqual({ kind: 'ok' });
   });
 
   it('reports slow loading tasks until they finish', () => {

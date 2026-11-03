@@ -8,6 +8,7 @@ import { WebGLContextLostOverlay } from './WebGLContextLostOverlay';
 import { SkyMapStatusOverlay } from './SkyMapStatusOverlay';
 import { SurveyStatusNotice } from './SurveyStatusNotice';
 import { useSurveyStatus } from '../hooks/useSurveyStatus';
+import { AladinSurvey } from '../configs/cds';
 import { AladinLoadStatus, initAladin } from '../utils/initAladin';
 
 type SkyPoint = { ra: number; dec: number };
@@ -15,7 +16,7 @@ type SkyPoint = { ra: number; dec: number };
 type UnassignedAladinMapProps = {
   sourceRa: number;
   sourceDec: number;
-  survey: string;
+  survey: AladinSurvey;
   beamRadiusArcmin: number;
   measurements: SkyPoint[];
   nearby: SkyPoint[];
@@ -99,12 +100,13 @@ export function UnassignedAladinMap({
     if (!el) return;
 
     const stopInit = initAladin(
-      (A) => {
+      survey,
+      (A, surveyUrl) => {
         // Clear out the previous viewer's DOM when rebuilding after a lost context; Aladin Lite
         // has no teardown API, so the old instance itself can't be freed
         el.replaceChildren();
         const fov = Math.max((beamRadiusArcmin * 8) / 60, MIN_FOV_DEGREES);
-        const aladin = A.aladin(el, { survey, fov });
+        const aladin = A.aladin(el, { survey: surveyUrl, fov });
         aladin.gotoRaDec(sourceRa, sourceDec);
         aladinInstanceRef.current = aladin;
         setLoadStatus('ready');

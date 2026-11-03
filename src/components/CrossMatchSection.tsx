@@ -1,5 +1,5 @@
-import { SIMBAD_BASE_LINK_OUT_URL } from '../configs/constants';
 import { Link } from 'react-router';
+import { buildSimbadObjectUrl } from '../utils/simbad';
 
 type CrossMatchSectionProps = {
   crossMatches?: { name: string }[];
@@ -16,7 +16,7 @@ export function CrossMatchSection({ crossMatches }: CrossMatchSectionProps) {
               <Link
                 target="_blank"
                 className="link-outs"
-                to={SIMBAD_BASE_LINK_OUT_URL + m.name}
+                to={buildSimbadObjectUrl(m.name)}
               >
                 {m.name}
               </Link>

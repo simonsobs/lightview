@@ -19,6 +19,7 @@ import {
   SO_FALLBACK_COLOR,
   frequencyKey,
 } from '../configs/socolors';
+import { ALL_SKY_ALADIN_SURVEY } from '../configs/cds';
 import { SkyExplorerProps } from './SkyExplorer';
 import { SkySource } from '../types';
 import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
@@ -327,7 +328,8 @@ function AllSkyMap({
     if (!el) return;
 
     const stopInit = initAladin(
-      (A) => {
+      ALL_SKY_ALADIN_SURVEY,
+      (A, surveyUrl) => {
         // Clear out the previous viewer's DOM and any state tied to it when rebuilding after a
         // lost context. Aladin Lite has no teardown API, so the old instance itself can't be freed.
         el.replaceChildren();
@@ -339,6 +341,7 @@ function AllSkyMap({
             ? 360 / (window.innerWidth / height)
             : 360 * (window.innerWidth / height);
         const aladin = A.aladin(el, {
+          survey: surveyUrl,
           fov,
           cooFrame: 'equatorial',
           projection: 'MOL',

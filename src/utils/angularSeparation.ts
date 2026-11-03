@@ -1,10 +1,10 @@
 /** Great-circle angular separation between two ra/dec points, in degrees - the same convention
- * SIMBAD's /cone service returns as its distance_deg column (see SimbadConeMatchRow in
+ * SIMBAD's cone search returns as its distance_deg column (see SimbadConeMatchRow in
  * src/types/index.ts), so this is a client-side equivalent for comparing two of our own sources
  * rather than a SIMBAD match. Uses the haversine formula, which is numerically stable and
  * standard at the sub-degree-to-few-degree scales these cone searches operate at (matching
  * astropy's SkyCoord.separation for this use case). Callers convert to arcmin themselves (`* 60`)
- * the same way UnassignedSource.tsx does for SIMBAD's own distance_deg. */
+ * the same way searchSimbadCone does for SIMBAD's own distance_deg. */
 export function angularSeparationDeg(
   ra1Deg: number,
   dec1Deg: number,

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SourceResponse } from '../types';
+import { SOURCE_ALADIN_SURVEY } from '../configs/cds';
 import {
   releaseAladinWebGLContext,
   useWebGLContextRecovery,
@@ -52,12 +53,13 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
     if (!el) return;
 
     const stopInit = initAladin(
-      (A) => {
+      SOURCE_ALADIN_SURVEY,
+      (A, surveyUrl) => {
         // Clear out the previous viewer's DOM when rebuilding after a lost context
         el.replaceChildren();
 
         aladinInstanceRef.current = A.aladin(el, {
-          survey: 'P/2MASS/color',
+          survey: surveyUrl,
           fov: 5 / 60,
           cooFrame: 'ICRSd',
           projection: 'ZEA',

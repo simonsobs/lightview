@@ -5,15 +5,11 @@ import {
   UnassignedFluxMeasurement,
   UnassignedSourceData,
   ReviewMetadata,
-  SimbadConeResponse,
   SimbadMatch,
 } from '../types';
-import {
-  SIMBAD_BASE_LINK_OUT_URL,
-  SIMBAD_BASE_URL,
-  UNASSIGNED_ALADIN_SURVEY,
-  UNASSIGNED_BEAM_RADIUS_ARCMIN,
-} from '../configs/constants';
+import { UNASSIGNED_ALADIN_SURVEY } from '../configs/cds';
+import { UNASSIGNED_BEAM_RADIUS_ARCMIN } from '../configs/constants';
+import { buildSimbadObjectUrl, searchSimbadCone } from '../utils/simbad';
 import './styles/cross-matcher.css';
 import { ChangeEvent, ReactNode, useCallback, useState } from 'react';
 import { UnassignedLightcurvePlot } from './UnassignedLightcurvePlot';
@@ -21,11 +17,6 @@ import { UnassignedSkyPlot } from './UnassignedSkyPlot';
 import { UnassignedAladinMap } from './UnassignedAladinMap';
 import { CrossMatchHeader } from './UnassignedSourcesTable';
 import { ConfirmDialog } from './ConfirmDialog';
-
-/** Converts our -180<ra<180 convention to SIMBAD's expected 0->360 convention. */
-function toSimbadRa(ra: number): number {
-  return ((ra % 360) + 360) % 360;
-}
 
 const STATUS_TO_EXCLUDE_SIMBAD_SEARCH = ['external_match', 'novel', 'merged'];
 const STATUS_TO_EXCLUDE_STATUS_BANNER = ['unmatched', 'merged'];
@@ -114,27 +105,11 @@ export function UnassignedSource() {
       // Any failure here (network error, non-2xx status, or an unexpected response shape) is
       // surfaced in the SIMBAD card below rather than shown as an empty match list, which would
       // read as "nothing nearby" and could lead a reviewer to wrongly rule out an external match.
-      const getSimbadHits = await fetch(
-        SIMBAD_BASE_URL +
-          '/cone' +
-          `?ra=${toSimbadRa(data.source.ra)}&dec=${data.source.dec}&sr=${UNASSIGNED_BEAM_RADIUS_ARCMIN / 60}&verb=2&maxrec=10&responseformat=json&order_by=nb_ref&order_dir=desc`
+      const matches = await searchSimbadCone(
+        data.source.ra,
+        data.source.dec,
+        UNASSIGNED_BEAM_RADIUS_ARCMIN
       );
-      if (!getSimbadHits.ok) {
-        throw new Error(
-          `SIMBAD returned ${getSimbadHits.status} ${getSimbadHits.statusText}`
-        );
-      }
-      const hitsJson = (await getSimbadHits.json()) as SimbadConeResponse;
-      if (!Array.isArray(hitsJson?.data)) {
-        throw new Error('SIMBAD returned an unexpected response.');
-      }
-      const matches: SimbadMatch[] = hitsJson.data.map((row) => ({
-        identifier: row[1] ?? 'SIMBAD object',
-        objectType: row[4] ?? null,
-        ra: row[2] ?? null,
-        dec: row[3] ?? null,
-        separationArcmin: row[0] != null ? row[0] * 60 : null,
-      }));
       return {
         // ISO 8601, not a locale-formatted string: this doubles as the `queried_at` sent to the
         // server's external_evidence.queried_at (a datetime field) if the reviewer accepts one
@@ -341,7 +316,7 @@ export function UnassignedSource() {
       </div>
       <UnassignedSourceCard
         headingLeft="Interactive sky map"
-        headingRight={`Layer: ${UNASSIGNED_ALADIN_SURVEY}`}
+        headingRight={`Layer: ${UNASSIGNED_ALADIN_SURVEY.name}`}
         showCard={data?.source.status !== 'merged'}
       >
         {data ? (
@@ -449,7 +424,7 @@ export function UnassignedSource() {
                           <Link
                             className="link-outs font-medium"
                             target="_blank"
-                            to={SIMBAD_BASE_LINK_OUT_URL + match.identifier}
+                            to={buildSimbadObjectUrl(match.identifier)}
                           >
                             {match.identifier}
                           </Link>
@@ -721,11 +696,9 @@ function StatusBanner({
         <Link
           className="link-outs"
           target="_blank"
-          to={
-            SIMBAD_BASE_URL +
-            '/?target=' +
-            reviewMetadata?.external_evidence?.identifier
-          }
+          to={buildSimbadObjectUrl(
+            reviewMetadata?.external_evidence?.identifier ?? ''
+          )}
         >
           {reviewMetadata?.external_evidence?.identifier}
         </Link>{' '}
