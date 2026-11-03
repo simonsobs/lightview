@@ -16,7 +16,7 @@ To jump to a named object such as `M 31`, use [Search by catalog via SIMBAD](sea
 
 ### When the map is unavailable
 
-Aladin Lite is served with the app, so the map and its sources don't depend on the CDS servers. The background sky imagery still comes from CDS survey servers, though, so while those are down the background may be blank even though the sources are plotted. When that happens, a small notice at the top of the map says the survey server isn't responding (or, while a survey is still loading after 10 seconds, that it's still waiting on it). The notice can be dismissed, and clears itself once the server responds again.
+Aladin Lite is served with the app, so the map and its sources don't depend on the CDS servers. The background sky imagery comes from the CDS survey servers, or from ESA's mirror of them if CDS doesn't answer within a few seconds of the map loading. If neither is available, the background may be blank even though the sources are plotted. When that happens, a small notice at the top of the map says the survey server isn't responding (or, while a survey is still loading after 10 seconds, that it's still waiting on it). The notice can be dismissed, and clears itself once the server responds again.
 
 While Aladin loads, the map area shows _Loading sky map..._. If it hasn't loaded after 15 seconds, or fails to load (for example because the browser doesn't support WebGL2), the map area shrinks to a short message:
 

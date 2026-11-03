@@ -75,7 +75,7 @@ Lists other **unmatched** sources within 2.0 arcminutes. Click an ID to open tha
 
 Your browser searches SIMBAD for objects within 2.0 arcminutes of the source. It returns up to 10 objects, ordered by how often each is cited in the literature, most-cited first. The time of the search is shown above the list. Each match shows:
 
-- its identifier, which opens the object in the CDS portal in a new tab,
+- its identifier, which opens the object in SIMBAD in a new tab, on whichever SIMBAD server (CDS, or the Harvard mirror) answered the search,
 - its object type, and
 - its distance from the source in arcminutes.
 

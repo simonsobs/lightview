@@ -76,7 +76,7 @@ Switch the toggle back to **Unbinned** to return to individual measurements.
 
 ## Cross-matches
 
-Lists catalog objects that have been matched to this source. Each name opens that object in the [CDS portal](https://portal.cds.unistra.fr/) in a new tab. If the source has no cross-matches, the section shows _No results_.
+Lists catalog objects that have been matched to this source. Each name opens that object in [SIMBAD](https://simbad.cds.unistra.fr/simbad/) in a new tab. If a SIMBAD search earlier in the session had to fall back to the [Harvard mirror](https://simbad.cfa.harvard.edu/simbad/) because CDS didn't respond, the links go to the mirror instead. If the source has no cross-matches, the section shows _No results_.
 
 ## Nearby sources
 
