@@ -62,16 +62,14 @@ export type UnassignedSourceData = UnassignedSourceResponse & {
   in_radius: UnassignedSourceResponse[];
 };
 
-/** One row of SIMBAD's /cone response (responseformat=json, verb=2): a fixed columnar layout
- * confirmed against the live endpoint - [distance_deg, main_id, ra_deg, dec_deg, otype, ...] -
- * with further columns present but unused here. */
+/** One row of the TAP response to buildSimbadConeQueryUrl's query, whose columns are
+ * [distance_deg, main_id, ra_deg, dec_deg, otype]. */
 export type SimbadConeMatchRow = [
   distanceDeg: number | null,
   identifier: string | null,
   ra: number | null,
   dec: number | null,
   objectType: string | null,
-  ...rest: unknown[],
 ];
 
 export type SimbadConeResponse = { data: SimbadConeMatchRow[] };

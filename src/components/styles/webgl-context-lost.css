@@ -50,3 +50,56 @@
 .webgl-context-lost-reload-button:hover {
   background-color: var(--bg-so-orange-darker);
 }
+
+/* SurveyStatusNotice: sits just below Aladin's top row of controls, under the full-cover overlays
+   above, and leaves the rest of the map clickable */
+.sky-survey-notice {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: max-content;
+  max-width: min(440px, calc(100% - 16px));
+  box-sizing: border-box;
+  padding: 8px 10px 8px 12px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: rgb(66 32 6);
+  background-color: rgba(254, 243, 199, 0.95);
+  border: 1px solid rgb(217 119 6);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sky-survey-notice p {
+  margin: 0;
+}
+
+.sky-survey-notice-dismiss {
+  flex: none;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Aladin caps its status bar at 50vw, which is wider than our smaller maps, so long messages like
+   "fetching: <url>" overflow them. Cap it to the map instead; the host class in the selector
+   outranks Aladin's own rule, and the ellipsis has to go on the message element holding the text. */
+.webgl-context-lost-host .aladin-status-bar {
+  max-width: calc(100% - 8px);
+  box-sizing: border-box;
+}
+
+.webgl-context-lost-host .aladin-status-bar-message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

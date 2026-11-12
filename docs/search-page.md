@@ -89,7 +89,7 @@ Enter a **Source ID** to go straight to that source's page. If no source has tha
 
 ## Search by catalog via SIMBAD
 
-Enter the name of an astronomical object, for example `M 31`, `3C 273` or `Sgr A*`, to find it on the [all-sky map](sky-explorer.md). The name is looked up in [SIMBAD](https://simbad.cds.unistra.fr/simbad/) through the CDS [Sesame](https://cds.unistra.fr/cgi-bin/Sesame) name resolver, so any identifier SIMBAD recognizes will work. Spacing and capitalization are flexible, e.g. `M31` and `m 31` find the same object.
+Enter the name of an astronomical object, for example `M 31`, `3C 273` or `Sgr A*`, to find it on the [all-sky map](sky-explorer.md). The name is looked up in [SIMBAD](https://simbad.cds.unistra.fr/simbad/) through the CDS [Sesame](https://cds.unistra.fr/cgi-bin/Sesame) name resolver, falling back to a mirror at Harvard if CDS doesn't respond, so any identifier SIMBAD recognizes will work. Spacing and capitalization are flexible, e.g. `M31` and `m 31` find the same object.
 
 While the search runs, the search button shows a spinner. If you search from another page, LightView returns to the home page.
 
@@ -105,16 +105,16 @@ The sources table below the map narrows to the sources in the new field of view,
 
 The popup shows:
 
-| Item                        | Description                                                                                    |
-| --------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Name**                    | The object's main identifier in SIMBAD, which may differ from what you typed (`m31` → `M 31`). |
-| **RA**                      | Right ascension in degrees (ICRS), rounded to three decimal places.                            |
-| **Dec**                     | Declination in degrees (ICRS), rounded to three decimal places.                                |
-| **SIMBAD cone search (5′)** | Opens SIMBAD in a new tab, listing every object within 5 arcminutes of the position.           |
+| Item                        | Description                                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**                    | The object's main identifier in SIMBAD, which may differ from what you typed (`m31` → `M 31`).                                                                            |
+| **RA**                      | Right ascension in degrees (ICRS), rounded to three decimal places.                                                                                                       |
+| **Dec**                     | Declination in degrees (ICRS), rounded to three decimal places.                                                                                                           |
+| **SIMBAD cone search (5′)** | Opens SIMBAD in a new tab, listing every object within 5 arcminutes of the position. It uses the same SIMBAD server, CDS or the Harvard mirror, that answered the search. |
 
 The ring and popup stay attached to the object as you pan and zoom. They're hidden while the object is out of view and reappear when you pan back. Close the popup with its close button (✕). A new search replaces it.
 
-If the [all-sky map couldn't load](sky-explorer.md#when-the-map-is-unavailable), a successful search has nothing to show the object on, so nothing visible happens. Instead, run a [cone search](#if-the-sky-map-is-unavailable) on the object's coordinates. SIMBAD runs on the same CDS servers as the map, so it may be unavailable at the same time.
+If the [all-sky map couldn't load](sky-explorer.md#when-the-map-is-unavailable), a successful search has nothing to show the object on, so nothing visible happens. Instead, run a [cone search](#if-the-sky-map-is-unavailable) on the object's coordinates.
 
 ### Errors
 

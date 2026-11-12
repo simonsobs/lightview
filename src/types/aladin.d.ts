@@ -26,6 +26,10 @@ interface Aladin {
   gotoRaDec: (ra: number, dec: number) => void;
   addCatalog: (catalog: unknown) => void;
   setProjection: (projection: string) => void;
+  /** The bottom image layer, i.e. the background survey, including while it's still being queried.
+   * url is its HiPS base URL once Aladin has resolved it; until then it can hold the survey's ID.
+   * startUrl is the URL from Aladin's built-in survey list, for surveys that are in it. */
+  getBaseImageLayer: () => { url?: string; startUrl?: string } | undefined;
   setFov: (fovDegrees: number) => void;
   getFov: () => [number, number];
   /** The view's center as [ra, dec] in degrees. */
@@ -148,6 +152,12 @@ interface AladinStatic {
   circle: (ra: number, dec: number, radiusDegrees: number) => object;
   graphicOverlay: (options: GraphicOverlayOptions) => GraphicOverlay;
   init: Promise<void>;
+}
+
+/** The aladin-lite npm package ships no types; its default export is the same A object. */
+declare module 'aladin-lite' {
+  const A: AladinStatic;
+  export default A;
 }
 
 /** Upon initialization, Aladin should be added to the Window object */
