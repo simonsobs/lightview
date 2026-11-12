@@ -40,7 +40,7 @@ If the map finishes loading later, it appears without a reload.
 
 ### Light curve preview
 
-Clicking a marker opens a preview panel with the source's light curve, broken out by frequency band. From the preview you can:
+Clicking a marker opens a preview panel with the source's light curve, broken out by frequency band. The plot works like the [source page light curve](source-page.md#light-curve), except that it has no **Binned** toggle and always hides flagged observations. From the preview you can:
 
 - Click **View source page** to go to the source's full page, which has more plot options and data downloads.
 - Click another marker to switch the preview to that source.
