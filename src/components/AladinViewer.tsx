@@ -28,11 +28,13 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
   );
   const [loadStatus, setLoadStatus] = useState<AladinLoadStatus>('loading');
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
-  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
+  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay). Every call into
+  // the viewer goes through guard, so a viewer broken by a lost context shows that overlay too.
   const {
     isContextLost,
     recoveryCount: contextRecoveryCount,
     recover,
+    guard,
   } = useWebGLContextRecovery(aladinContainerRef, { autoRecover: false });
 
   // Free the viewer's WebGL context on unmount (e.g. navigating to another source), since the
@@ -78,56 +80,68 @@ export function AladinViewer({ source, nearbySources }: AladinViewerProps) {
 
   // Center Aladin's cursor on the source's location
   useEffect(() => {
-    aladinInstanceRef.current?.gotoRaDec(source.ra, source.dec);
-  }, [viewerGeneration, source.ra, source.dec]);
+    const aladin = aladinInstanceRef.current;
+    if (!aladin) return;
+    guard(() => aladin.gotoRaDec(source.ra, source.dec));
+  }, [viewerGeneration, source.ra, source.dec, guard]);
 
   // Replaces the source/nearby sources catalog whenever they change
   useEffect(() => {
     const aladin = aladinInstanceRef.current;
-    if (!aladin || !window.A) return;
+    const A = window.A;
+    if (!aladin || !A) return;
 
-    aladin.removeLayers();
+    guard(() => {
+      aladin.removeLayers();
 
-    // Create catalog for source and nearby sources
-    const cat = window.A.catalog({
-      name: 'Source and nearby sources',
-      shape: function (
-        source: { x: number; y: number },
-        canvasCtx: CanvasRenderingContext2D
-      ) {
-        canvasCtx.beginPath();
-        canvasCtx.arc(source.x, source.y, 8, 0, 2 * Math.PI, false);
-        canvasCtx.closePath();
-        canvasCtx.strokeStyle = '#c38';
-        canvasCtx.lineWidth = 3;
-        canvasCtx.globalAlpha = 0.7;
-        canvasCtx.stroke();
-      },
-      onClick: 'showPopup',
+      // Create catalog for source and nearby sources
+      const cat = A.catalog({
+        name: 'Source and nearby sources',
+        shape: function (
+          source: { x: number; y: number },
+          canvasCtx: CanvasRenderingContext2D
+        ) {
+          canvasCtx.beginPath();
+          canvasCtx.arc(source.x, source.y, 8, 0, 2 * Math.PI, false);
+          canvasCtx.closePath();
+          canvasCtx.strokeStyle = '#c38';
+          canvasCtx.lineWidth = 3;
+          canvasCtx.globalAlpha = 0.7;
+          canvasCtx.stroke();
+        },
+        onClick: 'showPopup',
+      });
+      aladin.addCatalog(cat);
+
+      // Add markers for the source and nearby sources
+      cat.addSources([
+        A.source(source.ra, source.dec, {
+          name: source.name,
+          RA: source.ra.toFixed(3),
+          Dec: source.dec.toFixed(3),
+        }),
+      ]);
+
+      if (nearbySources.length) {
+        cat.addSources(
+          nearbySources.map((nearbySource) =>
+            A.source(nearbySource.ra, nearbySource.dec, {
+              name: nearbySource.name,
+              RA: nearbySource.ra.toFixed(3),
+              Dec: nearbySource.dec.toFixed(3),
+            })
+          )
+        );
+      }
     });
-    aladin.addCatalog(cat);
-
-    // Add markers for the source and nearby sources
-    cat.addSources([
-      window.A.source(source.ra, source.dec, {
-        name: source.name,
-        RA: source.ra.toFixed(3),
-        Dec: source.dec.toFixed(3),
-      }),
-    ]);
-
-    if (nearbySources.length) {
-      cat.addSources(
-        nearbySources.map((nearbySource) =>
-          window.A!.source(nearbySource.ra, nearbySource.dec, {
-            name: nearbySource.name,
-            RA: nearbySource.ra.toFixed(3),
-            Dec: nearbySource.dec.toFixed(3),
-          })
-        )
-      );
-    }
-  }, [viewerGeneration, source.name, source.ra, source.dec, nearbySources]);
+  }, [
+    viewerGeneration,
+    source.name,
+    source.ra,
+    source.dec,
+    nearbySources,
+    guard,
+  ]);
 
   return (
     <div className="webgl-context-lost-host aladin-viewer-host">
