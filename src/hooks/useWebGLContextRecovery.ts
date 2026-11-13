@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useState } from 'react';
+import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 
 type WebGLContextRecoveryOptions = {
   /** Whether to recover on our own as soon as the container is back on screen (see below), or
@@ -15,6 +15,10 @@ type WebGLContextRecovery = {
   recoveryCount: number;
   /** Clears the lost state and bumps recoveryCount */
   recover: () => void;
+  /** Runs a call into the view, treating a throw as a lost context rather than letting it reach an
+   * error boundary, and skips it while the context is lost. Returns undefined when skipped or
+   * thrown. */
+  guard: <T>(call: () => T) => T | undefined;
 };
 
 /**
@@ -36,24 +40,47 @@ export function useWebGLContextRecovery(
 ): WebGLContextRecovery {
   const [isContextLost, setIsContextLost] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
+  // Mirrors isContextLost for guard, which must see a loss immediately rather than after a render
+  const isContextLostRef = useRef(false);
+
+  const markLost = useCallback(() => {
+    isContextLostRef.current = true;
+    setIsContextLost(true);
+  }, []);
 
   const recover = useCallback(() => {
+    isContextLostRef.current = false;
     setIsContextLost(false);
     setRecoveryCount((count) => count + 1);
   }, []);
+
+  // A lost context can also leave the view itself broken. Aladin Lite's WebAssembly core, for one,
+  // crashes partway through a call, and every later call on that viewer then throws "recursive
+  // use of an object detected which would lead to unsafe aliasing in rust". Since those calls are
+  // made from effects, the error would otherwise replace the whole page with the error boundary.
+  const guard = useCallback(
+    <T>(call: () => T): T | undefined => {
+      if (isContextLostRef.current) return undefined;
+      try {
+        return call();
+      } catch (error) {
+        console.error('WebGL view stopped responding', error);
+        markLost();
+        return undefined;
+      }
+    },
+    [markLost]
+  );
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    const handleContextLost = () => setIsContextLost(true);
-
     // webglcontextlost doesn't bubble, so listen in the capture phase to catch it from whichever
     // canvases the library has created (or recreated) inside the container
-    el.addEventListener('webglcontextlost', handleContextLost, true);
-    return () =>
-      el.removeEventListener('webglcontextlost', handleContextLost, true);
-  }, [containerRef]);
+    el.addEventListener('webglcontextlost', markLost, true);
+    return () => el.removeEventListener('webglcontextlost', markLost, true);
+  }, [containerRef, markLost]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -85,7 +112,7 @@ export function useWebGLContextRecovery(
     };
   }, [autoRecover, isContextLost, containerRef, recover]);
 
-  return { isContextLost, recoveryCount, recover };
+  return { isContextLost, recoveryCount, recover, guard };
 }
 
 /**

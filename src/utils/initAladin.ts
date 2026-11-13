@@ -32,8 +32,11 @@ export function chooseSurveyUrl({ urls }: AladinSurvey): Promise<string> {
 async function findReachableUrl(urls: string[]): Promise<string> {
   for (const url of urls) {
     try {
+      // Never from the HTTP cache: a properties file cached while the server was up would make a
+      // server that's now down look reachable
       const response = await fetch(`${url}/properties`, {
         signal: AbortSignal.timeout(SURVEY_PROBE_TIMEOUT_MS),
+        cache: 'no-store',
       });
       if (response.ok) return url;
     } catch {

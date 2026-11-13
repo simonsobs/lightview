@@ -172,11 +172,14 @@ function AllSkyMap({
     viewerGeneration
   );
   // Aladin can't be torn down, so rather than rebuilding on our own after a lost context, show an
-  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay)
+  // overlay and let the user choose when to rebuild (see WebGLContextLostOverlay). Every call into
+  // the viewer after it's created goes through guard, so a viewer broken by a lost context shows
+  // that overlay too.
   const {
     isContextLost,
     recoveryCount: contextRecoveryCount,
     recover,
+    guard,
   } = useWebGLContextRecovery(containerRef, { autoRecover: false });
   const [hoveredSource, setHoveredSource] = useState<HoveredSource | null>(
     null
@@ -216,19 +219,23 @@ function AllSkyMap({
       const viewHeight = el.clientHeight;
       if (viewWidth === 0 || viewHeight === 0) return;
 
-      const ids = new Set<string>();
-      for (const s of sourcesRef.current) {
-        const xy = aladin.world2pix(s.ra, s.dec);
-        if (
-          xy &&
-          xy[0] >= 0 &&
-          xy[0] <= viewWidth &&
-          xy[1] >= 0 &&
-          xy[1] <= viewHeight
-        ) {
-          ids.add(s.sourceId);
+      const ids = guard(() => {
+        const inView = new Set<string>();
+        for (const s of sourcesRef.current) {
+          const xy = aladin.world2pix(s.ra, s.dec);
+          if (
+            xy &&
+            xy[0] >= 0 &&
+            xy[0] <= viewWidth &&
+            xy[1] >= 0 &&
+            xy[1] <= viewHeight
+          ) {
+            inView.add(s.sourceId);
+          }
         }
-      }
+        return inView;
+      });
+      if (!ids) return;
 
       // Small pans (especially zoomed out) often don't move any source in or out of view; skip
       // re-rendering the parent entirely when that happens.
@@ -243,7 +250,7 @@ function AllSkyMap({
       lastInViewIdsRef.current = ids;
       setInViewIdsRef.current(ids);
     }, IN_VIEW_DEBOUNCE_MS);
-  }, []);
+  }, [guard]);
 
   // The search target currently pinned on the map (see the skyTarget effect below); null
   // once dismissed. Mirrored into a ref for positionTargetPopup, for the same reason as above.
@@ -287,7 +294,8 @@ function AllSkyMap({
     }
     const viewWidth = el.clientWidth;
     const viewHeight = el.clientHeight;
-    const xy = aladin.world2pix(target.ra, target.dec);
+    const xy = guard(() => aladin.world2pix(target.ra, target.dec));
+    if (xy === undefined) return;
     const isInView =
       xy !== null &&
       xy[0] >= 0 &&
@@ -317,7 +325,7 @@ function AllSkyMap({
     }
     popup.style.left = `${shiftX + popupX}px`;
     popup.style.top = `${shiftY + popupY}px`;
-  }, []);
+  }, [guard]);
 
   // Initialize the Aladin viewer once; it's never torn down for the lifetime of this
   // component (see App.tsx, which keeps Main mounted across navigation). The one exception is
@@ -438,35 +446,38 @@ function AllSkyMap({
       const el = containerRef.current;
       // Skipped while the page is hidden (display:none, see App.tsx): nothing can change then
       if (el && el.clientWidth > 0) {
-        const width = el.clientWidth;
-        const height = el.clientHeight;
-        const zoom = aladin.getZoomFactor();
-        let hasMoved =
-          !lastView || width !== lastView.width || height !== lastView.height;
-        if (!hasMoved && lastView) {
-          // How far the last recompute's center has drifted from the view's center (pan), and how
-          // far a zoom by this ratio moves the view's edges
-          const xy = aladin.world2pix(lastView.ra, lastView.dec);
-          const panPx = xy
-            ? Math.hypot(xy[0] - width / 2, xy[1] - height / 2)
-            : Infinity;
-          const zoomPx =
-            (Math.abs(1 - zoom / lastView.zoom) * Math.max(width, height)) / 2;
-          hasMoved =
-            panPx >= VIEW_CHANGE_THRESHOLD_PX ||
-            zoomPx >= VIEW_CHANGE_THRESHOLD_PX;
-        }
-        if (hasMoved) {
-          const [ra, dec] = aladin.getRaDec();
-          lastView = { ra, dec, zoom, width, height };
-          scheduleInViewUpdate();
-        }
+        guard(() => {
+          const width = el.clientWidth;
+          const height = el.clientHeight;
+          const zoom = aladin.getZoomFactor();
+          let hasMoved =
+            !lastView || width !== lastView.width || height !== lastView.height;
+          if (!hasMoved && lastView) {
+            // How far the last recompute's center has drifted from the view's center (pan), and how
+            // far a zoom by this ratio moves the view's edges
+            const xy = aladin.world2pix(lastView.ra, lastView.dec);
+            const panPx = xy
+              ? Math.hypot(xy[0] - width / 2, xy[1] - height / 2)
+              : Infinity;
+            const zoomPx =
+              (Math.abs(1 - zoom / lastView.zoom) * Math.max(width, height)) /
+              2;
+            hasMoved =
+              panPx >= VIEW_CHANGE_THRESHOLD_PX ||
+              zoomPx >= VIEW_CHANGE_THRESHOLD_PX;
+          }
+          if (hasMoved) {
+            const [ra, dec] = aladin.getRaDec();
+            lastView = { ra, dec, zoom, width, height };
+            scheduleInViewUpdate();
+          }
+        });
       }
       frame = window.requestAnimationFrame(watchView);
     };
     frame = window.requestAnimationFrame(watchView);
     return () => window.cancelAnimationFrame(frame);
-  }, [viewerGeneration, scheduleInViewUpdate]);
+  }, [viewerGeneration, scheduleInViewUpdate, guard]);
 
   // Repopulate the sources catalog whenever the source list changes. Relies on the caller
   // (Main.tsx) memoizing `sources` so this doesn't refire on unrelated re-renders - this
@@ -477,26 +488,30 @@ function AllSkyMap({
     const aladin = aladinInstanceRef.current;
     if (!aladin || !window.A) return;
 
-    aladin.removeLayers();
-
-    const catalog = window.A.catalog({
-      name: 'All sources',
-      shape: getShapeFunction(''),
+    const A = window.A;
+    const catalog = guard(() => {
+      aladin.removeLayers();
+      const catalog = A.catalog({
+        name: 'All sources',
+        shape: getShapeFunction(''),
+      });
+      aladin.addCatalog(catalog);
+      catalog.addSources(
+        sources.map((s) =>
+          A.source(s.ra, s.dec, {
+            sourceId: s.sourceId,
+            name: s.name,
+          })
+        )
+      );
+      return catalog;
     });
-    aladin.addCatalog(catalog);
-    catalog.addSources(
-      sources.map((s) =>
-        window.A!.source(s.ra, s.dec, {
-          sourceId: s.sourceId,
-          name: s.name,
-        })
-      )
-    );
+    if (!catalog) return;
     catalogRef.current = catalog;
     // A new source list means a new in-view set even if the camera hasn't moved; this also
     // produces the initial set once Aladin is ready.
     scheduleInViewUpdate();
-  }, [sources, viewerGeneration, scheduleInViewUpdate]);
+  }, [sources, viewerGeneration, scheduleInViewUpdate, guard]);
 
   // Applies the derived visible set to the Aladin catalog. Re-runs whenever `visibleSources`
   // changes, which includes right after the catalog-rebuild effect above runs (since that
@@ -506,16 +521,18 @@ function AllSkyMap({
     const catalog = catalogRef.current;
     if (!catalog) return;
     const visibleIds = new Set(visibleSources.map((s) => s.sourceId));
-    catalog.setShape(getShapeFunction(appliedBand));
-    catalog.getSources().forEach((s) => {
-      const isVisible = visibleIds.has(s.data?.sourceId);
-      if (isVisible) {
-        s.show();
-      } else {
-        s.hide();
-      }
+    guard(() => {
+      catalog.setShape(getShapeFunction(appliedBand));
+      catalog.getSources().forEach((s) => {
+        const isVisible = visibleIds.has(s.data?.sourceId);
+        if (isVisible) {
+          s.show();
+        } else {
+          s.hide();
+        }
+      });
     });
-  }, [visibleSources, appliedBand, viewerGeneration]);
+  }, [visibleSources, appliedBand, viewerGeneration, guard]);
 
   // Centers and zooms on a target from the navigation bar's catalog or cone search, then pins a
   // popup (position and a link-out) to it until dismissed. A named object gets a
@@ -541,20 +558,24 @@ function AllSkyMap({
     let applied = false;
     const applyTarget = () => {
       applied = true;
-      aladin.gotoRaDec(normalizeRa(skyTarget.ra), skyTarget.dec);
       const el = containerRef.current;
-      aladin.setFov(
-        skyTarget.kind === 'cone'
-          ? Math.min(
-              fovForCone(
-                skyTarget.radiusDeg,
-                el?.clientWidth ?? 0,
-                el?.clientHeight ?? 0
-              ),
-              allSkyFovRef.current
-            )
-          : CATALOG_SEARCH_FOV_DEG
-      );
+      const moved = guard(() => {
+        aladin.gotoRaDec(normalizeRa(skyTarget.ra), skyTarget.dec);
+        aladin.setFov(
+          skyTarget.kind === 'cone'
+            ? Math.min(
+                fovForCone(
+                  skyTarget.radiusDeg,
+                  el?.clientWidth ?? 0,
+                  el?.clientHeight ?? 0
+                ),
+                allSkyFovRef.current
+              )
+            : CATALOG_SEARCH_FOV_DEG
+        );
+        return true;
+      });
+      if (!moved) return;
       // Aladin doesn't reliably emit positionChanged/zoomChanged for programmatic moves, so
       // recompute the in-view set (and so the table) explicitly rather than relying on them.
       scheduleInViewUpdate();
@@ -577,7 +598,16 @@ function AllSkyMap({
     let settleTimeout: number | undefined;
     const applyOnceSized = (isFirstCheck: boolean) => {
       const el = containerRef.current;
-      const [aladinWidth, aladinHeight] = aladin.getSize();
+      const size = guard(() => aladin.getSize());
+      if (!size) {
+        // The viewer broke (see guard). Counted as applied so this effect's cleanup doesn't clear
+        // appliedTargetIdRef, which would make its re-run (isContextLost is now true) rebuild the
+        // viewer on its own, over and over if each new viewer breaks too. The user's "Reload map"
+        // brings the target back only if it was already pinned, like any other reload.
+        applied = true;
+        return;
+      }
+      const [aladinWidth, aladinHeight] = size;
       // Measured the same way Aladin does (floored bounding-box size)
       const rect = el?.getBoundingClientRect();
       const isSized =
@@ -611,6 +641,7 @@ function AllSkyMap({
     isContextLost,
     recover,
     scheduleInViewUpdate,
+    guard,
   ]);
 
   // Draws a pinned cone search's cone as a circle on the map, removed again once the result is
@@ -620,17 +651,22 @@ function AllSkyMap({
   useEffect(() => {
     const aladin = aladinInstanceRef.current;
     if (!aladin || !window.A || pinnedTarget?.kind !== 'cone') return;
-    const overlay = window.A.graphicOverlay({
-      name: 'Cone search',
-      color: CONE_OUTLINE_COLOR,
-      lineWidth: 2,
+    const A = window.A;
+    const overlay = guard(() => {
+      const overlay = A.graphicOverlay({
+        name: 'Cone search',
+        color: CONE_OUTLINE_COLOR,
+        lineWidth: 2,
+      });
+      aladin.addOverlay(overlay);
+      overlay.addFootprints(
+        A.circle(pinnedTarget.ra, pinnedTarget.dec, pinnedTarget.radiusDeg)
+      );
+      return overlay;
     });
-    aladin.addOverlay(overlay);
-    overlay.addFootprints(
-      window.A.circle(pinnedTarget.ra, pinnedTarget.dec, pinnedTarget.radiusDeg)
-    );
-    return () => aladin.removeOverlay(overlay);
-  }, [pinnedTarget, sources, viewerGeneration]);
+    if (!overlay) return;
+    return () => guard(() => aladin.removeOverlay(overlay));
+  }, [pinnedTarget, sources, viewerGeneration, guard]);
 
   // Places a newly pinned popup before it's first painted (so it never flashes at the container's
   // top-left), and again when fullscreen toggles since its coordinate space changes with it.

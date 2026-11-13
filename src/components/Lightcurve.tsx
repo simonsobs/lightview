@@ -55,10 +55,38 @@ import {
 } from '../configs/socolors';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { lightcurveApi } from '../api/client';
+import { isWebGLAvailable } from '../utils/webglSupport';
 
 /** How long the binned start/end date inputs wait after their last change before triggering a
  * fetch - see debouncedBinnedStartTime/debouncedBinnedEndTime below. */
 const BINNED_DATE_DEBOUNCE_MS = 500;
+
+/**
+ * Plotly.purge, plus freeing the plot's WebGL contexts right away. Purging alone only destroys
+ * regl's resources, so its contexts would keep counting toward the browser's limit until they're
+ * garbage collected, which introduces an unknown as to when GC takes place. Better to remove that
+ * uncertainty by explicitly releasing the contexts.
+ */
+function purgePlotlyAndReleaseWebGLContexts(plot: HTMLElement) {
+  // scattergl draws into the context and focus layers; the pick layer only gets a context for
+  // parcoords, and calling getContext on a canvas without one would create a new context.
+  const contexts = Array.from(
+    plot.querySelectorAll<HTMLCanvasElement>(
+      'canvas.gl-canvas-context, canvas.gl-canvas-focus'
+    ),
+    (canvas) => canvas.getContext('webgl')
+  );
+  Plotly.purge(plot);
+  contexts.forEach((gl) =>
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+  );
+}
+
+/** scattergl is much faster for large lightcurves, but without WebGL Plotly replaces the whole
+ * plot with an unusable "WebGL is not supported" overlay, so fall back to the SVG trace instead. */
+function scatterTraceType(): 'scattergl' | 'scatter' {
+  return isWebGLAvailable() ? 'scattergl' : 'scatter';
+}
 
 type LightcurveProps = {
   lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
@@ -187,7 +215,7 @@ function buildBinnedTrace(
       thickness: 1.0,
       width: 1.0,
     },
-    type: 'scattergl',
+    type: scatterTraceType(),
     mode: 'markers',
     marker: {
       size: 5,
@@ -408,7 +436,7 @@ export function Lightcurve({
                 thickness: 1.0,
                 width: 1.0,
               },
-              type: 'scattergl',
+              type: scatterTraceType(),
               mode: 'markers',
               marker: {
                 size: 5,
@@ -465,7 +493,7 @@ export function Lightcurve({
             thickness: 1.0,
             width: 1.0,
           },
-          type: 'scattergl',
+          type: scatterTraceType(),
           mode: 'markers',
           marker: {
             size: 5,
@@ -763,7 +791,7 @@ export function Lightcurve({
     const raf = requestAnimationFrame(() => {
       if (plottedRecoveryCountRef.current !== contextRecoveryCount) {
         plottedRecoveryCountRef.current = contextRecoveryCount;
-        Plotly.purge(stablePlotlyReference);
+        purgePlotlyAndReleaseWebGLContexts(stablePlotlyReference);
         areListenersAttachedRef.current = false;
         // The rebuilt plot won't carry the clicked marker's highlight, so close its tooltip too
         setClickedMarkerData(undefined);
@@ -806,12 +834,12 @@ export function Lightcurve({
     setIsDataReady,
   ]);
 
-  /** Tears the plot down (freeing its WebGL context) only on unmount */
+  /** Tears the plot down (freeing its WebGL contexts) only on unmount */
   useEffect(() => {
     const stablePlotlyReference = plotlyRef.current;
     if (!stablePlotlyReference) return;
     return () => {
-      Plotly.purge(stablePlotlyReference);
+      purgePlotlyAndReleaseWebGLContexts(stablePlotlyReference);
       areListenersAttachedRef.current = false;
     };
   }, []);

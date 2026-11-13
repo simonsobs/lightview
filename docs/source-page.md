@@ -74,6 +74,10 @@ The plot loads once both dates are set, and reloads whenever you change a date o
 
 Switch the toggle back to **Unbinned** to return to individual measurements.
 
+### Browsers without WebGL
+
+The plot normally draws its points with WebGL (Plotly's `scattergl` traces), which keeps it fast for light curves with many measurements. If the browser doesn't support WebGL, or has it turned off, the plot falls back to Plotly's standard `scatter` traces instead. It looks and works the same, but zooming, panning and clicking points can be noticeably slower for large light curves. Turning WebGL back on, or using a browser that supports it, and reloading the page restores the faster plot.
+
 ## Cross-matches
 
 Lists catalog objects that have been matched to this source. Each name opens that object in [SIMBAD](https://simbad.cds.unistra.fr/simbad/) in a new tab. If a SIMBAD search earlier in the session had to fall back to the [Harvard mirror](https://simbad.cfa.harvard.edu/simbad/) because CDS didn't respond, the links go to the mirror instead. If the source has no cross-matches, the section shows _No results_.
