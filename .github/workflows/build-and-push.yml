@@ -13,8 +13,16 @@ permissions:
 
 jobs:
   push_to_registry:
-    name: Build and push Docker image
+    name: Build and push (${{ matrix.variant }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - variant: so
+          - variant: act
+    environment: lightview-${{ matrix.variant }}
+    labels: |
+      org.simonsobs.lightview.${{ matrix.variant }}
 
     steps:
       - name: Checkout code
@@ -38,7 +46,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
-          flavor: latest=false
+          flavor: |
+            latest=false
+            suffix=-${{ matrix.variant }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
@@ -52,5 +62,14 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_AUTH_ENABLED=${{ vars.VITE_AUTH_ENABLED }}
+            VITE_SERVICE_URL=${{ vars.VITE_SERVICE_URL }}
+            VITE_ORGANIZATION_NAME=${{ vars.VITE_ORGANIZATION_NAME }}
+            VITE_APP_NAME=${{ vars.VITE_APP_NAME }}
+            VITE_APP_TITLE=${{ vars.VITE_APP_TITLE }}
+            VITE_LOGIN_SERVICE=${{ vars.VITE_LOGIN_SERVICE }}
+            VITE_LOGOUT_SERVICE=${{ vars.VITE_LOGOUT_SERVICE }}
+            VITE_CROSSMATCH_ENABLED=${{ vars.VITE_CROSSMATCH_ENABLED }}
+          cache-from: type=gha,scope=${{ matrix.variant }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
