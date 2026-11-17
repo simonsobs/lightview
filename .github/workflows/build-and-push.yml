@@ -21,8 +21,6 @@ jobs:
           - variant: so
           - variant: act
     environment: lightview-${{ matrix.variant }}
-    labels: |
-      org.simonsobs.lightview.${{ matrix.variant }}
 
     steps:
       - name: Checkout code
@@ -52,6 +50,8 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=tag
+          labels: |
+            org.simonsobs.lightview.${{ matrix.variant }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
