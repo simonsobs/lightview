@@ -9,11 +9,13 @@ import { ColumnDef, InitialTableState } from '@tanstack/react-table';
 import { DATA_EXT_OPTIONS } from '../configs/constants';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { lightcurveApi } from '../api/client';
+import { toMJD } from '../utils/lightcurveDataHelpers';
 
 type LightcurveTableData = {
   id: string;
   frequency: number;
-  time: string;
+  dateTime: string;
+  mjdTime: number;
   timeParsed: number;
   ra: number;
   dec: number;
@@ -38,7 +40,8 @@ export function LightcurveDataTable({
         data.push({
           id,
           frequency: lightcurveData.lightcurves[k].frequency,
-          time: lightcurveData.lightcurves[k].time[idx],
+          dateTime: lightcurveData.lightcurves[k].time[idx],
+          mjdTime: toMJD(lightcurveData.lightcurves[k].time[idx]),
           timeParsed: Date.parse(lightcurveData.lightcurves[k].time[idx]),
           ra: lightcurveData.lightcurves[k].ra[idx],
           dec: lightcurveData.lightcurves[k].dec[idx],
@@ -59,12 +62,20 @@ export function LightcurveDataTable({
         size: 310,
       },
       {
-        header: 'Time',
-        accessorKey: 'time',
-        accessorFn: (row) => row.time,
+        header: 'Time (Date)',
+        accessorKey: 'date-time',
+        accessorFn: (row) => row.dateTime,
         size: 160,
         sortingFn: (rowA, rowB) =>
           rowA.original.timeParsed - rowB.original.timeParsed,
+      },
+      {
+        header: 'Time (MJD)',
+        accessorKey: 'mjd-time',
+        accessorFn: (row) => row.mjdTime.toFixed(5),
+        size: 160,
+        sortingFn: (rowA, rowB) =>
+          rowA.original.mjdTime - rowB.original.mjdTime,
       },
       {
         header: 'Frequency',
@@ -115,7 +126,7 @@ export function LightcurveDataTable({
 
   const initialState: InitialTableState = useMemo(() => {
     return {
-      sorting: [{ id: 'time', desc: false }],
+      sorting: [{ id: 'date-time', desc: false }],
       pagination: {
         pageSize: 25,
       },
