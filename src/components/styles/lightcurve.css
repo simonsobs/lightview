@@ -119,7 +119,8 @@
 }
 
 .selection-strategy-container,
-.flagged-container {
+.flagged-container,
+.x-axis-mode-container {
   position: absolute;
   z-index: 2;
   top: 5px;
@@ -128,7 +129,25 @@
 .selection-strategy-container {
   display: flex;
   column-gap: 5px;
-  margin-left: 10px;
+  top: 25px;
+  margin-left: 5px;
+}
+
+/* With the strategy toggle shown, the x-axis toggle stacks above it, so both share a fixed left
+   label width to line up their switches */
+.has-strategy-toggle > .x-axis-mode-container {
+  margin-left: 5px;
+}
+
+.has-strategy-toggle > .x-axis-mode-container .left,
+.selection-strategy-container > .toggle-container .left {
+  width: 60px;
+  text-align: end;
+}
+
+/* Clear the overlaid title/subtitle (see index.css's .title-container) */
+.has-title > .x-axis-mode-container {
+  top: 50px;
 }
 
 .selection-strategy-dropdown {

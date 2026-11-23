@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 
-import { generateBaseMarkerConfig } from '../../src/utils/lightcurveDataHelpers';
+import {
+  generateBaseMarkerConfig,
+  toMJD,
+} from '../../src/utils/lightcurveDataHelpers';
 import { BaseScatterData } from '../../src/components/Lightcurve';
 
 function makeData(flags: number[]) {
@@ -36,5 +39,25 @@ describe('generateBaseMarkerConfig', () => {
     expect(result.marker.size).toBe(10);
     expect(result.marker.line.color).toEqual(['#fff', 'red']);
     expect(result.marker.line.width).toEqual([2, 1.5]);
+  });
+});
+
+describe('toMJD', () => {
+  it('maps the Unix epoch to MJD 40587', () => {
+    expect(toMJD('1970-01-01T00:00:00Z')).toBe(40587);
+  });
+
+  it('maps J2000 (noon on 2000-01-01) to MJD 51544.5', () => {
+    expect(toMJD('2000-01-01T12:00:00Z')).toBe(51544.5);
+  });
+
+  it('keeps sub-day precision', () => {
+    expect(toMJD('2025-06-01T06:00:00Z')).toBeCloseTo(60827.25, 10);
+  });
+
+  it('respects the timezone offset in the date string', () => {
+    expect(toMJD('2000-01-01T07:00:00-05:00')).toBe(
+      toMJD('2000-01-01T12:00:00Z')
+    );
   });
 });

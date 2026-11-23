@@ -33,7 +33,10 @@ import Plotly, {
 import { useQuery } from '../hooks/useQuery';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useWebGLContextRecovery } from '../hooks/useWebGLContextRecovery';
-import { generateBaseMarkerConfig } from '../utils/lightcurveDataHelpers';
+import {
+  generateBaseMarkerConfig,
+  toMJD,
+} from '../utils/lightcurveDataHelpers';
 import {
   buildInstrumentLegendTraces,
   DEFAULT_INSTRUMENT_LEGEND_LAYOUT,
@@ -87,6 +90,8 @@ function purgePlotlyAndReleaseWebGLContexts(plot: HTMLElement) {
 function scatterTraceType(): 'scattergl' | 'scatter' {
   return isWebGLAvailable() ? 'scattergl' : 'scatter';
 }
+
+type XAxisMode = 'date' | 'mjd';
 
 type LightcurveProps = {
   lightcurveData: FrequencyLightcurveData | InstrumentLightcurveData;
@@ -163,6 +168,13 @@ type BasePlotDatum = PlotDatum & {
   };
 };
 
+/** Hover text for every lightcurve trace; MJD values get a fixed precision and a label since,
+ * unlike dates, a bare number doesn't say what it is. */
+function hoverTemplate(xAxisMode: XAxisMode) {
+  const x = xAxisMode === 'date' ? '%{x}' : 'MJD %{x:.5f}';
+  return `(${x}, %{y:.1f} +/- %{error_y.array:.1f})`;
+}
+
 /** Fills in the fields shared by every trace type at a given point index; shared between the
  * instrument-strategy (one trace per frequency) and frequency-strategy (one trace per module)
  * branches of plotData. */
@@ -173,9 +185,13 @@ function populatePoint(
     | InstrumentLightcurveMeasurements,
   lightcurveKey: string,
   idx: number,
-  isFlagged: boolean
+  isFlagged: boolean,
+  xAxisMode: XAxisMode
 ) {
-  data.x[idx] = new Date(lightcurve.time[idx]);
+  data.x[idx] =
+    xAxisMode === 'date'
+      ? new Date(lightcurve.time[idx])
+      : toMJD(lightcurve.time[idx]);
   data.y[idx] = lightcurve.flux[idx];
   data.error_y.array[idx] = lightcurve.flux_err[idx];
   data.measurementId[idx] = lightcurve.measurement_id[idx];
@@ -199,14 +215,15 @@ function populatePoint(
  * (frequency) series. */
 function buildBinnedTrace(
   lightcurveKey: string,
-  binned: BinnedLightcurveMeasurements
+  binned: BinnedLightcurveMeasurements,
+  xAxisMode: XAxisMode
 ): BaseScatterData {
   const length = binned.time.length;
   return {
     name: `f${binned.frequency}`,
     showlegend: true,
     visible: true,
-    x: binned.time.map((t) => new Date(t)),
+    x: binned.time.map((t) => (xAxisMode === 'date' ? new Date(t) : toMJD(t))),
     y: binned.flux,
     error_y: {
       type: 'data',
@@ -226,7 +243,7 @@ function buildBinnedTrace(
         color: new Array(length).fill('#000'),
       },
     },
-    hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
+    hovertemplate: hoverTemplate(xAxisMode),
     measurementId: new Array<Datum>(length).fill(''),
     flags: new Array<Datum>(length).fill(0),
     customdata: new Array<Datum>(length).fill(lightcurveKey),
@@ -254,7 +271,10 @@ export function Lightcurve({
   // uses this container's id internally for more than just our own restyle calls - two elements
   // sharing a literal "lightcurve-plot" id caused click events on one plot to be attributed to
   // the other instance's data. useId() guarantees this can never collide between instances.
-  const plotElementId = `lightcurve-plot-${useId()}`;
+  // The toggles' ids need the same treatment: each ToggleSwitch's <label htmlFor> resolves to the
+  // first matching id in the document, which would be Main's hidden instance.
+  const instanceId = useId();
+  const plotElementId = `lightcurve-plot-${instanceId}`;
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [hideFlaggedData, setHideFlaggedData] = useState(
@@ -262,6 +282,7 @@ export function Lightcurve({
   );
 
   const [viewMode, setViewMode] = useState<'binned' | 'unbinned'>('unbinned');
+  const [xAxisMode, setXAxisMode] = useState<XAxisMode>('date');
   const [binnedStartTime, setBinnedStartTime] = useState('');
   const [binnedEndTime, setBinnedEndTime] = useState('');
   const [binningStrategy, setBinningStrategy] = useState(
@@ -378,7 +399,8 @@ export function Lightcurve({
         return [];
       }
       return Object.entries(binnedLightcurveData.lightcurves).map(
-        ([lightcurveKey, binned]) => buildBinnedTrace(lightcurveKey, binned)
+        ([lightcurveKey, binned]) =>
+          buildBinnedTrace(lightcurveKey, binned, xAxisMode)
       );
     }
 
@@ -447,7 +469,7 @@ export function Lightcurve({
                   color: [] as string[],
                 },
               },
-              hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
+              hovertemplate: hoverTemplate(xAxisMode),
               measurementId: [] as Datum[],
               module: [] as Datum[],
               flags: [] as Datum[],
@@ -463,7 +485,8 @@ export function Lightcurve({
             lightcurve,
             lightcurveKey,
             idx,
-            isFlagged && showFlaggedMarkerStyling
+            isFlagged && showFlaggedMarkerStyling,
+            xAxisMode
           );
         });
 
@@ -504,7 +527,7 @@ export function Lightcurve({
               color: [] as string[],
             },
           },
-          hovertemplate: '(%{x}, %{y:.1f} +/- %{error_y.array:.1f})',
+          hovertemplate: hoverTemplate(xAxisMode),
           measurementId: [] as Datum[],
           flags: [] as Datum[],
           customdata: [] as Datum[],
@@ -525,7 +548,8 @@ export function Lightcurve({
             lightcurve,
             lightcurveKey,
             idx,
-            isFlagged && showFlaggedMarkerStyling
+            isFlagged && showFlaggedMarkerStyling,
+            xAxisMode
           );
         });
 
@@ -559,6 +583,7 @@ export function Lightcurve({
     hideFlaggedData,
     hiddenLegendGroups,
     showFlaggedMarkerStyling,
+    xAxisMode,
   ]);
 
   /**
@@ -576,8 +601,11 @@ export function Lightcurve({
       },
       xaxis: {
         title: {
-          text: 'Date',
+          text: 'Time (' + (xAxisMode === 'date' ? 'Date' : 'MJD') + ')',
         },
+        type: xAxisMode === 'date' ? 'date' : 'linear',
+        autorange: true,
+        ...(xAxisMode === 'mjd' ? { exponentformat: 'none' } : {}),
       },
       showlegend: true,
       legend: {
@@ -595,7 +623,13 @@ export function Lightcurve({
         family: 'sans-serif',
       },
     }),
-    [legendMarginTop, viewMode, legendTopRowYOffset, legendBottomRowYOffset]
+    [
+      legendMarginTop,
+      viewMode,
+      xAxisMode,
+      legendTopRowYOffset,
+      legendBottomRowYOffset,
+    ]
   );
 
   /** Invokes Plotly.restyle in order to update changes to marker styles */
@@ -881,6 +915,15 @@ export function Lightcurve({
     []
   );
 
+  const onXAxisModeChange = useCallback(
+    (e: ChangeEvent) => {
+      e.stopPropagation();
+      setXAxisMode((prev) => (prev === 'date' ? 'mjd' : 'date'));
+      handleRelayoutOrTooltipClose();
+    },
+    [handleRelayoutOrTooltipClose]
+  );
+
   // Matches the debounced values the query above actually fetches with, not the raw input state,
   // so this doesn't flip to "false" (and briefly hide the "select a date" prompt with nothing to
   // replace it) before the debounced fetch it's describing has even started.
@@ -907,7 +950,13 @@ export function Lightcurve({
         : null;
 
   return (
-    <div className="lightcurve-container">
+    <div
+      className={
+        'lightcurve-container' +
+        (hideStrategyToggle !== true ? ' has-strategy-toggle' : '') +
+        (title || subtitle ? ' has-title' : '')
+      }
+    >
       {(title || subtitle) && (
         <div className="title-container">
           {title && <p className="title-text">{title}</p>}
@@ -917,7 +966,7 @@ export function Lightcurve({
       {hideFlaggedObsToggle !== true && (
         <div className="flagged-container">
           <ToggleSwitch
-            toggleId="flag-obs"
+            toggleId={`flag-obs-${instanceId}`}
             checked={!hideFlaggedData}
             onChange={onFlaggedObservationChange}
             disabled={false}
@@ -932,77 +981,85 @@ export function Lightcurve({
           </div>
         </div>
       )}
+      <div className="x-axis-mode-container">
+        <ToggleSwitch
+          toggleId={`x-axis-mode-${instanceId}`}
+          checked={xAxisMode === 'mjd'}
+          onChange={onXAxisModeChange}
+          disabled={false}
+          checkedLabel="MJD"
+          uncheckedLabel="Date"
+        />
+      </div>
       {hideStrategyToggle !== true && (
-        <>
-          <div className="selection-strategy-container">
-            <ToggleSwitch
-              toggleId="view-mode"
-              checked={viewMode === 'binned'}
-              onChange={onViewModeChange}
-              disabled={false}
-              checkedLabel="Binned"
-              uncheckedLabel="Unbinned"
-            />
-            {viewMode === 'binned' && (
-              <div className="binned-params-container">
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div
-                    style={{
-                      width: 10,
-                      height: 15,
-                      borderTop: '1px solid black',
-                    }}
-                  ></div>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: 5,
-                      borderTop: '1px solid black',
-                      borderLeft: '1px solid black',
-                      borderBottom: '1px solid black',
-                    }}
-                  ></div>
-                </div>
-                <label htmlFor="binned-start-time">
-                  Start time
-                  <input
-                    id="binned-start-time"
-                    type="date"
-                    value={binnedStartTime}
-                    onChange={(e) => setBinnedStartTime(e.target.value)}
-                  />
-                </label>
-                <label htmlFor="binned-end-time">
-                  End time
-                  <input
-                    id="binned-end-time"
-                    type="date"
-                    value={binnedEndTime}
-                    onChange={(e) => setBinnedEndTime(e.target.value)}
-                  />
-                </label>
-                <label htmlFor="binning-strategy">
-                  Binning strategy
-                  <select
-                    id="binning-strategy"
-                    value={binningStrategy}
-                    onChange={onBinningStrategyChange}
-                  >
-                    {BINNING_STRATEGY_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {isBinnedLightcurveLoading && <span>Loading binned data…</span>}
-                {binnedLightcurveError && (
-                  <span>Failed to load binned data.</span>
-                )}
+        <div className="selection-strategy-container">
+          <ToggleSwitch
+            toggleId={`view-mode-${instanceId}`}
+            checked={viewMode === 'binned'}
+            onChange={onViewModeChange}
+            disabled={false}
+            checkedLabel="Binned"
+            uncheckedLabel="Unbinned"
+          />
+          {viewMode === 'binned' && (
+            <div className="binned-params-container">
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{
+                    width: 10,
+                    height: 15,
+                    borderTop: '1px solid black',
+                  }}
+                ></div>
+                <div
+                  style={{
+                    height: '100%',
+                    width: 5,
+                    borderTop: '1px solid black',
+                    borderLeft: '1px solid black',
+                    borderBottom: '1px solid black',
+                  }}
+                ></div>
               </div>
-            )}
-          </div>
-        </>
+              <label htmlFor="binned-start-time">
+                Start time
+                <input
+                  id="binned-start-time"
+                  type="date"
+                  value={binnedStartTime}
+                  onChange={(e) => setBinnedStartTime(e.target.value)}
+                />
+              </label>
+              <label htmlFor="binned-end-time">
+                End time
+                <input
+                  id="binned-end-time"
+                  type="date"
+                  value={binnedEndTime}
+                  onChange={(e) => setBinnedEndTime(e.target.value)}
+                />
+              </label>
+              <label htmlFor="binning-strategy">
+                Binning strategy
+                <select
+                  id="binning-strategy"
+                  value={binningStrategy}
+                  onChange={onBinningStrategyChange}
+                >
+                  {BINNING_STRATEGY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {isBinnedLightcurveLoading && <span>Loading binned data…</span>}
+              {binnedLightcurveError && (
+                <span>Failed to load binned data.</span>
+              )}
+            </div>
+          )}
+        </div>
       )}
       <div
         // @ts-expect-error plotlyRef is an extended version of an HTMLDivElement
@@ -1041,7 +1098,10 @@ export function Lightcurve({
               <div className="plot-marker-data">
                 <p>
                   <span>Time:</span>
-                  {String(clickedMarkerData.data.x)}
+                  {xAxisMode === 'date'
+                    ? String(clickedMarkerData.data.x)
+                    : String(Number(clickedMarkerData.data.x).toFixed(5))}
+                  {xAxisMode === 'mjd' && ' MJD'}
                 </p>
                 <p>
                   <span>Flux Density:</span>
