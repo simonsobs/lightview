@@ -40,3 +40,8 @@ export function formatSourceStatus(str: string) {
   const s = str.split('_').join(' ');
   return s[0].toUpperCase() + s.slice(1);
 }
+
+/* converts ISO date string into Modified Julian Date (MJD) */
+export function toMJD(t: string): number {
+  return Date.parse(t) / 86_400_000 + 40587;
+}
