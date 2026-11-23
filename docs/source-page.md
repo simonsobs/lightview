@@ -44,6 +44,16 @@ The two legend rows above the plot list the frequencies (in GHz) and the modules
 
 Hover over a point to see its time, flux density and uncertainty. The Plotly toolbar in the top-right corner of the plot has tools to zoom, pan, reset the axes and save the plot as a PNG.
 
+### Date and MJD time axis
+
+The time axis shows calendar dates by default (**Time (Date)**). Use the **MJD / Date** toggle in the top-left corner of the plot to show [Modified Julian Date](https://en.wikipedia.org/wiki/Julian_day) instead (**Time (MJD)**). Switching:
+
+- changes the hover text and the details panel's **Time** to MJD
+- resets any zoom or pan to fit the data
+- closes an open details panel
+
+The toggle works in both binned and unbinned mode. The binned **Start time** and **End time** are always entered as calendar dates.
+
 ### Measurement details and cutouts
 
 Click a point to open a details panel for that measurement. Its header names the module and frequency, and the panel shows:
@@ -99,7 +109,8 @@ At the bottom of the page is a table of every measurement in the light curve:
 | Column                       | Description                                      |
 | ---------------------------- | ------------------------------------------------ |
 | **ID**                       | The measurement ID                               |
-| **Time**                     | Time of the measurement                          |
+| **Time (Date)**              | Time of the measurement                          |
+| **Time (MJD)**               | Time of the measurement as MJD, to five decimals |
 | **Frequency**                | Frequency band (GHz)                             |
 | **RA**, **Dec**              | Measured position (degrees)                      |
 | **Flux Density**             | Flux density (mJy), to three significant figures |
