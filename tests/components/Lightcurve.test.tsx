@@ -86,7 +86,7 @@ describe('Lightcurve x-axis mode', () => {
     expect(trace.hovertemplate).not.toContain('MJD');
     expect(layout.xaxis?.type).toBe('date');
     expect(layout.xaxis?.title).toEqual({ text: 'Time (Date)' });
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
   it('switches to MJD values on a linear axis when toggled', async () => {
@@ -102,7 +102,7 @@ describe('Lightcurve x-axis mode', () => {
     expect(trace.hovertemplate).toContain('MJD %{x:.5f}');
     expect(layout.xaxis?.title).toEqual({ text: 'Time (MJD)' });
     expect(layout.xaxis?.exponentformat).toBe('none');
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
   it('switches back to dates when toggled again', async () => {
@@ -116,6 +116,32 @@ describe('Lightcurve x-axis mode', () => {
     await waitFor(() => expect(lastPlot().layout.xaxis?.type).toBe('date'));
 
     expect(lastPlot().trace.x).toEqual(TIMES.map((t) => new Date(t)));
+  });
+
+  // Main's Lightcurve stays mounted (hidden) on other pages, so a second instance's toggle label
+  // must point at its own checkbox rather than the first instance's
+  it('toggles only its own instance when another Lightcurve is mounted', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Lightcurve
+          lightcurveData={lightcurveData}
+          hideStrategyToggle
+          hideFlaggedObsToggle
+        />
+        <Lightcurve
+          lightcurveData={lightcurveData}
+          hideStrategyToggle
+          hideFlaggedObsToggle
+        />
+      </>
+    );
+    const [first, second] = screen.getAllByRole('checkbox');
+
+    await user.click(screen.getAllByText('MJD')[1]);
+
+    expect(second).toBeChecked();
+    expect(first).not.toBeChecked();
   });
 });
 

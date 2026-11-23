@@ -271,7 +271,10 @@ export function Lightcurve({
   // uses this container's id internally for more than just our own restyle calls - two elements
   // sharing a literal "lightcurve-plot" id caused click events on one plot to be attributed to
   // the other instance's data. useId() guarantees this can never collide between instances.
-  const plotElementId = `lightcurve-plot-${useId()}`;
+  // The toggles' ids need the same treatment: each ToggleSwitch's <label htmlFor> resolves to the
+  // first matching id in the document, which would be Main's hidden instance.
+  const instanceId = useId();
+  const plotElementId = `lightcurve-plot-${instanceId}`;
   const [isDataReady, setIsDataReady] = useState(false);
 
   const [hideFlaggedData, setHideFlaggedData] = useState(
@@ -963,7 +966,7 @@ export function Lightcurve({
       {hideFlaggedObsToggle !== true && (
         <div className="flagged-container">
           <ToggleSwitch
-            toggleId="flag-obs"
+            toggleId={`flag-obs-${instanceId}`}
             checked={!hideFlaggedData}
             onChange={onFlaggedObservationChange}
             disabled={false}
@@ -980,18 +983,18 @@ export function Lightcurve({
       )}
       <div className="x-axis-mode-container">
         <ToggleSwitch
-          toggleId="x-axis-mode"
-          checked={xAxisMode === 'date'}
+          toggleId={`x-axis-mode-${instanceId}`}
+          checked={xAxisMode === 'mjd'}
           onChange={onXAxisModeChange}
           disabled={false}
-          checkedLabel="Date"
-          uncheckedLabel="MJD"
+          checkedLabel="MJD"
+          uncheckedLabel="Date"
         />
       </div>
       {hideStrategyToggle !== true && (
         <div className="selection-strategy-container">
           <ToggleSwitch
-            toggleId="view-mode"
+            toggleId={`view-mode-${instanceId}`}
             checked={viewMode === 'binned'}
             onChange={onViewModeChange}
             disabled={false}
